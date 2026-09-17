@@ -8,7 +8,7 @@ import { classify, painChips } from "@/lib/advisor";
 import type { Track } from "@/lib/tracks";
 import { useChatWidget } from "@/components/chat/ChatContext";
 
-type Stage = "business" | "pain" | "chat";
+type Stage = "business" | "pain" | "lead-offer" | "lead-name" | "lead-phone" | "chat";
 
 type Message = {
   id: number;
@@ -35,11 +35,38 @@ function recommendationText(tracks: Track[]) {
   return "מצאתי כמה כיוונים שיכולים להתאים לך:";
 }
 
+async function ensureConversation(existingId: string | null): Promise<string | null> {
+  if (existingId) return existingId;
+  try {
+    const res = await fetch("/api/conversations", { method: "POST" });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.id as string;
+  } catch {
+    return null;
+  }
+}
+
+function syncConversation(id: string | null, patch: Record<string, unknown>) {
+  if (!id) return;
+  fetch(`/api/conversations/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  }).catch(() => {
+    // best-effort persistence; a failed sync should never break the chat UX
+  });
+}
+
 export function FloatingChat() {
   const { isOpen, closeChat, toggleChat } = useChatWidget();
   const [messages, setMessages] = useState<Message[]>([greeting]);
   const [stage, setStage] = useState<Stage>("business");
   const [businessAnswer, setBusinessAnswer] = useState("");
+  const [painAnswer, setPainAnswer] = useState("");
+  const [trackSlugs, setTrackSlugs] = useState<string[]>([]);
+  const [leadName, setLeadName] = useState("");
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -52,42 +79,132 @@ export function FloatingChat() {
     }
   }, [isOpen, messages, typing]);
 
-  function pushAssistant(text: string, tracks?: Track[]) {
-    setMessages((m) => [...m, { id: ++idCounter, role: "assistant", text, tracks }]);
-  }
-
   function reset() {
     setMessages([greeting]);
     setStage("business");
     setBusinessAnswer("");
+    setPainAnswer("");
+    setTrackSlugs([]);
+    setLeadName("");
+    setConversationId(null);
     setInput("");
   }
 
-  function send(displayText: string, matchText: string = displayText) {
+  async function send(displayText: string, matchText: string = displayText) {
     const trimmed = displayText.trim();
     if (!trimmed || typing) return;
 
-    setMessages((m) => [...m, { id: ++idCounter, role: "user", text: trimmed }]);
+    const userMsg: Message = { id: ++idCounter, role: "user", text: trimmed };
+    const messagesWithUser = [...messages, userMsg];
+    setMessages(messagesWithUser);
     setInput("");
     setTyping(true);
 
+    const id = await ensureConversation(conversationId);
+    if (id && id !== conversationId) setConversationId(id);
+
     const delay = 500 + Math.min(trimmed.length * 10, 600);
 
-    setTimeout(() => {
+    window.setTimeout(() => {
+      let assistantMsgs: Message[] = [];
+      let nextStage: Stage = stage;
+      let nextBusiness = businessAnswer;
+      let nextPain = painAnswer;
+      let nextTrackSlugs = trackSlugs;
+
       if (stage === "business") {
-        setBusinessAnswer(matchText);
-        pushAssistant("תודה! ומה הקושי הכי גדול שאתה מתמודד איתו בעסק כרגע?");
-        setStage("pain");
+        nextBusiness = matchText;
+        assistantMsgs = [
+          { id: ++idCounter, role: "assistant", text: "תודה! ומה הקושי הכי גדול שאתה מתמודד איתו בעסק כרגע?" },
+        ];
+        nextStage = "pain";
       } else if (stage === "pain") {
-        const combined = `${businessAnswer} ${matchText}`;
-        const matches = classify(combined);
-        pushAssistant(recommendationText(matches), matches);
-        setStage("chat");
+        nextPain = matchText;
+        const matches = classify(`${businessAnswer} ${matchText}`);
+        nextTrackSlugs = matches.map((t) => t.slug);
+        assistantMsgs = [
+          { id: ++idCounter, role: "assistant", text: recommendationText(matches), tracks: matches },
+        ];
+        if (matches.length > 0) {
+          assistantMsgs.push({
+            id: ++idCounter,
+            role: "assistant",
+            text: "רוצה שאשמור את הפרטים שלך כדי שיעקב יחזור אליך אישית עם הצעה מותאמת?",
+          });
+          nextStage = "lead-offer";
+        } else {
+          nextStage = "chat";
+        }
+      } else if (stage === "lead-offer") {
+        if (matchText === "yes") {
+          assistantMsgs = [{ id: ++idCounter, role: "assistant", text: "מה השם שלך?" }];
+          nextStage = "lead-name";
+        } else if (matchText === "no") {
+          assistantMsgs = [
+            {
+              id: ++idCounter,
+              role: "assistant",
+              text: "בסדר גמור! אפשר גם לגלוש בין ההמלצות למעלה, או להמשיך לשאול אותי כל דבר.",
+            },
+          ];
+          nextStage = "chat";
+        } else {
+          const matches = classify(matchText);
+          nextTrackSlugs = matches.map((t) => t.slug);
+          assistantMsgs = [
+            { id: ++idCounter, role: "assistant", text: recommendationText(matches), tracks: matches },
+          ];
+          nextStage = "chat";
+        }
+      } else if (stage === "lead-name") {
+        setLeadName(matchText);
+        assistantMsgs = [
+          { id: ++idCounter, role: "assistant", text: "מעולה! ומה מספר הטלפון הכי טוב ליצור איתך קשר?" },
+        ];
+        nextStage = "lead-phone";
+      } else if (stage === "lead-phone") {
+        const name = leadName;
+        const phone = matchText;
+        fetch("/api/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            phone,
+            business_type: businessAnswer,
+            pain: painAnswer,
+            track_slug: trackSlugs[0] ?? null,
+            conversation_id: id,
+          }),
+        }).catch(() => {
+          // best-effort; the chat confirmation still reflects intent either way
+        });
+        assistantMsgs = [
+          { id: ++idCounter, role: "assistant", text: `מעולה, ${name}! יעקב יחזור אליך בהקדם 🙌` },
+        ];
+        nextStage = "chat";
       } else {
         const matches = classify(matchText);
-        pushAssistant(recommendationText(matches), matches);
+        nextTrackSlugs = matches.map((t) => t.slug);
+        assistantMsgs = [
+          { id: ++idCounter, role: "assistant", text: recommendationText(matches), tracks: matches },
+        ];
       }
+
+      const finalMessages = [...messagesWithUser, ...assistantMsgs];
+      setMessages(finalMessages);
+      setStage(nextStage);
+      setBusinessAnswer(nextBusiness);
+      setPainAnswer(nextPain);
+      setTrackSlugs(nextTrackSlugs);
       setTyping(false);
+
+      syncConversation(id, {
+        messages: finalMessages,
+        business_type: nextBusiness || null,
+        pain: nextPain || null,
+        track_slugs: nextTrackSlugs,
+      });
     }, delay);
   }
 
@@ -215,6 +332,23 @@ export function FloatingChat() {
               </div>
             )}
 
+            {stage === "lead-offer" && (
+              <div className="flex flex-wrap gap-2 border-t border-border-soft px-4 py-2.5">
+                <button
+                  onClick={() => send("כן, שמרו את הפרטים שלי", "yes")}
+                  className="rounded-full border border-primary-2/50 bg-surface px-3 py-1.5 text-xs font-medium text-primary-2 transition-colors hover:bg-surface-strong"
+                >
+                  כן, שמרו את הפרטים שלי
+                </button>
+                <button
+                  onClick={() => send("לא תודה, רק רציתי לבדוק", "no")}
+                  className="rounded-full border border-border-soft bg-surface px-3 py-1.5 text-xs text-muted transition-colors hover:text-foreground"
+                >
+                  לא תודה, רק רציתי לבדוק
+                </button>
+              </div>
+            )}
+
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -225,7 +359,15 @@ export function FloatingChat() {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={stage === "business" ? "למשל: יש לי מספרה..." : "כתוב כאן..."}
+                placeholder={
+                  stage === "business"
+                    ? "למשל: יש לי מספרה..."
+                    : stage === "lead-name"
+                      ? "השם שלך..."
+                      : stage === "lead-phone"
+                        ? "מספר טלפון..."
+                        : "כתוב כאן..."
+                }
                 className="flex-1 rounded-full bg-surface px-4 py-2.5 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-primary-2/40"
               />
               <button
