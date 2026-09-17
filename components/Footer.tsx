@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { Mail } from "lucide-react";
 import { FacebookIcon, LinkedInIcon, WhatsAppIcon } from "@/components/ui/BrandIcons";
+import { tracks } from "@/lib/tracks";
 
 const socials = [
   { icon: WhatsAppIcon, label: "WhatsApp", href: "https://wa.me/972000000000" },
@@ -14,6 +16,13 @@ export function Footer() {
       <p className="text-xl font-bold">
         יעקב<span className="text-gradient">-אליה</span>
       </p>
+      <nav className="mx-auto mt-6 flex max-w-xl flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-muted">
+        {tracks.map((track) => (
+          <Link key={track.slug} href={track.path} className="transition-colors hover:text-foreground">
+            {track.title}
+          </Link>
+        ))}
+      </nav>
       <div className="mt-6 flex justify-center gap-3">
         {socials.map((s) => (
           <a

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -16,18 +17,31 @@ import {
   TrendingDown,
   Users2,
   Workflow,
+  type LucideIcon,
 } from "lucide-react";
 import { Section, SectionTitle } from "@/components/ui/Section";
 import { StaggerGroup, staggerItem } from "@/components/ui/ScrollReveal";
+import { useChatWidget } from "@/components/chat/ChatContext";
 import { cn } from "@/lib/utils";
 
-const cards = [
+type PainCardData = {
+  id: string;
+  icon: LucideIcon;
+  emoji: string;
+  title: string;
+  text: string;
+  path?: string;
+  chat?: boolean;
+};
+
+const cards: PainCardData[] = [
   {
     id: "pain-leads",
     icon: TrendingDown,
     emoji: "📉",
     title: "אין מספיק פניות חדשות לעסק?",
     text: "האתר שלך לא מביא לקוחות? הלקוחות לא משאירים פרטים?",
+    path: "/leads",
   },
   {
     id: "pain-reviews",
@@ -35,6 +49,7 @@ const cards = [
     emoji: "⭐",
     title: "קשה לקבל ביקורות טובות בגוגל?",
     text: "לקוחות מרוצים אבל אף אחד לא משאיר ביקורת?",
+    path: "/branding",
   },
   {
     id: "pain-whatsapp",
@@ -42,6 +57,7 @@ const cards = [
     emoji: "📱",
     title: "מבזבז שעות על הודעות ווטסאפ?",
     text: "מוצא את עצמך עונה שוב ושוב על אותן שאלות?",
+    path: "/automation",
   },
   {
     id: "pain-scattered",
@@ -49,6 +65,7 @@ const cards = [
     emoji: "🗂️",
     title: "הלקוחות והמידע מפוזרים בכל מקום?",
     text: "וואטסאפ, פתקים, אקסל ומיילים?",
+    path: "/automation",
   },
   {
     id: "pain-deals",
@@ -56,6 +73,7 @@ const cards = [
     emoji: "💸",
     title: "מרגיש שאתה מפספס עסקאות?",
     text: "לקוחות מתעניינים אבל לא סוגרים?",
+    path: "/leads",
   },
   {
     id: "pain-time",
@@ -63,6 +81,7 @@ const cards = [
     emoji: "⏳",
     title: "אין לך זמן לנהל את העסק?",
     text: "העסק עובד סביבך במקום בשבילך?",
+    path: "/automation",
   },
   {
     id: "pain-idea",
@@ -70,6 +89,7 @@ const cards = [
     emoji: "🚀",
     title: "יש לך רעיון למיזם אבל לא יודע מאיפה להתחיל?",
     text: "חושב על אפליקציה או מערכת כבר חודשים?",
+    path: "/community",
   },
   {
     id: "pain-data",
@@ -77,6 +97,7 @@ const cards = [
     emoji: "📊",
     title: "אין לך מושג מה באמת קורה בעסק?",
     text: "כמה פניות הגיעו? מאיפה? מה עובד?",
+    path: "/automation",
   },
   {
     id: "pain-followup",
@@ -84,6 +105,7 @@ const cards = [
     emoji: "🤝",
     title: "לקוחות נופלים בין הכיסאות?",
     text: "אין תהליך מסודר למעקב?",
+    path: "/automation",
   },
   {
     id: "pain-repetitive",
@@ -91,6 +113,7 @@ const cards = [
     emoji: "🔄",
     title: "אתה עושה פעולות שחוזרות על עצמן כל יום?",
     text: "העתקות, תזכורות, מעקבים ושליחת הודעות?",
+    path: "/automation",
   },
   {
     id: "pain-brand",
@@ -98,6 +121,7 @@ const cards = [
     emoji: "🌐",
     title: "העסק שלך לא נראה כמו שהוא באמת?",
     text: "הנוכחות הדיגיטלית לא משדרת את הערך שלך?",
+    path: "/branding",
   },
   {
     id: "pain-tools",
@@ -105,19 +129,21 @@ const cards = [
     emoji: "🧠",
     title: "מרגיש שטכנולוגיה יכולה לעזור אבל לא יודע איך?",
     text: "יש מאות כלים בחוץ ואתה לא יודע מה באמת מתאים לך?",
+    chat: true,
   },
-] as const;
+];
 
 const diagnosis = {
-  id: "pain-diagnosis",
   icon: Target,
   emoji: "🎯",
   title: "לא בטוח מה הבעיה הכי גדולה בעסק שלך?",
-  text: "ענה על כמה שאלות קצרות וקבל כיוון אישי.",
+  text: "ענה על כמה שאלות קצרות וקבל כיוון אישי מהיועץ העסקי.",
   cta: "התחל אבחון",
 };
 
 export function PainPoints() {
+  const { openChat } = useChatWidget();
+
   return (
     <Section id="services" glow="bottom">
       <SectionTitle
@@ -132,7 +158,7 @@ export function PainPoints() {
         ))}
 
         <motion.div variants={staggerItem} className="sm:col-span-2 lg:col-span-3">
-          <a href="#assistant" id={diagnosis.id} className="block scroll-mt-28">
+          <button onClick={openChat} className="block w-full text-start">
             <motion.div
               whileHover={{ y: -4 }}
               className="glow-border glass relative flex flex-col items-center gap-4 overflow-hidden rounded-2xl px-8 py-10 text-center"
@@ -153,30 +179,18 @@ export function PainPoints() {
                 <ArrowLeft className="h-4 w-4" />
               </span>
             </motion.div>
-          </a>
+          </button>
         </motion.div>
       </StaggerGroup>
     </Section>
   );
 }
 
-function PainCard({
-  id,
-  icon: Icon,
-  emoji,
-  title,
-  text,
-}: (typeof cards)[number]) {
-  return (
-    <motion.a
-      href="#assistant"
-      id={id}
-      variants={staggerItem}
-      whileHover={{ y: -6 }}
-      className={cn(
-        "glass group relative flex scroll-mt-28 flex-col gap-4 overflow-hidden rounded-2xl p-6 transition-colors hover:border-primary-2/50"
-      )}
-    >
+function PainCard({ icon: Icon, emoji, title, text, path, chat }: PainCardData) {
+  const { openChat } = useChatWidget();
+
+  const content = (
+    <>
       <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-2))]">
         <Icon className="h-5 w-5 text-white" />
       </span>
@@ -191,6 +205,26 @@ function PainCard({
         <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
       </span>
       <Icon className="pointer-events-none absolute -bottom-3 -left-3 h-16 w-16 -rotate-6 text-white/[0.03] transition-transform group-hover:scale-110" />
-    </motion.a>
+    </>
+  );
+
+  const className = cn(
+    "glass group relative flex w-full text-start flex-col gap-4 overflow-hidden rounded-2xl p-6 transition-colors hover:border-primary-2/50"
+  );
+
+  if (chat) {
+    return (
+      <motion.button onClick={openChat} variants={staggerItem} whileHover={{ y: -6 }} className={className}>
+        {content}
+      </motion.button>
+    );
+  }
+
+  return (
+    <motion.div variants={staggerItem} whileHover={{ y: -6 }}>
+      <Link href={path!} className={className}>
+        {content}
+      </Link>
+    </motion.div>
   );
 }

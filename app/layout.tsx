@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { Heebo } from "next/font/google";
 import "./globals.css";
+import { Nav } from "@/components/Nav";
+import { Footer } from "@/components/Footer";
+import { Aurora } from "@/components/ui/Aurora";
+import { ChatProvider } from "@/components/chat/ChatContext";
+import { FloatingChat } from "@/components/chat/FloatingChat";
 
 const heebo = Heebo({
   variable: "--font-heebo",
@@ -19,7 +24,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="he" dir="rtl" className={`${heebo.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground relative">
         <div className="noise-overlay" />
-        {children}
+        <ChatProvider>
+          <Aurora />
+          <Nav />
+          <main className="relative z-10 flex-1">{children}</main>
+          <Footer />
+          <FloatingChat />
+        </ChatProvider>
       </body>
     </html>
   );
