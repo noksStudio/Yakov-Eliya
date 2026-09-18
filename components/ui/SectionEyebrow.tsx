@@ -8,7 +8,7 @@ export function SectionEyebrow({
   className?: string;
 }) {
   return (
-    <div className={`flex items-start justify-between ${className ?? ""}`} dir="ltr">
+    <div className={`flex items-start justify-center sm:justify-between ${className ?? ""}`} dir="ltr">
       <span className="text-xs font-medium uppercase tracking-[0.25em] text-muted">
         {label}
       </span>

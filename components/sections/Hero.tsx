@@ -60,17 +60,17 @@ export function Hero() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="mt-5 max-w-lg md:mt-16"
+            className="mx-auto mt-3 max-w-lg text-center md:mx-0 md:mt-16 md:text-start"
           >
             <h1 className="text-4xl font-extrabold leading-[1.1] sm:text-5xl lg:text-6xl">
               אני מתחיל
               <br />
-              <span className="text-accent-gradient">מהבעיה שלך</span>
+              <span className="text-accent-gradient">מהבעיה</span>
               <br />
-              לא מהפתרון המוכן.
+              לא מהפתרון.
             </h1>
 
-            <div className="mt-5 flex items-center gap-4 md:mt-7">
+            <div className="mt-2 flex items-center justify-center gap-4 md:mt-7 md:justify-start">
               {features.map((f, i) => (
                 <div key={f.label} className="flex items-center gap-4">
                   {i > 0 && <span className="h-6 w-px bg-border-soft" />}
@@ -84,13 +84,13 @@ export function Hero() {
               ))}
             </div>
 
-            <p className="mt-5 max-w-md text-base leading-relaxed text-muted sm:text-lg md:mt-7">
+            <p className="mx-auto mt-2 max-w-md text-base leading-relaxed text-muted sm:text-lg md:mx-0 md:mt-7">
               אני עוזר לבעלי עסקים ויזמים לחשוב מחדש על תהליכים, לבנות מערכות
               ואוטומציות שמייצרות תוצאות אמיתיות — מהאפיון ועד ההשקה, בגישה
               פשוטה, יצירתית וממוקדת מטרה.
             </p>
 
-            <div className="mt-6 flex flex-wrap items-center gap-4 md:mt-9">
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-4 md:mt-9 md:justify-start">
               <Link href="/#contact">
                 <GradientButton icon={<ArrowLeft className="h-4 w-4" />}>
                   בואו נדבר
