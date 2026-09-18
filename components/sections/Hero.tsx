@@ -14,13 +14,13 @@ const features = [
 
 export function Hero() {
   return (
-    <section id="top" className="relative overflow-hidden pt-28 sm:pt-32 md:min-h-[92vh]">
-      {/* full-bleed portrait — contained card on mobile, edge-to-edge on desktop */}
+    <section id="top" className="relative overflow-hidden md:min-h-[92vh]">
+      {/* full-bleed portrait — edge-to-edge on every breakpoint */}
       <motion.div
         initial={{ opacity: 0, scale: 1.04 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-        className="relative mx-6 mt-10 aspect-[4/5] overflow-hidden rounded-[2rem] sm:mx-10 md:absolute md:inset-y-0 md:end-0 md:start-auto md:mx-0 md:mt-0 md:aspect-auto md:w-[54%] md:rounded-none md:[clip-path:polygon(0_0,100%_0,100%_95%,50%_100%,0_95%)]"
+        className="relative aspect-[4/5] w-full overflow-hidden md:absolute md:inset-y-0 md:end-0 md:aspect-auto md:w-[54%] md:[clip-path:polygon(0_0,100%_0,100%_95%,50%_100%,0_95%)]"
       >
         <PortraitPlaceholder className="h-full w-full rounded-none" />
         <div
@@ -48,7 +48,7 @@ export function Hero() {
         </div>
       </motion.div>
 
-      <div className="relative z-10 px-6 pb-28 pt-8 md:px-10 md:pb-40 md:pt-14">
+      <div className="relative z-10 px-6 pb-28 pt-28 sm:pt-32 md:px-10 md:pb-40 md:pt-40">
         <div className="mx-auto max-w-6xl">
           <SectionEyebrow label="PEOPLE × TECH × GROWTH" tag="IDEAS BUILD IMPACT" />
 
