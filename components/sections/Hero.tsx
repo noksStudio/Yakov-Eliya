@@ -20,7 +20,7 @@ export function Hero() {
         initial={{ opacity: 0, scale: 1.04 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-        className="relative aspect-[4/5] w-full overflow-hidden md:absolute md:inset-y-0 md:end-0 md:aspect-auto md:w-[54%] md:[clip-path:polygon(0_0,100%_0,100%_95%,50%_100%,0_95%)]"
+        className="relative aspect-[4/5] w-full overflow-hidden [clip-path:polygon(0_0,100%_0,100%_95%,50%_100%,0_95%)] md:absolute md:inset-y-0 md:end-0 md:aspect-auto md:w-[54%]"
       >
         <PortraitPlaceholder className="h-full w-full rounded-none" />
         <div
@@ -31,7 +31,7 @@ export function Hero() {
           aria-hidden
           className="absolute inset-y-0 start-0 hidden w-1/4 bg-[linear-gradient(90deg,var(--color-background),transparent)] md:block"
         />
-        <div className="absolute inset-x-6 bottom-6 rounded-2xl bg-[linear-gradient(180deg,transparent,rgba(5,6,15,0.85)_70%)] px-4 pb-4 pt-10 md:inset-x-auto md:start-8 md:bottom-20 md:w-auto">
+        <div className="absolute inset-x-6 bottom-10 rounded-2xl bg-[linear-gradient(180deg,transparent,rgba(5,6,15,0.85)_70%)] px-4 pb-4 pt-10 md:inset-x-auto md:start-8 md:bottom-20 md:w-auto">
           <p
             dir="ltr"
             className="text-3xl text-white sm:text-4xl"
