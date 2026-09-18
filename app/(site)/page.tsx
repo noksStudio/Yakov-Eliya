@@ -1,4 +1,5 @@
 import { Hero } from "@/components/sections/Hero";
+import { WhatsAppConnect } from "@/components/sections/WhatsAppConnect";
 import { About } from "@/components/sections/About";
 import { PainPoints } from "@/components/sections/PainPoints";
 import { Portfolio } from "@/components/sections/Portfolio";
@@ -10,6 +11,7 @@ export default function Home() {
   return (
     <>
       <Hero />
+      <WhatsAppConnect />
       <About />
       <PainPoints />
       <Portfolio />

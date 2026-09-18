@@ -75,6 +75,21 @@ body {
   color: transparent;
 }
 
+.text-accent-gradient {
+  background: linear-gradient(90deg, #6fa3ff 0%, #8fc3ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-hand {
+  font-family: var(--font-display), sans-serif;
+  font-style: italic;
+  font-weight: 500;
+  transform: rotate(-2deg);
+  display: inline-block;
+}
+
 .glow-border {
   position: relative;
 }

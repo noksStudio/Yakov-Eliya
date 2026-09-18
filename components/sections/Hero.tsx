@@ -1,91 +1,95 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Sparkles } from "lucide-react";
-import { TypingText } from "@/components/ui/TypingText";
+import { ArrowLeft, Headphones, Lightbulb } from "lucide-react";
 import { GradientButton } from "@/components/ui/GradientButton";
-import { Eyebrow } from "@/components/ui/Section";
+import { SectionEyebrow } from "@/components/ui/SectionEyebrow";
+import { PortraitPlaceholder } from "@/components/ui/PortraitPlaceholder";
 
-const roles = [
-  "יזם טכנולוגיה ואוטומציה",
-  "איש שיווק ומכירות",
-  "פותר בעיות עסקיות",
-  "מוביל פרויקטים",
-  "יוצר קהילות וחיבורים",
-  "מפתח תוכנה כבר עשור",
-  "בונה מוצרים דיגיטליים",
+const features = [
+  { icon: Headphones, label: "הקשבה" },
+  { icon: Lightbulb, label: "פתרונות יצירתיים" },
 ];
 
 export function Hero() {
   return (
-    <section
-      id="top"
-      className="relative flex min-h-[100svh] flex-col items-center justify-center px-6 pt-32 pb-20 text-center"
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        <Eyebrow>
-          <span className="inline-flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-primary-2" />
-            Noks Studio
-          </span>
-        </Eyebrow>
-      </motion.div>
+    <section id="top" className="relative px-6 pb-20 pt-32 sm:pt-40 md:px-10">
+      <div className="mx-auto max-w-6xl">
+        <SectionEyebrow label="PEOPLE × TECH × GROWTH" tag="IDEAS BUILD IMPACT" />
 
-      <motion.h1
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.1 }}
-        className="mt-8 text-4xl font-extrabold leading-tight sm:text-6xl md:text-7xl"
-      >
-        היי, קוראים לי <span className="text-gradient">יעקב-אליה</span> 👋
-      </motion.h1>
+        <div className="mt-10 grid items-center gap-12 md:grid-cols-2 md:gap-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.7 }}
+            className="relative order-1 md:order-2"
+          >
+            <PortraitPlaceholder className="aspect-[4/5] w-full" />
+            <div className="absolute inset-x-6 bottom-6 rounded-2xl bg-[linear-gradient(180deg,transparent,rgba(5,6,15,0.85)_70%)] px-4 pb-4 pt-10">
+              <p
+                dir="ltr"
+                className="text-3xl text-white sm:text-4xl"
+                style={{ fontFamily: "var(--font-signature)" }}
+              >
+                Yakov-Eliya
+              </p>
+              <p
+                dir="ltr"
+                className="mt-1 text-[11px] font-medium uppercase tracking-[0.2em] text-white/60"
+              >
+                Solving problems. Building growth.
+              </p>
+            </div>
+          </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.2 }}
-        className="mt-6 h-9 text-xl font-medium text-primary-2 sm:text-2xl"
-      >
-        <TypingText words={roles} />
-      </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.1 }}
+            className="order-2 md:order-1"
+          >
+            <h1 className="text-4xl font-extrabold leading-[1.1] sm:text-5xl lg:text-6xl">
+              אני מתחיל
+              <br />
+              <span className="text-accent-gradient">מהבעיה שלך</span>
+              <br />
+              לא מהפתרון המוכן.
+            </h1>
 
-      <motion.p
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.3 }}
-        className="mt-6 max-w-2xl text-lg leading-relaxed text-muted sm:text-xl"
-      >
-        אני עוזר לבעלי עסקים ויזמים לפתור בעיות, לחסוך זמן, להגדיל הכנסות
-        ולהשתמש בטכנולוגיה בצורה חכמה יותר.
-      </motion.p>
+            <div className="mt-7 flex items-center gap-4">
+              {features.map((f, i) => (
+                <div key={f.label} className="flex items-center gap-4">
+                  {i > 0 && <span className="h-6 w-px bg-border-soft" />}
+                  <span className="flex items-center gap-2 text-sm font-medium text-muted">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-strong">
+                      <f.icon className="h-4 w-4 text-accent" />
+                    </span>
+                    {f.label}
+                  </span>
+                </div>
+              ))}
+            </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.4 }}
-        className="mt-10"
-      >
-        <a href="#services">
-          <GradientButton icon={<ArrowLeft className="h-4 w-4" />}>
-            בוא נראה איך אפשר לעזור לעסק שלך
-          </GradientButton>
-        </a>
-      </motion.div>
+            <p className="mt-7 max-w-lg text-base leading-relaxed text-muted sm:text-lg">
+              אני עוזר לבעלי עסקים ויזמים לחשוב מחדש על תהליכים, לבנות מערכות
+              ואוטומציות שמייצרות תוצאות אמיתיות — מהאפיון ועד ההשקה, בגישה
+              פשוטה, יצירתית וממוקדת מטרה.
+            </p>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1, y: [0, 8, 0] }}
-        transition={{ opacity: { delay: 1 }, y: { repeat: Infinity, duration: 2 } }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-muted"
-      >
-        <div className="h-9 w-6 rounded-full border border-border-soft p-1">
-          <div className="h-2 w-full rounded-full bg-primary-2" />
+            <div className="mt-9 flex flex-wrap items-center gap-4">
+              <Link href="/#contact">
+                <GradientButton icon={<ArrowLeft className="h-4 w-4" />}>
+                  בואו נדבר
+                </GradientButton>
+              </Link>
+              <Link href="/#work">
+                <GradientButton variant="ghost">צפו בפרויקטים שלי</GradientButton>
+              </Link>
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 }

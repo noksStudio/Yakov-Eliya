@@ -2,9 +2,10 @@ import Link from "next/link";
 import { Mail } from "lucide-react";
 import { FacebookIcon, LinkedInIcon, WhatsAppIcon } from "@/components/ui/BrandIcons";
 import { tracks } from "@/lib/tracks";
+import { whatsappLink } from "@/lib/site-config";
 
 const socials = [
-  { icon: WhatsAppIcon, label: "WhatsApp", href: "https://wa.me/972000000000" },
+  { icon: WhatsAppIcon, label: "WhatsApp", href: whatsappLink() },
   { icon: LinkedInIcon, label: "LinkedIn", href: "#" },
   { icon: FacebookIcon, label: "Facebook", href: "#" },
   { icon: Mail, label: "Email", href: "mailto:hello@example.com" },
