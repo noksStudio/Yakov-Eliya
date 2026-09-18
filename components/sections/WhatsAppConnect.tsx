@@ -15,7 +15,7 @@ const perks = [
 
 export function WhatsAppConnect() {
   return (
-    <section className="relative border-t border-border-soft px-6 py-20 sm:py-28 md:px-10">
+    <section className="relative px-6 py-20 sm:py-28 md:px-10">
       <div className="mx-auto max-w-6xl">
         <SectionEyebrow label="LET'S CONNECT" />
 
