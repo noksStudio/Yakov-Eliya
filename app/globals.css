@@ -13,6 +13,12 @@
   --primary-2: #8b5cf6;
   --accent: #4f8bff;
 
+  --gold: #d4a24e;
+  --gold-2: #f0c878;
+  --paper: #f7f2ea;
+  --paper-ink: #14110d;
+  --paper-muted: #6b6255;
+
   --font-display: var(--font-heebo);
 }
 
@@ -27,6 +33,11 @@
   --color-primary: var(--primary);
   --color-primary-2: var(--primary-2);
   --color-accent: var(--accent);
+  --color-gold: var(--gold);
+  --color-gold-2: var(--gold-2);
+  --color-paper: var(--paper);
+  --color-paper-ink: var(--paper-ink);
+  --color-paper-muted: var(--paper-muted);
   --font-sans: var(--font-display);
 }
 
@@ -77,6 +88,13 @@ body {
 
 .text-accent-gradient {
   background: linear-gradient(90deg, #6fa3ff 0%, #8fc3ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gold-gradient {
+  background: linear-gradient(90deg, var(--gold) 0%, var(--gold-2) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
