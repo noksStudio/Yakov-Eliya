@@ -14,7 +14,7 @@ type ConflictingHandlers =
 
 type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, ConflictingHandlers> & {
   children: ReactNode;
-  variant?: "primary" | "ghost";
+  variant?: "primary" | "ghost" | "gold";
   icon?: ReactNode;
 };
 
@@ -38,6 +38,29 @@ export function GradientButton({
       >
         {children}
         {icon}
+      </motion.button>
+    );
+  }
+
+  if (variant === "gold") {
+    return (
+      <motion.button
+        whileHover={{ y: -2 }}
+        whileTap={{ scale: 0.97 }}
+        className={cn(
+          "group relative inline-flex items-center gap-2 overflow-hidden rounded-full px-7 py-3.5 text-sm font-semibold text-[#14110d] shadow-[0_0_30px_-8px_rgba(212,162,78,0.6)] transition-shadow hover:shadow-[0_0_45px_-8px_rgba(212,162,78,0.8)]",
+          className
+        )}
+        {...props}
+      >
+        <span
+          aria-hidden
+          className="absolute inset-0 bg-[linear-gradient(115deg,var(--gold),var(--gold-2))] bg-[length:200%_200%] transition-[background-position] duration-500 group-hover:bg-[position:100%_0]"
+        />
+        <span className="relative z-10 flex items-center gap-2">
+          {children}
+          {icon}
+        </span>
       </motion.button>
     );
   }
