@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Heebo, Dancing_Script, Montserrat } from "next/font/google";
 import "./globals.css";
+import { AccessibilityProvider } from "@/components/AccessibilityWidget";
 
 const heebo = Heebo({
   variable: "--font-heebo",
@@ -35,7 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col bg-background text-foreground relative">
         <div className="noise-overlay" />
-        {children}
+        <AccessibilityProvider>{children}</AccessibilityProvider>
       </body>
     </html>
   );

@@ -368,6 +368,7 @@ export function FloatingChat() {
                         ? "מספר טלפון..."
                         : "כתוב כאן..."
                 }
+                aria-label="הודעה ליועץ"
                 className="flex-1 rounded-full bg-surface px-4 py-2.5 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-primary-2/40"
               />
               <button
@@ -378,6 +379,12 @@ export function FloatingChat() {
                 <Send className="h-4 w-4 -scale-x-100" />
               </button>
             </form>
+            <p className="pb-2.5 text-center text-[11px] text-muted">
+              השיחה נשמרת לשיפור השירות ·{" "}
+              <Link href="/privacy" className="underline underline-offset-2 hover:text-foreground">
+                מדיניות פרטיות
+              </Link>
+            </p>
           </motion.div>
         )}
       </AnimatePresence>

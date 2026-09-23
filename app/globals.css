@@ -193,3 +193,47 @@ body {
   opacity: 0.035;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
+
+:focus-visible {
+  outline: 3px solid #f0c878;
+  outline-offset: 3px;
+}
+
+/* Accessibility widget modes (classes toggled on <html>). */
+.a11y-zoom main,
+.a11y-zoom header,
+.a11y-zoom footer {
+  zoom: var(--a11y-zoom, 1);
+}
+
+.a11y-links a {
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
+  outline: 2px solid #ffd400 !important;
+  outline-offset: 2px;
+}
+
+.a11y-font body,
+.a11y-font body * {
+  font-family: Arial, "Helvetica Neue", sans-serif !important;
+}
+
+.a11y-spacing body * {
+  letter-spacing: 0.06em !important;
+  word-spacing: 0.16em !important;
+  line-height: 1.8 !important;
+}
+
+.a11y-motion *,
+.a11y-motion *::before,
+.a11y-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+.a11y-cursor,
+.a11y-cursor * {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24'><path d='M4 2l16 11-7 1.5L16.5 22l-3 1.3-3.4-7.4L4 20z' fill='black' stroke='white' stroke-width='1.2'/></svg>") 8 4, auto !important;
+}
