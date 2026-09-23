@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { ArrowRight, BarChart3, Lightbulb, Users } from "lucide-react";
-import { useChatWidget } from "@/components/chat/ChatContext";
+import { TalkLink } from "@/components/TalkLink";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 const pillars = [
@@ -14,8 +14,6 @@ const pillars = [
 const earthMask = "linear-gradient(to bottom, transparent 0%, #000 22%)";
 
 export function ClosingCta() {
-  const { openChat } = useChatWidget();
-
   return (
     <section id="contact" className="relative overflow-hidden bg-[#050506] text-white">
       <Backdrop />
@@ -52,8 +50,8 @@ export function ClosingCta() {
             בואו נדבר.
           </p>
 
-          <button
-            onClick={openChat}
+          <TalkLink
+            message="היי יעקב, אשמח לקבוע שיחה ראשונית"
             className="relative mx-auto mt-[5vw] flex h-[max(9.2vw,46px)] w-[max(44.7vw,200px)] items-center justify-center gap-[3vw] rounded-full border-[1.5px] border-[#d9b064] bg-[#0a0a0b] text-[length:max(3.4vw,16px)] font-bold shadow-[0_0_28px_-6px_rgba(217,176,100,0.45),inset_0_1px_0_rgba(255,220,150,0.35)] transition-transform hover:scale-[1.02] md:mt-12 md:h-[94px] md:w-[458px] md:gap-6 md:text-[34px]"
           >
             <span
@@ -62,7 +60,7 @@ export function ClosingCta() {
             />
             בואו נדבר
             <ArrowRight className="h-[max(3.6vw,18px)] w-[max(3.6vw,18px)] text-[#e6b963] md:h-10 md:w-10" strokeWidth={2} />
-          </button>
+          </TalkLink>
 
           <p className="mt-[3.4vw] text-[length:max(2.5vw,12.5px)] text-white/75 md:mt-9 md:text-[23px]">
             שיחה ראשונית <span className="mx-[1.2vw] text-[#d9b064]">•</span> בלי התחייבות{" "}

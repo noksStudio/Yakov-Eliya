@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { useChatWidget } from "@/components/chat/ChatContext";
+import { TalkLink } from "@/components/TalkLink";
 import { ScrollReveal, StaggerGroup, staggerItem } from "@/components/ui/ScrollReveal";
 import { motion } from "framer-motion";
 
@@ -127,7 +127,6 @@ export function Services() {
 }
 
 function ServiceCard({ service: s }: { service: Service }) {
-  const { openChat } = useChatWidget();
   const linkInner = (
     <>
       <span className="text-[length:3.6cqw] font-semibold text-white">לפרטים נוספים</span>
@@ -182,9 +181,12 @@ function ServiceCard({ service: s }: { service: Service }) {
               {linkInner}
             </Link>
           ) : (
-            <button onClick={openChat} className="inline-flex items-center gap-[2.8cqw]">
+            <TalkLink
+              message={`היי יעקב, אשמח לשמוע על ${s.title.join(" ")}`}
+              className="inline-flex items-center gap-[2.8cqw]"
+            >
               {linkInner}
-            </button>
+            </TalkLink>
           )}
         </div>
       </div>

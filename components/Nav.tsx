@@ -7,6 +7,7 @@ import { motion, useScroll, useSpring } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { GradientButton } from "@/components/ui/GradientButton";
 import { useChatWidget } from "@/components/chat/ChatContext";
+import { CHAT_ENABLED } from "@/lib/site-config";
 
 const links = [
   { href: "/#services", label: "שירותים" },
@@ -61,15 +62,17 @@ export function Nav() {
               </Link>
             </li>
           ))}
-          <li>
-            <button
-              onClick={openChat}
-              className="inline-flex items-center gap-1.5 transition-colors hover:text-white"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-[#e2b25e]" />
-              עוזר AI
-            </button>
-          </li>
+          {CHAT_ENABLED && (
+            <li>
+              <button
+                onClick={openChat}
+                className="inline-flex items-center gap-1.5 transition-colors hover:text-white"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-[#e2b25e]" />
+                עוזר AI
+              </button>
+            </li>
+          )}
         </ul>
         <Link href="/#contact">
           <GradientButton variant="gold" className="px-5 py-2 text-xs sm:text-sm">

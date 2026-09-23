@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Aurora } from "@/components/ui/Aurora";
 import { ChatProvider } from "@/components/chat/ChatContext";
 import { FloatingChat } from "@/components/chat/FloatingChat";
+import { CHAT_ENABLED } from "@/lib/site-config";
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
@@ -20,7 +21,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <Footer />
-      <FloatingChat />
+      {CHAT_ENABLED && <FloatingChat />}
     </ChatProvider>
   );
 }

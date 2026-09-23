@@ -4,6 +4,7 @@ import { Calendar } from "lucide-react";
 import { Section } from "@/components/ui/Section";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { GradientButton } from "@/components/ui/GradientButton";
+import { whatsappLink } from "@/lib/site-config";
 
 export function FinalCTA() {
   return (
@@ -19,7 +20,12 @@ export function FinalCTA() {
             לעזור לך להתקדם.
           </p>
           <div className="mt-9">
-            <GradientButton icon={<Calendar className="h-4 w-4" />}>
+            <GradientButton
+              icon={<Calendar className="h-4 w-4" />}
+              onClick={() =>
+                window.open(whatsappLink("היי יעקב, אשמח לקבוע שיחת ייעוץ"), "_blank", "noopener,noreferrer")
+              }
+            >
               קביעת שיחת ייעוץ ללא עלות
             </GradientButton>
           </div>

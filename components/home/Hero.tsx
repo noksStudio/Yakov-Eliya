@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { LayoutPanelLeft, Send } from "lucide-react";
-import { useChatWidget } from "@/components/chat/ChatContext";
+import { TalkLink } from "@/components/TalkLink";
 
 const fade = (delay: number) => ({
   initial: { opacity: 0, y: 14 },
@@ -15,8 +15,6 @@ const fade = (delay: number) => ({
 // Mobile keeps the mockup's exact 941×1672 proportions: every element is placed by % of
 // height and sized in vw, so it lines up with the matching spots in the photo.
 export function Hero() {
-  const { openChat } = useChatWidget();
-
   return (
     <section
       id="top"
@@ -55,13 +53,13 @@ export function Hero() {
           {...fade(0.45)}
           className="absolute inset-x-[14.6%] top-[68.06%] grid h-[9.14vw] grid-cols-2 gap-[2vw] md:static md:mt-12 md:h-16 md:w-[460px] md:gap-4"
         >
-          <button
-            onClick={openChat}
+          <TalkLink
+            message="היי יעקב, ראיתי את האתר ואשמח לדבר"
             className="flex items-center justify-center gap-[2.4vw] rounded-[1.9vw] bg-[linear-gradient(180deg,#f8d995,#e7b262_60%,#dfa650)] text-[3.55vw] font-bold text-[#1d1407] shadow-[0_6px_24px_-8px_rgba(231,178,98,0.7)] transition-transform hover:scale-[1.02] md:gap-3 md:rounded-2xl md:text-lg"
           >
             <Send className="h-[3.6vw] w-[3.6vw] md:h-5 md:w-5" strokeWidth={2.4} />
             בואו נדבר
-          </button>
+          </TalkLink>
           <Link
             href="/#services"
             className="flex items-center justify-center gap-[3.4vw] rounded-[1.9vw] border-[max(0.22vw,1px)] border-[#e3b869] bg-[rgba(8,7,6,0.84)] text-[3.55vw] font-bold text-white transition-colors hover:bg-black md:gap-3 md:rounded-2xl md:border-[1.5px] md:text-lg"

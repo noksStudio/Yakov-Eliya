@@ -5,6 +5,7 @@ import { AiProof } from "@/components/home/AiProof";
 import { Process } from "@/components/home/Process";
 import { Partners } from "@/components/home/Partners";
 import { ClosingCta } from "@/components/home/ClosingCta";
+import { CHAT_ENABLED } from "@/lib/site-config";
 
 export default function Home() {
   return (
@@ -12,7 +13,7 @@ export default function Home() {
       <Hero />
       <Services />
       <WhatsAppCta />
-      <AiProof />
+      {CHAT_ENABLED && <AiProof />}
       <Process />
       <Partners />
       <ClosingCta />

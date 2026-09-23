@@ -39,13 +39,17 @@ export function Footer() {
       <p className="mx-auto mt-8 max-w-md text-muted">
         &ldquo;מחפש דרך חכמה יותר לקדם את העסק? בוא נדבר.&rdquo;
       </p>
-      <nav aria-label="מידע משפטי" className="mt-8 flex justify-center gap-5 text-sm text-muted">
+      <nav aria-label="מידע משפטי" className="mt-8 flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-muted">
         <Link href="/accessibility" className="underline-offset-4 transition-colors hover:text-foreground hover:underline">
           הצהרת נגישות
         </Link>
         <span aria-hidden className="text-muted/40">|</span>
         <Link href="/privacy" className="underline-offset-4 transition-colors hover:text-foreground hover:underline">
           מדיניות פרטיות
+        </Link>
+        <span aria-hidden className="text-muted/40">|</span>
+        <Link href="/terms" className="underline-offset-4 transition-colors hover:text-foreground hover:underline">
+          תנאי שימוש
         </Link>
       </nav>
       <p className="mt-4 text-xs text-muted/60">
