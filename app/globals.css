@@ -306,3 +306,69 @@ body {
     animation: none;
   }
 }
+
+/* Services deck */
+.shine-metal {
+  background-image:
+    linear-gradient(110deg, transparent 38%, rgba(255, 246, 225, 0.95) 50%, transparent 62%),
+    linear-gradient(100deg, #b58a4f 0%, #e8c78d 45%, #c79a5a 70%, #a9783e 100%);
+  background-size: 250% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  background-position: 150% 0, 0 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: hero-shine 1.4s ease-in-out 0.9s 1 both;
+}
+
+.card-float {
+  animation: card-float 6s ease-in-out infinite;
+}
+
+@keyframes card-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3.5%); }
+}
+
+.lamp-breathe {
+  animation: lamp-breathe 5s ease-in-out infinite;
+}
+
+@keyframes lamp-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+
+@property --run-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* A slow gold light travelling around the border of the card on top of the deck. */
+.card-border-run {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: conic-gradient(from var(--run-angle), transparent 0deg, transparent 290deg, rgba(240, 200, 120, 0.9) 330deg, transparent 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  transition: opacity 0.5s ease;
+  animation: border-run 6s linear infinite;
+}
+
+@keyframes border-run {
+  to { --run-angle: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shine-metal,
+  .card-float,
+  .lamp-breathe,
+  .card-border-run {
+    animation: none;
+  }
+}
