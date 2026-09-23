@@ -454,3 +454,50 @@ body {
     animation: none;
   }
 }
+
+/* Compass section */
+.orbit-flow { animation: orbit-flow 1.6s linear infinite; }
+@keyframes orbit-flow { to { stroke-dashoffset: -22; } }
+
+.node-ping { animation: node-ping 1.8s ease-out infinite; }
+@keyframes node-ping {
+  0% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+.compass-bob { animation: compass-bob 9s ease-in-out infinite; }
+@keyframes compass-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33% { transform: translateY(-1.2%) rotate(0.6deg); }
+  66% { transform: translateY(0.6%) rotate(-0.5deg); }
+}
+
+.compass-sweep {
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.22) 50%, transparent 60%);
+  background-size: 300% 100%;
+  background-position: 150% 0;
+  animation: compass-sweep 7s ease-in-out 2s infinite;
+}
+@keyframes compass-sweep {
+  0%, 70% { background-position: 150% 0; }
+  100% { background-position: -50% 0; }
+}
+
+.orbit-slow { animation: orbit-breathe 12s ease-in-out infinite; }
+.orbit-slow-rev { animation: orbit-breathe 14s ease-in-out -6s infinite; }
+@keyframes orbit-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.03); opacity: 0.7; }
+}
+
+.bokeh-drift { animation: bokeh-drift 11s ease-in-out infinite; }
+@keyframes bokeh-drift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(6%, -8%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-flow, .node-ping, .compass-bob, .compass-sweep, .orbit-slow, .orbit-slow-rev, .bokeh-drift {
+    animation: none;
+  }
+}

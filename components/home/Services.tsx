@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
+import { useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
 import Image from "next/image";
 import {
   AnimatePresence,
@@ -16,6 +16,7 @@ import {
 import { ArrowRight } from "lucide-react";
 import { whatsappLink } from "@/lib/site-config";
 import { openAfter } from "@/lib/open-later";
+import { useScrollMagnet } from "@/lib/use-scroll-magnet";
 
 type Service = {
   n: string;
@@ -165,7 +166,7 @@ function PinnedDeck() {
     }
   });
 
-  useCardMagnet(trackRef);
+  useScrollMagnet(trackRef, COUNT);
 
   // Keyboard users tabbing onto a covered card get scrolled to the point where it is on top.
   const scrollToCard = (i: number) => {
@@ -219,60 +220,6 @@ function PinnedDeck() {
       </div>
     </div>
   );
-}
-
-// When scrolling stops part-way between two cards, glide to the nearer card in the direction
-// of travel so the deck never rests on a half-entered card whose text is still hidden.
-function useCardMagnet(trackRef: React.RefObject<HTMLDivElement | null>) {
-  useEffect(() => {
-    let idle = 0;
-    let touching = false;
-    let lastY = window.scrollY;
-    let travel = 0;
-
-    const settle = () => {
-      const track = trackRef.current;
-      if (!track || touching) return;
-      const top = track.getBoundingClientRect().top + window.scrollY;
-      const range = track.offsetHeight - window.innerHeight;
-      const step = range / (COUNT - 1);
-      const offset = window.scrollY - top;
-      if (offset <= 2 || offset >= range - 2) return;
-      const v = offset / step;
-      const frac = v - Math.floor(v);
-      if (frac < 0.02 || frac > 0.98) return;
-      const target = travel >= 0 ? (frac > 0.25 ? Math.ceil(v) : Math.floor(v)) : frac < 0.75 ? Math.floor(v) : Math.ceil(v);
-      window.scrollTo({ top: top + target * step, behavior: "smooth" });
-    };
-
-    const onScroll = () => {
-      const y = window.scrollY;
-      if (y !== lastY) travel = y - lastY;
-      lastY = y;
-      window.clearTimeout(idle);
-      idle = window.setTimeout(settle, 140);
-    };
-    const onTouchStart = () => {
-      touching = true;
-    };
-    const onTouchEnd = () => {
-      touching = false;
-      window.clearTimeout(idle);
-      idle = window.setTimeout(settle, 140);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchend", onTouchEnd, { passive: true });
-    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
-    return () => {
-      window.clearTimeout(idle);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchend", onTouchEnd);
-      window.removeEventListener("touchcancel", onTouchEnd);
-    };
-  }, [trackRef]);
 }
 
 function StackCard({
