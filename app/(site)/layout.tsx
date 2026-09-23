@@ -3,8 +3,12 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { Aurora } from "@/components/ui/Aurora";
 import { ChatProvider } from "@/components/chat/ChatContext";
-import { FloatingChat } from "@/components/chat/FloatingChat";
+import dynamic from "next/dynamic";
 import { CHAT_ENABLED } from "@/lib/site-config";
+import { PauseOffscreen } from "@/components/PauseOffscreen";
+
+// Loaded only when the chat is switched on, so a paused chat costs nothing.
+const FloatingChat = dynamic(() => import("@/components/chat/FloatingChat").then((m) => m.FloatingChat));
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
@@ -21,6 +25,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <Footer />
+      <PauseOffscreen />
       {CHAT_ENABLED && <FloatingChat />}
     </ChatProvider>
   );

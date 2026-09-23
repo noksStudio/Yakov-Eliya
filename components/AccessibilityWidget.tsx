@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MotionConfig } from "framer-motion";
+import { LazyMotion, MotionConfig } from "framer-motion";
 import {
   Accessibility,
   Contrast,
@@ -45,6 +45,8 @@ const DEFAULTS: Settings = {
 };
 
 const STORAGE_KEY = "a11y-settings";
+// The animation engine loads in its own chunk after the page is interactive.
+const loadMotionFeatures = () => import("@/lib/motion-features").then((mod) => mod.default);
 const ZOOM_LEVELS = [1, 1.1, 1.2, 1.3];
 
 const toggles: { key: Exclude<keyof Settings, "zoom">; label: string; icon: typeof Contrast }[] = [
@@ -94,7 +96,9 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
 
   return (
     <MotionConfig reducedMotion={settings.stopMotion ? "always" : "user"}>
-      {children}
+      <LazyMotion features={loadMotionFeatures} strict>
+        {children}
+      </LazyMotion>
       {!hidden && <AccessibilityWidget settings={settings} setSettings={setSettings} />}
     </MotionConfig>
   );

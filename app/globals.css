@@ -250,7 +250,7 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: hero-shine 1.3s ease-in-out 2.7s 1 both;
+  animation: hero-shine 1.3s ease-in-out 1.75s 1 both;
 }
 
 @keyframes hero-shine {
@@ -260,7 +260,7 @@ body {
 
 .btn-sweep {
   transform: translateX(-130%) skewX(-20deg);
-  animation: btn-sweep 6s ease-in-out 3.1s infinite;
+  animation: btn-sweep 6s ease-in-out 2.1s infinite;
 }
 
 @keyframes btn-sweep {
@@ -339,36 +339,42 @@ body {
   50% { opacity: 0.72; }
 }
 
-@property --run-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
-/* A slow gold light travelling around the border of the card on top of the deck. */
+/* A slow gold light travelling around the border of the card on top of the deck. The ring
+   mask is static; only the gradient underneath rotates, which the compositor handles. */
 .card-border-run {
   position: absolute;
   inset: 0;
   border-radius: inherit;
   padding: 1px;
+  overflow: hidden;
   pointer-events: none;
-  background: conic-gradient(from var(--run-angle), transparent 0deg, transparent 290deg, rgba(240, 200, 120, 0.9) 330deg, transparent 360deg);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   transition: opacity 0.5s ease;
+}
+.card-border-run::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 250%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background: conic-gradient(transparent 0deg, transparent 290deg, rgba(240, 200, 120, 0.9) 330deg, transparent 360deg);
   animation: border-run 6s linear infinite;
+  will-change: transform;
 }
 
 @keyframes border-run {
-  to { --run-angle: 360deg; }
+  to { rotate: 360deg; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .shine-metal,
   .card-float,
   .lamp-breathe,
-  .card-border-run {
+  .card-border-run::before {
     animation: none;
   }
 }
@@ -404,11 +410,9 @@ body {
 }
 .perk-flicker { animation: perk-flicker 4.5s linear 2s infinite; }
 @keyframes perk-flicker {
-  0%, 84%, 100% { opacity: 1; filter: drop-shadow(0 0 0 transparent); }
-  86% { opacity: 0.35; }
-  88% { opacity: 1; filter: drop-shadow(0 0 6px rgba(126, 166, 255, 0.9)); }
+  0%, 84%, 88%, 92%, 100% { opacity: 1; }
+  86% { opacity: 0.3; }
   90% { opacity: 0.5; }
-  92% { opacity: 1; filter: drop-shadow(0 0 6px rgba(126, 166, 255, 0.9)); }
 }
 
 .wa-pulse::after {
@@ -472,15 +476,18 @@ body {
   66% { transform: translateY(0.6%) rotate(-0.5deg); }
 }
 
-.compass-sweep {
+.compass-sweep::before {
+  content: "";
+  position: absolute;
+  inset: 0 -100%;
   background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.22) 50%, transparent 60%);
-  background-size: 300% 100%;
-  background-position: 150% 0;
+  translate: 50% 0;
   animation: compass-sweep 7s ease-in-out 2s infinite;
+  will-change: translate;
 }
 @keyframes compass-sweep {
-  0%, 70% { background-position: 150% 0; }
-  100% { background-position: -50% 0; }
+  0%, 70% { translate: 50% 0; }
+  100% { translate: -50% 0; }
 }
 
 .orbit-slow { animation: orbit-breathe 12s ease-in-out infinite; }
@@ -497,7 +504,45 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .orbit-flow, .node-ping, .compass-bob, .compass-sweep, .orbit-slow, .orbit-slow-rev, .bokeh-drift {
+  .orbit-flow, .node-ping, .compass-bob, .compass-sweep::before, .orbit-slow, .orbit-slow-rev, .bokeh-drift {
     animation: none;
   }
+}
+
+/* Section loops are paused until the section is actually on screen (set by PauseOffscreen). */
+main section:not([data-onscreen]) *,
+main section:not([data-onscreen]) *::before,
+main section:not([data-onscreen]) *::after {
+  animation-play-state: paused !important;
+}
+
+.hero-kenburns { animation: hero-kenburns 22s ease-in-out 1.8s infinite alternate both; }
+@keyframes hero-kenburns {
+  from { scale: 1.02; }
+  to { scale: 1.07; }
+}
+.hero-neon { animation: hero-neon 7s ease-in-out infinite; }
+@keyframes hero-neon {
+  0%, 100% { opacity: 1; }
+  20% { opacity: 0.78; }
+  40% { opacity: 1; }
+  60% { opacity: 0.8; }
+  86% { opacity: 1; }
+  88% { opacity: 0.35; }
+  90% { opacity: 1; }
+  92% { opacity: 0.55; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-kenburns, .hero-neon { animation: none; }
+}
+
+/* Type-on text: each letter span carries --i; the parent sets --type-start and --type-step. */
+.type-off > span { opacity: 0; }
+.type-on > span {
+  opacity: 0;
+  animation: type-letter 0.05s linear calc(var(--type-start, 0s) + var(--i, 0) * var(--type-step, 0.03s)) forwards;
+}
+@keyframes type-letter { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .type-on > span { animation: none; opacity: 1; }
 }

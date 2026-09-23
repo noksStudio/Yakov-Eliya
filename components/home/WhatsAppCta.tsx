@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type MouseEvent } from "react";
 import Image from "next/image";
 import {
   AnimatePresence,
-  motion,
+  m,
   useInView,
   useMotionValue,
   useReducedMotionConfig,
@@ -71,7 +71,7 @@ export function WhatsAppCta() {
       <div className="relative mx-auto grid max-w-[1100px] grid-cols-[61fr_39fr] items-start md:grid-cols-[49fr_47fr]">
         <div className="py-[6.4vw] pe-[2vw] ps-[4.3vw] md:py-16 md:pe-4 md:ps-10">
           <div className="flex items-center gap-[3vw] md:gap-5">
-            <motion.span
+            <m.span
               dir="ltr"
               initial={{ opacity: 0, letterSpacing: "0.7em" }}
               animate={show({ opacity: 1, letterSpacing: "0.35em" })}
@@ -79,8 +79,8 @@ export function WhatsAppCta() {
               className="font-latin text-[length:max(1.4vw,7.5px)] font-medium text-white/60 md:text-[13px]"
             >
               LET&apos;S CONNECT
-            </motion.span>
-            <motion.span
+            </m.span>
+            <m.span
               initial={{ scaleX: 0 }}
               animate={show({ scaleX: 1 })}
               transition={at(T.eyebrow + 0.2, 0.7)}
@@ -89,27 +89,27 @@ export function WhatsAppCta() {
           </div>
 
           <h2 className="mt-[3.4vw] overflow-hidden pb-[0.06em] text-[length:max(7.4vw,30px)] font-black leading-[1.05] text-white md:mt-8 md:text-[76px]">
-            <motion.span className="inline-block" initial={{ y: "110%" }} animate={show({ y: "0%" })} transition={at(T.title, 0.8)}>
+            <m.span className="inline-block" initial={{ y: "110%" }} animate={show({ y: "0%" })} transition={at(T.title, 0.8)}>
               בעל עסק
-              <motion.span
+              <m.span
                 className="inline-block"
                 initial={{ y: 0 }}
                 animate={inView && !still ? { y: [0, "-0.18em", 0, "-0.06em", 0] } : undefined}
                 transition={{ delay: T.title + 0.75, duration: 0.6, ease: "easeOut" }}
               >
                 ?
-              </motion.span>
-            </motion.span>
+              </m.span>
+            </m.span>
           </h2>
-          <motion.p
+          <m.p
             initial={{ opacity: 0, y: 12 }}
             animate={show({ opacity: 1, y: 0 })}
             transition={at(T.sub)}
             className="mt-[1.2vw] whitespace-nowrap text-[length:max(4.3vw,14px)] font-extrabold leading-tight text-white md:mt-3 md:text-[42px]"
           >
             אני אשמח שנישאר בקשר.
-          </motion.p>
-          <motion.p
+          </m.p>
+          <m.p
             initial={{ opacity: 0, y: 12 }}
             animate={show({ opacity: 1, y: 0 })}
             transition={at(T.body)}
@@ -118,9 +118,9 @@ export function WhatsAppCta() {
             יש לך שאלה, רעיון או התלבטות?
             <br />
             לחץ כאן ושלח לי הודעה בוואטסאפ – שנהיה בקשר.
-          </motion.p>
+          </m.p>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 12 }}
             animate={show({ opacity: 1, y: 0 })}
             transition={at(T.chips)}
@@ -144,27 +144,24 @@ export function WhatsAppCta() {
                         : "border-white/15 bg-white/[0.03] text-white/75 hover:border-white/35 hover:text-white"
                     }`}
                   >
-                    {selected && (
-                      <motion.span
-                        layoutId="wa-topic-glow"
-                        className="absolute inset-0 rounded-full shadow-[0_0_16px_-2px_rgba(37,211,102,0.65)]"
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                      />
-                    )}
+                    <span
+                      aria-hidden
+                      className={`absolute inset-0 rounded-full shadow-[0_0_16px_-2px_rgba(37,211,102,0.65)] transition-opacity duration-300 ${selected ? "opacity-100" : "opacity-0"}`}
+                    />
                     <span className="relative">{t.label}</span>
                   </button>
                 );
               })}
             </div>
-          </motion.div>
+          </m.div>
 
-          <motion.div initial={{ opacity: 0, y: 14 }} animate={show({ opacity: 1, y: 0 })} transition={at(T.button)}>
+          <m.div initial={{ opacity: 0, y: 14 }} animate={show({ opacity: 1, y: 0 })} transition={at(T.button)}>
             <WhatsAppButton message={message} still={still} />
-          </motion.div>
+          </m.div>
 
           <div className="mt-[5vw] grid grid-cols-3 md:mt-12">
             {perks.map((p, i) => (
-              <motion.div
+              <m.div
                 key={p.label}
                 initial={{ opacity: 0, y: 10 }}
                 animate={show({ opacity: 1, y: 0 })}
@@ -181,7 +178,7 @@ export function WhatsAppCta() {
                 <span className="text-[length:max(1.6vw,10px)] font-medium leading-tight text-white/90 md:text-[15px]">
                   {p.label}
                 </span>
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </div>
@@ -209,7 +206,7 @@ function WhatsAppButton({ message, still }: { message: string; still: boolean })
   };
 
   return (
-    <motion.a
+    <m.a
       href={url}
       target="_blank"
       rel="noopener noreferrer"
@@ -221,7 +218,7 @@ function WhatsAppButton({ message, still }: { message: string; still: boolean })
       <span className="absolute inset-0 overflow-hidden rounded-full">
         <AnimatePresence>
           {ripple && (
-            <motion.span
+            <m.span
               key={ripple.key}
               aria-hidden
               initial={{ scale: 0, opacity: 0.6 }}
@@ -234,18 +231,18 @@ function WhatsAppButton({ message, still }: { message: string; still: boolean })
           )}
         </AnimatePresence>
       </span>
-      <motion.span
+      <m.span
         className="relative flex"
         animate={launching ? { x: [0, -10, 0] } : { x: 0 }}
         transition={{ duration: 0.45, ease: "easeInOut" }}
       >
         <ChevronRight className="h-[max(2.6vw,15px)] w-[max(2.6vw,15px)] md:h-7 md:w-7" strokeWidth={2.4} />
-      </motion.span>
+      </m.span>
       <span className="relative">שלח לי הודעה בוואטסאפ</span>
       <span className="wa-wiggle relative flex">
         <WhatsAppIcon className="h-[max(4.2vw,22px)] w-[max(4.2vw,22px)] md:h-11 md:w-11" />
       </span>
-    </motion.a>
+    </m.a>
   );
 }
 
@@ -302,13 +299,13 @@ function Phone({
   }, [inView, still]);
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, x: -40, rotate: -4 }}
       animate={inView ? { opacity: 1, x: 0, rotate: 0 } : undefined}
       transition={at(T.phone, 1)}
       className="relative [perspective:900px]"
     >
-      <motion.div style={{ y: drift, rotateX, rotateY }} className="phone-float">
+      <m.div style={{ y: drift, rotateX, rotateY }} className="phone-float">
         <div
           className="relative aspect-[482/640] w-full [-webkit-mask-composite:source-in] [mask-composite:intersect] [mask-image:var(--phone-mask)] md:[mask-image:var(--phone-mask),linear-gradient(to_right,transparent,#000_14%)]"
           style={{ ["--phone-mask" as string]: phoneMask }}
@@ -317,7 +314,7 @@ function Phone({
         >
           <Image src="/home/wa-phone-base.webp" alt="" fill sizes="(min-width: 768px) 520px, 44vw" className="object-cover" />
 
-          <motion.span
+          <m.span
             aria-hidden
             initial={{ scale: 0, opacity: 0 }}
             animate={inView ? { scale: 1, opacity: 1 } : undefined}
@@ -325,11 +322,11 @@ function Phone({
             className="absolute left-[41.3%] top-[22%] flex aspect-square w-[5%] items-center justify-center rounded-full bg-[#ff3b30] text-[length:max(1.3vw,8px)] font-bold leading-none text-white shadow-[0_2px_8px_rgba(255,59,48,0.6)] md:text-[11px]"
           >
             1
-          </motion.span>
+          </m.span>
 
           <AnimatePresence>
             {typing && (
-              <motion.span
+              <m.span
                 aria-hidden
                 initial={{ opacity: 0, scale: 0.6 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -340,11 +337,11 @@ function Phone({
                 {[0, 1, 2].map((d) => (
                   <span key={d} className="typing-dot aspect-square w-[14%] rounded-full bg-white/85" style={{ animationDelay: `${d * 0.15}s` }} />
                 ))}
-              </motion.span>
+              </m.span>
             )}
           </AnimatePresence>
 
-          <motion.div
+          <m.div
             aria-hidden
             initial={{ opacity: 0, scale: 0.55, y: "12%" }}
             animate={inView ? { opacity: 1, scale: 1, y: "0%" } : undefined}
@@ -353,27 +350,27 @@ function Phone({
             style={LAYERS.bubble}
           >
             <Image src="/home/wa-bubble.webp" alt="" width={326} height={163} className="h-auto w-full" />
-          </motion.div>
+          </m.div>
 
           <div aria-hidden className="absolute" style={LAYERS.note}>
-            <motion.div
+            <m.div
               initial={{ clipPath: "polygon(100% 0%, 100% 0%, 100% 34%, 100% 34%)" }}
               animate={inView ? { clipPath: "polygon(0% 0%, 100% 0%, 100% 34%, 0% 57.2%)" } : undefined}
               transition={at(T.line1, 0.75, { ease: "easeInOut" })}
             >
               <Image src="/home/wa-note.webp" alt="" width={270} height={102} className="h-auto w-full" />
-            </motion.div>
-            <motion.div
+            </m.div>
+            <m.div
               className="absolute inset-0"
               initial={{ clipPath: "polygon(100% 34%, 100% 34%, 100% 100%, 100% 100%)" }}
               animate={inView ? { clipPath: "polygon(0% 57.2%, 100% 34%, 100% 100%, 0% 100%)" } : undefined}
               transition={at(T.line2, 0.9, { ease: "easeInOut" })}
             >
               <Image src="/home/wa-note.webp" alt="" width={270} height={102} className="h-auto w-full" />
-            </motion.div>
+            </m.div>
           </div>
 
-          <motion.div
+          <m.div
             aria-hidden
             initial={{ clipPath: "inset(100% 0% 0% 0%)" }}
             animate={inView ? { clipPath: "inset(0% 0% 0% 0%)" } : undefined}
@@ -382,9 +379,9 @@ function Phone({
             style={LAYERS.arrow}
           >
             <Image src="/home/wa-arrow.webp" alt="" width={68} height={80} className="h-auto w-full" />
-          </motion.div>
+          </m.div>
         </div>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, type Variants } from "framer-motion";
+import { m, type Variants } from "framer-motion";
 import type { ReactNode } from "react";
 
 type Direction = "up" | "down" | "left" | "right" | "none";
@@ -39,7 +39,7 @@ export function ScrollReveal({
   };
 
   return (
-    <motion.div
+    <m.div
       className={className}
       initial="hidden"
       whileInView="visible"
@@ -47,7 +47,7 @@ export function ScrollReveal({
       variants={variants}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -61,7 +61,7 @@ export function StaggerGroup({
   stagger?: number;
 }) {
   return (
-    <motion.div
+    <m.div
       className={className}
       initial="hidden"
       whileInView="visible"
@@ -71,7 +71,7 @@ export function StaggerGroup({
       }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 

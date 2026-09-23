@@ -6,7 +6,7 @@ import { ScrollReveal, StaggerGroup, staggerItem } from "@/components/ui/ScrollR
 import { GradientButton } from "@/components/ui/GradientButton";
 import { FinalCTA } from "@/components/sections/FinalCTA";
 import type { Track } from "@/lib/tracks";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 export function TrackContent({ track }: { track: Track }) {
   return (
@@ -34,7 +34,7 @@ export function TrackContent({ track }: { track: Track }) {
 
 function TrackBullet({ text }: { text: string }) {
   return (
-    <motion.div
+    <m.div
       variants={staggerItem}
       className="glass flex items-start gap-3 rounded-xl px-4 py-3.5"
     >
@@ -42,6 +42,6 @@ function TrackBullet({ text }: { text: string }) {
         <Check className="h-3 w-3 text-white" />
       </span>
       <span className="text-sm leading-relaxed">{text}</span>
-    </motion.div>
+    </m.div>
   );
 }

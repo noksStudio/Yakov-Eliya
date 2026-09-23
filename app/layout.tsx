@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Heebo, Dancing_Script, Montserrat } from "next/font/google";
+import { Heebo, Montserrat } from "next/font/google";
 import "./globals.css";
 import { AccessibilityProvider } from "@/components/AccessibilityWidget";
+import { RegisterSW } from "@/components/RegisterSW";
 
 const heebo = Heebo({
   variable: "--font-heebo",
@@ -15,12 +16,6 @@ const montserrat = Montserrat({
   weight: ["400", "500", "600", "700"],
 });
 
-const dancingScript = Dancing_Script({
-  variable: "--font-signature",
-  subsets: ["latin"],
-  weight: ["600", "700"],
-});
-
 export const metadata: Metadata = {
   title: "יעקב-אליה | פותר בעיות עסקיות בעזרת טכנולוגיה",
   description:
@@ -32,11 +27,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="he"
       dir="rtl"
-      className={`${heebo.variable} ${dancingScript.variable} ${montserrat.variable} h-full antialiased`}
+      className={`${heebo.variable} ${montserrat.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground relative">
         <div className="noise-overlay" />
         <AccessibilityProvider>{children}</AccessibilityProvider>
+        <RegisterSW />
       </body>
     </html>
   );

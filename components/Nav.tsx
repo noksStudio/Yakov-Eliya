@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, useScroll, useSpring } from "framer-motion";
+import { m, useScroll, useSpring } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { GradientButton } from "@/components/ui/GradientButton";
 import { useChatWidget } from "@/components/chat/ChatContext";
@@ -39,18 +39,18 @@ export function Nav() {
   const visible = !isHome || pastHero;
 
   return (
-    <motion.header
+    <m.header
       initial={false}
       animate={{ y: visible ? 0 : -110, opacity: visible ? 1 : 0 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className="fixed inset-x-0 top-0 z-50"
       style={{ pointerEvents: visible ? "auto" : "none" }}
     >
-      <motion.div
+      <m.div
         className="h-[3px] origin-right bg-[linear-gradient(90deg,#b8863b,#f0c878,#d4a24e)]"
         style={{ scaleX }}
       />
-      <nav className="mx-auto mt-4 flex w-[calc(100%-2rem)] max-w-6xl items-center justify-between rounded-full border border-white/10 bg-[rgba(10,10,12,0.72)] px-5 py-3 backdrop-blur-xl sm:px-7">
+      <nav className="mx-auto mt-4 flex w-[calc(100%-2rem)] max-w-6xl items-center justify-between rounded-full border border-white/10 bg-[rgba(12,12,14,0.93)] px-5 py-3 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)] sm:px-7">
         <Link href="/#top" className="text-lg font-black">
           <span className="text-gold-soft">יעקב</span>-אליה
         </Link>
@@ -80,6 +80,6 @@ export function Nav() {
           </GradientButton>
         </Link>
       </nav>
-    </motion.header>
+    </m.header>
   );
 }

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
-  motion,
+  m,
   useAnimationFrame,
   useInView,
   useMotionValue,
@@ -125,14 +125,14 @@ export function Process() {
               )}
             </div>
 
-            <motion.p
+            <m.p
               initial={{ opacity: 0, y: 12 }}
               animate={active === COUNT - 1 ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
               transition={still ? { duration: 0 } : { duration: 0.6, ease: EASE }}
               className="mt-3 text-[length:max(4.4vw,18px)] font-black md:mt-6 md:text-4xl"
             >
               בלי ניחושים<span className="text-[#c8963e]">.</span>
-            </motion.p>
+            </m.p>
           </div>
         </div>
       </div>
@@ -146,7 +146,7 @@ function Orbit({ p, active, inView, still }: { p: MotionValue<number>; active: n
   const drawn = useTransform(p, (v) => Math.min(1, Math.max(0.001, v)));
 
   return (
-    <motion.svg
+    <m.svg
       viewBox="0 0 400 400"
       aria-hidden
       className="absolute inset-0 h-full w-full overflow-visible"
@@ -156,7 +156,7 @@ function Orbit({ p, active, inView, still }: { p: MotionValue<number>; active: n
     >
       <defs>
         <mask id="orbit-drawn" maskUnits="userSpaceOnUse">
-          <motion.path d={ORBIT_PATH} fill="none" stroke="#fff" strokeWidth="8" style={{ pathLength: drawn }} />
+          <m.path d={ORBIT_PATH} fill="none" stroke="#fff" strokeWidth="8" style={{ pathLength: drawn }} />
         </mask>
         <radialGradient id="orbit-dot" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#fff6dc" />
@@ -184,7 +184,7 @@ function Orbit({ p, active, inView, still }: { p: MotionValue<number>; active: n
         const on = i <= active;
         return (
           <g key={i}>
-            {on && i === active && !still && (
+            {on && i === active && (
               <circle cx={pt.x} cy={pt.y} r="6" fill="none" stroke="#e0a852" strokeWidth="1.2" className="node-ping" style={{ transformOrigin: `${pt.x}px ${pt.y}px` }} />
             )}
             <circle
@@ -200,9 +200,9 @@ function Orbit({ p, active, inView, still }: { p: MotionValue<number>; active: n
         );
       })}
 
-      <motion.circle cx={dotX} cy={dotY} r="11" fill="url(#orbit-dot)" />
-      <motion.circle cx={dotX} cy={dotY} r="3.2" fill="#fffaf0" />
-    </motion.svg>
+      <m.circle cx={dotX} cy={dotY} r="11" fill="url(#orbit-dot)" />
+      <m.circle cx={dotX} cy={dotY} r="3.2" fill="#fffaf0" />
+    </m.svg>
   );
 }
 
@@ -222,8 +222,9 @@ function Compass({
   const target = useTransform([p, pull], ([v, m]: number[]) => 270 * Math.min(1, Math.max(0, v)) + m);
   const swing = useSpring(target, still ? { stiffness: 1000, damping: 100 } : { stiffness: 55, damping: 6.5, mass: 1.1 });
   const jitter = useMotionValue(0);
+  const onScreen = useInView(stageRef);
   useAnimationFrame((t) => {
-    if (still) return;
+    if (still || !onScreen) return;
     jitter.set(1.1 * Math.sin(t / 430) + 0.6 * Math.sin(t / 173 + 1.3) + 0.35 * Math.sin(t / 71 + 0.4));
   });
   const rotate = useTransform([swing, jitter], ([a, j]: number[]) => a + j);
@@ -252,7 +253,7 @@ function Compass({
   }, [still, stageRef, pull]);
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, scale: 0.9, rotate: -25 }}
       animate={inView ? { opacity: 1, scale: 1, rotate: 0 } : undefined}
       transition={still ? { duration: 0 } : { duration: 1.2, ease: EASE }}
@@ -260,22 +261,22 @@ function Compass({
     >
       <div className="absolute inset-[4%] translate-x-[3%] translate-y-[5%] rounded-full bg-black/35 blur-[14px]" />
       <div className="compass-bob absolute inset-0">
-        <Image src="/home/compass-dial.webp" alt="מצפן" fill sizes="(min-width: 768px) 280px, 44vw" className="object-contain" priority={false} />
+        <Image src="/home/compass-dial-v0.webp" alt="מצפן" fill sizes="(min-width: 768px) 280px, 44vw" className="object-contain" priority={false} />
         <div className="absolute inset-0 drop-shadow-[2px_5px_4px_rgba(0,0,0,0.45)]">
-          <motion.div style={{ rotate }} className="absolute inset-0">
-            <Image src="/home/compass-needle.webp" alt="" fill sizes="(min-width: 768px) 280px, 44vw" className="object-contain" />
-          </motion.div>
+          <m.div style={{ rotate }} className="absolute inset-0">
+            <Image src="/home/compass-needle-v0.webp" alt="" fill sizes="(min-width: 768px) 280px, 44vw" className="object-contain" />
+          </m.div>
         </div>
         {/* Glass dome: soft edge vignette, a moving glare and a thin rim highlight. */}
         <div className="pointer-events-none absolute inset-[9%] overflow-hidden rounded-full shadow-[inset_0_0_18px_rgba(0,0,0,0.35)]">
-          <motion.div
+          <m.div
             style={{ x: glareX, y: glareY }}
             className="absolute -left-[10%] -top-[18%] h-[70%] w-[80%] rotate-[-28deg] rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,0.38),rgba(255,255,255,0.08)_60%,transparent)]"
           />
           <div className="compass-sweep absolute inset-0" />
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -298,7 +299,7 @@ function StepLabel({
   const current = index === active;
 
   return (
-    <motion.button
+    <m.button
       type="button"
       onClick={onSelect}
       aria-current={current ? "step" : undefined}
@@ -316,7 +317,7 @@ function StepLabel({
         {step.title[0]}
         <span className="relative inline-block">
           {step.title[1]}
-          <motion.span
+          <m.span
             aria-hidden
             initial={{ scaleX: 0 }}
             animate={{ scaleX: reached && inView ? 1 : 0 }}
@@ -326,7 +327,7 @@ function StepLabel({
         </span>
         {step.title[2]}
       </span>
-    </motion.button>
+    </m.button>
   );
 }
 

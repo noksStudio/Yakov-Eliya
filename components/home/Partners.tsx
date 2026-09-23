@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Zap } from "lucide-react";
 import type { ReactNode } from "react";
 import { ScrollReveal, StaggerGroup, staggerItem } from "@/components/ui/ScrollReveal";
@@ -68,7 +68,7 @@ export function Partners() {
         <div dir="ltr" className="mt-[5.4vw] px-[2vw] md:mt-14 md:px-6">
           <StaggerGroup className="grid grid-cols-3">
             {columns.map((c, i) => (
-              <motion.div
+              <m.div
                 key={c.n}
                 variants={staggerItem}
                 dir="rtl"
@@ -95,7 +95,7 @@ export function Partners() {
                 >
                   {c.tag}
                 </span>
-              </motion.div>
+              </m.div>
             ))}
           </StaggerGroup>
         </div>

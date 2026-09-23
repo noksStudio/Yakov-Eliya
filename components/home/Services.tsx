@@ -4,7 +4,7 @@ import { useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
 import Image from "next/image";
 import {
   AnimatePresence,
-  motion,
+  m,
   useInView,
   useMotionValueEvent,
   useReducedMotionConfig,
@@ -251,11 +251,11 @@ function StackCard({
   const shade = useTransform(depth, (d) => Math.min(d, 1) * 0.55);
 
   return (
-    <motion.div
+    <m.div
       style={{ y: lift, scale, zIndex: index }}
       className="pointer-events-none absolute inset-x-0 top-7 flex origin-top justify-center"
     >
-      <motion.div
+      <m.div
         style={{ y: enter }}
         className="pointer-events-auto w-[min(100cqw,calc((100cqh_-_1.75rem)/0.98))]"
       >
@@ -266,8 +266,8 @@ function StackCard({
           shade={shade}
           onFocus={onFocus}
         />
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 }
 
@@ -306,7 +306,7 @@ function ServiceCard({
   };
 
   return (
-    <motion.a
+    <m.a
       href={url}
       target="_blank"
       rel="noopener noreferrer"
@@ -346,19 +346,19 @@ function ServiceCard({
         />
       </div>
 
-      <motion.div
+      <m.div
         variants={textGroup}
         initial={instant ? false : "below"}
         animate={textState}
         className="relative flex min-h-[74cqw] flex-col items-end px-[6.2cqw] pb-[5.4cqw] pt-[11.5cqw] text-left"
       >
-        <motion.p
+        <m.p
           variants={textItem}
           className="font-latin w-full text-[length:3.9cqw] font-medium leading-none text-[#e0a852]"
         >
           {s.n}
-        </motion.p>
-        <motion.h3
+        </m.p>
+        <m.h3
           variants={textItem}
           className="mt-[2.6cqw] w-[52cqw] text-[length:7.3cqw] font-bold leading-[1.18] text-white"
         >
@@ -369,14 +369,14 @@ function ServiceCard({
               {s.title[1]}
             </>
           )}
-        </motion.h3>
-        <motion.p
+        </m.h3>
+        <m.p
           variants={textItem}
           className="mt-[3.4cqw] w-[52cqw] text-[length:4.45cqw] leading-[1.5] text-white/80"
         >
           {s.desc}
-        </motion.p>
-        <motion.p
+        </m.p>
+        <m.p
           variants={textItem}
           dir={s.tagsDir}
           className="mt-auto w-full pt-[4.4cqw] text-left text-[length:3.3cqw] text-white/55"
@@ -389,8 +389,8 @@ function ServiceCard({
               <bdi>{tag}</bdi>
             </span>
           ))}
-        </motion.p>
-        <motion.div variants={textItem} className="mt-[5cqw] w-full text-left">
+        </m.p>
+        <m.div variants={textItem} className="mt-[5cqw] w-full text-left">
           <span className="inline-flex items-center gap-[2.8cqw]">
             <span className="text-[length:3.6cqw] font-semibold text-white">
               לפרטים נוספים
@@ -398,7 +398,7 @@ function ServiceCard({
             <span
               className={`relative flex h-[7.6cqw] w-[7.6cqw] items-center justify-center overflow-hidden rounded-full border border-[#e0a852] transition-colors duration-300 group-hover:bg-[#e0a852]/15 ${launching ? "bg-[#e0a852]" : ""}`}
             >
-              <motion.span
+              <m.span
                 animate={
                   launching ? { x: ["0%", "160%", "-160%", "0%"] } : { x: "0%" }
                 }
@@ -413,14 +413,14 @@ function ServiceCard({
                   className={`h-[3.8cqw] w-[3.8cqw] transition-colors ${launching ? "text-[#1d1407]" : "text-[#e0a852]"}`}
                   strokeWidth={2}
                 />
-              </motion.span>
+              </m.span>
             </span>
           </span>
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
       {shade && (
-        <motion.span
+        <m.span
           aria-hidden
           style={{ opacity: shade }}
           className="pointer-events-none absolute inset-0 bg-black"
@@ -429,7 +429,7 @@ function ServiceCard({
 
       <AnimatePresence>
         {ripple && (
-          <motion.span
+          <m.span
             key={ripple.key}
             aria-hidden
             initial={{ scale: 0, opacity: 0.55 }}
@@ -442,7 +442,7 @@ function ServiceCard({
           />
         )}
       </AnimatePresence>
-    </motion.a>
+    </m.a>
   );
 }
 
@@ -463,7 +463,7 @@ function Counter({
     >
       <span className="font-latin relative inline-flex h-5 w-6 overflow-hidden text-sm font-semibold text-[#e0a852]">
         <AnimatePresence initial={false} mode="popLayout" custom={dir}>
-          <motion.span
+          <m.span
             key={active}
             custom={dir}
             variants={{
@@ -484,11 +484,11 @@ function Counter({
             className="absolute inset-0"
           >
             {services[active].n}
-          </motion.span>
+          </m.span>
         </AnimatePresence>
       </span>
       <span className="relative h-px flex-1 bg-white/15">
-        <motion.span
+        <m.span
           style={{ scaleX: progress }}
           className="absolute inset-0 origin-left bg-[#e0a852]"
         />
@@ -514,7 +514,7 @@ function Headings({ inView }: { inView: boolean }) {
 
   return (
     <div className="relative shrink-0 text-center md:text-start">
-      <motion.p
+      <m.p
         dir="ltr"
         initial={{ opacity: 0, letterSpacing: "0.8em" }}
         animate={inView ? { opacity: 1, letterSpacing: "0.42em" } : undefined}
@@ -523,8 +523,8 @@ function Headings({ inView }: { inView: boolean }) {
       >
         UNDERSTAND <span className="mx-[1em]">×</span> BUILD{" "}
         <span className="mx-[1em]">×</span> GROW
-      </motion.p>
-      <motion.span
+      </m.p>
+      <m.span
         initial={{ scaleX: 0 }}
         animate={inView ? { scaleX: 1 } : undefined}
         transition={{ duration: 0.7, delay: 0.15, ease: EASE }}
@@ -532,32 +532,32 @@ function Headings({ inView }: { inView: boolean }) {
       />
       <h2 className="mt-[2.8vw] text-[length:max(4.55vw,19px)] font-extrabold leading-[1.17] text-white md:mt-6 md:text-[40px]">
         <span className="block overflow-hidden">
-          <motion.span className="block" {...rise(0.2)}>
+          <m.span className="block" {...rise(0.2)}>
             אני מבין את הקשיים והאתגרים
-          </motion.span>
+          </m.span>
         </span>
         <span className="block overflow-hidden">
-          <motion.span className="block" {...rise(0.3)}>
+          <m.span className="block" {...rise(0.3)}>
             בעסק שלכם
-          </motion.span>
+          </m.span>
         </span>
         <span className="block overflow-hidden pb-[0.08em]">
-          <motion.span className="block" {...rise(0.4)}>
+          <m.span className="block" {...rise(0.4)}>
             <span className={inView ? "shine-metal" : "text-gold-metal"}>
               ובונה פתרונות אישיים ללקוחות שלי
             </span>
-          </motion.span>
+          </m.span>
         </span>
       </h2>
-      <motion.p
+      <m.p
         {...fade(0.55)}
         className="mx-auto mt-[2.6vw] max-w-[660px] text-[length:max(2.3vw,13px)] leading-[1.5] text-white/80 md:mx-0 md:mt-6 md:text-lg [@media(max-height:720px)]:hidden"
       >
         אני מחבר בין שיווק, טכנולוגיה ואוטומציה כדי לעזור לעסקים לצמוח, לייעל
         תהליכים ולהגיע לתוצאות אמיתיות.
-      </motion.p>
+      </m.p>
 
-      <motion.div {...fade(0.7)}>
+      <m.div {...fade(0.7)}>
         <p
           dir="ltr"
           className="font-latin mt-[4.4vw] text-[length:max(1.37vw,8px)] font-medium tracking-[0.42em] text-[#c1924f] md:mt-12 md:text-right md:text-[13px] [@media(max-height:720px)]:mt-[3vw]"
@@ -571,7 +571,7 @@ function Headings({ inView }: { inView: boolean }) {
         <p className="mt-[0.8vw] text-[length:max(2.15vw,12.5px)] text-white/70 md:mt-2 md:text-lg">
           פתרונות שמותאמים לעסק שלכם, לא תבניות מוכנות.
         </p>
-      </motion.div>
+      </m.div>
     </div>
   );
 }
@@ -606,40 +606,27 @@ function Tagline() {
       ref={ref}
       className="relative mx-auto max-w-[1024px] px-[3.2vw] pb-[5vw] pt-[6vw] text-center md:pb-16 md:pt-14"
     >
-      <motion.span
+      <m.span
         initial={{ scaleX: 0 }}
         animate={inView ? { scaleX: 1 } : undefined}
         transition={{ duration: 0.6, ease: EASE }}
         className="mx-auto block h-[max(0.2vw,1.5px)] w-[4.5vw] bg-[#c99a55] md:h-[2px] md:w-12"
       />
-      <motion.p
+      <p
         aria-label={TAGLINE}
-        initial="hidden"
-        animate={inView ? "show" : "hidden"}
-        variants={{
-          hidden: {},
-          show: {
-            transition: reduce
-              ? {}
-              : { delayChildren: 0.3, staggerChildren: 0.045 },
-          },
+        className={`mt-[3.4vw] text-[length:max(2vw,13px)] tracking-[0.14em] text-white/60 md:mt-7 md:text-lg ${inView ? "type-on" : "type-off"}`}
+        style={{
+          ["--type-start" as string]: `${reduce ? 0 : 0.3}s`,
+          ["--type-step" as string]: `${reduce ? 0 : 0.045}s`,
         }}
-        className="mt-[3.4vw] text-[length:max(2vw,13px)] tracking-[0.14em] text-white/60 md:mt-7 md:text-lg"
       >
         {TAGLINE.split("").map((ch, i) => (
-          <motion.span
-            key={i}
-            aria-hidden
-            variants={{
-              hidden: { opacity: 0 },
-              show: { opacity: 1, transition: { duration: 0.05 } },
-            }}
-          >
+          <span key={i} aria-hidden style={{ ["--i" as string]: i }}>
             {ch}
-          </motion.span>
+          </span>
         ))}
-      </motion.p>
-      <motion.p
+      </p>
+      <m.p
         dir="ltr"
         initial={{ opacity: 0 }}
         animate={inView ? { opacity: 1 } : undefined}
@@ -650,7 +637,7 @@ function Tagline() {
         className="font-latin mt-[1.6vw] text-[length:max(1.07vw,7.5px)] tracking-[0.55em] text-white/45 md:mt-3 md:text-[11px]"
       >
         TECHNOLOGY FOR A BRIGHTER TOMORROW
-      </motion.p>
+      </m.p>
     </div>
   );
 }

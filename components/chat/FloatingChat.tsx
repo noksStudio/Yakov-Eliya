@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { ArrowLeft, Bot, MessageCircle, RotateCcw, Send, User, X } from "lucide-react";
 import { classify, painChips } from "@/lib/advisor";
 import type { Track } from "@/lib/tracks";
@@ -212,7 +212,7 @@ export function FloatingChat() {
     <div className="fixed bottom-6 left-6 z-[60] flex flex-col items-start gap-3">
       <AnimatePresence>
         {isOpen && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.96 }}
@@ -245,21 +245,21 @@ export function FloatingChat() {
 
             <div ref={listRef} className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
               <AnimatePresence initial={false}>
-                {messages.map((m) => (
-                  <motion.div
-                    key={m.id}
+                {messages.map((msg) => (
+                  <m.div
+                    key={msg.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`flex items-start gap-2 ${m.role === "user" ? "flex-row-reverse self-start" : ""}`}
+                    className={`flex items-start gap-2 ${msg.role === "user" ? "flex-row-reverse self-start" : ""}`}
                   >
                     <span
                       className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                        m.role === "assistant"
+                        msg.role === "assistant"
                           ? "bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-2))]"
                           : "bg-surface-strong"
                       }`}
                     >
-                      {m.role === "assistant" ? (
+                      {msg.role === "assistant" ? (
                         <Bot className="h-3 w-3 text-white" />
                       ) : (
                         <User className="h-3 w-3" />
@@ -268,14 +268,14 @@ export function FloatingChat() {
                     <div className="flex max-w-[85%] flex-col gap-2">
                       <div
                         className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                          m.role === "assistant"
+                          msg.role === "assistant"
                             ? "bg-surface-strong"
                             : "bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-2))] text-white"
                         }`}
                       >
-                        {m.text}
+                        {msg.text}
                       </div>
-                      {m.tracks?.map((track) => (
+                      {msg.tracks?.map((track) => (
                         <Link
                           key={track.slug}
                           href={track.path}
@@ -291,10 +291,10 @@ export function FloatingChat() {
                         </Link>
                       ))}
                     </div>
-                  </motion.div>
+                  </m.div>
                 ))}
                 {typing && (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -305,7 +305,7 @@ export function FloatingChat() {
                     </span>
                     <div className="flex gap-1 rounded-2xl bg-surface-strong px-3.5 py-2.5">
                       {[0, 1, 2].map((i) => (
-                        <motion.span
+                        <m.span
                           key={i}
                           className="h-1.5 w-1.5 rounded-full bg-muted"
                           animate={{ opacity: [0.3, 1, 0.3] }}
@@ -313,7 +313,7 @@ export function FloatingChat() {
                         />
                       ))}
                     </div>
-                  </motion.div>
+                  </m.div>
                 )}
               </AnimatePresence>
             </div>
@@ -385,11 +385,11 @@ export function FloatingChat() {
                 מדיניות פרטיות
               </Link>
             </p>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
-      <motion.button
+      <m.button
         onClick={toggleChat}
         whileHover={{ scale: 1.06 }}
         whileTap={{ scale: 0.94 }}
@@ -397,7 +397,7 @@ export function FloatingChat() {
         className="flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-2))] text-white shadow-[0_0_30px_-5px_rgba(109,91,255,0.7)]"
       >
         <AnimatePresence mode="wait" initial={false}>
-          <motion.span
+          <m.span
             key={isOpen ? "close" : "open"}
             initial={{ opacity: 0, rotate: -45 }}
             animate={{ opacity: 1, rotate: 0 }}
@@ -405,9 +405,9 @@ export function FloatingChat() {
             transition={{ duration: 0.15 }}
           >
             {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
-          </motion.span>
+          </m.span>
         </AnimatePresence>
-      </motion.button>
+      </m.button>
     </div>
   );
 }

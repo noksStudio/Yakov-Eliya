@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +27,7 @@ export function GradientButton({
 }: Props) {
   if (variant === "ghost") {
     return (
-      <motion.button
+      <m.button
         whileHover={{ y: -2 }}
         whileTap={{ scale: 0.97 }}
         className={cn(
@@ -38,13 +38,13 @@ export function GradientButton({
       >
         {children}
         {icon}
-      </motion.button>
+      </m.button>
     );
   }
 
   if (variant === "gold") {
     return (
-      <motion.button
+      <m.button
         whileHover={{ y: -2 }}
         whileTap={{ scale: 0.97 }}
         className={cn(
@@ -61,12 +61,12 @@ export function GradientButton({
           {children}
           {icon}
         </span>
-      </motion.button>
+      </m.button>
     );
   }
 
   return (
-    <motion.button
+    <m.button
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.97 }}
       className={cn(
@@ -83,6 +83,6 @@ export function GradientButton({
         {children}
         {icon}
       </span>
-    </motion.button>
+    </m.button>
   );
 }

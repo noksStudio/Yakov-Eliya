@@ -1,4 +1,11 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
+// Large blurred glow behind the inner pages. The homepage sections are fully opaque, so it would
+// cost GPU time there without ever being seen.
 export function Aurora() {
+  if (usePathname() === "/") return null;
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-20 overflow-hidden">
       <div className="absolute -top-1/4 right-[-10%] h-[600px] w-[600px] rounded-full bg-primary/25 blur-[140px]" />
