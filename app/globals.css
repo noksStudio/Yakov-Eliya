@@ -372,3 +372,85 @@ body {
     animation: none;
   }
 }
+
+/* WhatsApp section */
+.icon-draw :is(path, circle, line, rect, polyline, polygon) {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+}
+.icon-draw.is-drawn :is(path, circle, line, rect, polyline, polygon) {
+  animation: icon-draw 1.3s ease-out var(--draw-delay, 0s) forwards;
+}
+@keyframes icon-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.perk-shake,
+.perk-bob,
+.perk-flicker {
+  display: inline-flex;
+}
+.perk-shake { animation: perk-shake 5s ease-in-out 3s infinite; }
+@keyframes perk-shake {
+  0%, 88%, 100% { transform: rotate(0); }
+  91% { transform: rotate(-10deg); }
+  94% { transform: rotate(8deg); }
+  97% { transform: rotate(-4deg); }
+}
+.perk-bob { animation: perk-bob 3.2s ease-in-out infinite; }
+@keyframes perk-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12%); }
+}
+.perk-flicker { animation: perk-flicker 4.5s linear 2s infinite; }
+@keyframes perk-flicker {
+  0%, 84%, 100% { opacity: 1; filter: drop-shadow(0 0 0 transparent); }
+  86% { opacity: 0.35; }
+  88% { opacity: 1; filter: drop-shadow(0 0 6px rgba(126, 166, 255, 0.9)); }
+  90% { opacity: 0.5; }
+  92% { opacity: 1; filter: drop-shadow(0 0 6px rgba(126, 166, 255, 0.9)); }
+}
+
+.wa-pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid rgba(46, 220, 118, 0.7);
+  opacity: 0;
+  pointer-events: none;
+  animation: wa-pulse 3s ease-out 2s infinite;
+}
+@keyframes wa-pulse {
+  0% { transform: scale(1); opacity: 0.7; }
+  70%, 100% { transform: scale(1.12, 1.45); opacity: 0; }
+}
+
+.wa-wiggle { animation: wa-wiggle 4s ease-in-out 2.5s infinite; }
+@keyframes wa-wiggle {
+  0%, 80%, 100% { transform: rotate(0); }
+  84% { transform: rotate(-14deg); }
+  88% { transform: rotate(12deg); }
+  92% { transform: rotate(-8deg); }
+  96% { transform: rotate(4deg); }
+}
+
+.phone-float { animation: phone-float 7s ease-in-out infinite; }
+@keyframes phone-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -1.5%; }
+}
+
+.typing-dot { animation: typing-dot 1s ease-in-out infinite; }
+@keyframes typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.55; }
+  30% { transform: translateY(-45%); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-draw :is(path, circle, line, rect, polyline, polygon) { stroke-dashoffset: 0; }
+  .icon-draw.is-drawn :is(path, circle, line, rect, polyline, polygon),
+  .perk-shake, .perk-bob, .perk-flicker, .wa-pulse::after, .wa-wiggle, .phone-float, .typing-dot {
+    animation: none;
+  }
+}
