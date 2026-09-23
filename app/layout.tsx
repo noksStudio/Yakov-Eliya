@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
-import { Heebo, Dancing_Script } from "next/font/google";
+import { Heebo, Dancing_Script, Montserrat } from "next/font/google";
 import "./globals.css";
 
 const heebo = Heebo({
   variable: "--font-heebo",
   subsets: ["hebrew", "latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+});
+
+const montserrat = Montserrat({
+  variable: "--font-montserrat",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const dancingScript = Dancing_Script({
@@ -25,7 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="he"
       dir="rtl"
-      className={`${heebo.variable} ${dancingScript.variable} h-full antialiased`}
+      className={`${heebo.variable} ${dancingScript.variable} ${montserrat.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground relative">
         <div className="noise-overlay" />

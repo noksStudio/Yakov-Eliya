@@ -39,6 +39,7 @@
   --color-paper-ink: var(--paper-ink);
   --color-paper-muted: var(--paper-muted);
   --font-sans: var(--font-display);
+  --font-latin: var(--font-montserrat), var(--font-display), sans-serif;
 }
 
 * {
@@ -98,6 +99,61 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.text-gold-soft {
+  background: linear-gradient(180deg, #fbe2a4 0%, #efc26e 45%, #d99f48 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gold-metal {
+  background: linear-gradient(100deg, #b58a4f 0%, #e8c78d 45%, #c79a5a 70%, #a9783e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gold-bronze {
+  background: linear-gradient(100deg, #a8762f 0%, #d8a955 40%, #c08c3e 70%, #9c6b28 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gold-glow {
+  background: linear-gradient(180deg, #fff4cf 0%, #f5cd73 45%, #d9a041 75%, #b77f2c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 18px rgba(240, 190, 90, 0.35));
+}
+
+.text-violet-cyan {
+  background: linear-gradient(to left, #a855f7 0%, #7c6cf6 38%, #4f8ff7 62%, #22c3ee 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-violet-blue {
+  background: linear-gradient(to left, #a855f7 0%, #8b7cf6 40%, #5f8ef8 75%, #4d8bf6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-violet-wave {
+  background: linear-gradient(to left, #a45cf6 0%, #7f8cf8 30%, #5aa8f7 50%, #7f8cf8 70%, #a45cf6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-outline-num {
+  color: rgba(16, 17, 32, 0.9);
+  -webkit-text-stroke: 1.5px rgba(96, 100, 150, 0.28);
 }
 
 .text-hand {

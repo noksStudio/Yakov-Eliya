@@ -1,29 +1,21 @@
-import { Hero } from "@/components/sections/Hero";
-import { WhatsAppConnect } from "@/components/sections/WhatsAppConnect";
-import { Mindset } from "@/components/sections/Mindset";
-import { Portfolio } from "@/components/sections/Portfolio";
-import { About } from "@/components/sections/About";
-import { Strategy } from "@/components/sections/Strategy";
-import { Connections } from "@/components/sections/Connections";
-import { PainPoints } from "@/components/sections/PainPoints";
-import { Stats } from "@/components/sections/Stats";
-import { Testimonials } from "@/components/sections/Testimonials";
-import { FinalCTA } from "@/components/sections/FinalCTA";
+import { Hero } from "@/components/home/Hero";
+import { Services } from "@/components/home/Services";
+import { WhatsAppCta } from "@/components/home/WhatsAppCta";
+import { AiProof } from "@/components/home/AiProof";
+import { Process } from "@/components/home/Process";
+import { Partners } from "@/components/home/Partners";
+import { ClosingCta } from "@/components/home/ClosingCta";
 
 export default function Home() {
   return (
     <>
       <Hero />
-      <WhatsAppConnect />
-      <Mindset />
-      <Portfolio />
-      <About />
-      <Strategy />
-      <Connections />
-      <PainPoints />
-      <Stats />
-      <Testimonials />
-      <FinalCTA />
+      <Services />
+      <WhatsAppCta />
+      <AiProof />
+      <Process />
+      <Partners />
+      <ClosingCta />
     </>
   );
 }
