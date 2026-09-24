@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LegalPage, LegalSection } from "@/components/LegalPage";
-import { whatsappLink } from "@/lib/site-config";
+import { CONTACT_EMAIL, whatsappLink } from "@/lib/site-config";
 
 export const metadata: Metadata = {
   title: "מדיניות פרטיות | יעקב-אליה",
@@ -87,6 +87,16 @@ export default function PrivacyPolicyPage() {
             <span className="text-white">טלפון:</span>{" "}
             <a href="tel:+972532266676" className="underline underline-offset-4 hover:text-white" dir="ltr">
               053-2266676
+            </a>
+          </li>
+          <li>
+            <span className="text-white">מייל:</span>{" "}
+            <a
+              href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("פנייה בנושא פרטיות")}`}
+              className="underline underline-offset-4 hover:text-white"
+              dir="ltr"
+            >
+              {CONTACT_EMAIL}
             </a>
           </li>
           <li>

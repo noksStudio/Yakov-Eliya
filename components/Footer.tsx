@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { Mail } from "lucide-react";
-import { FacebookIcon, LinkedInIcon, WhatsAppIcon } from "@/components/ui/BrandIcons";
+import { FacebookIcon, InstagramIcon, LinkedInIcon, WhatsAppIcon } from "@/components/ui/BrandIcons";
 import { tracks } from "@/lib/tracks";
-import { whatsappLink } from "@/lib/site-config";
+import { CONTACT_EMAIL, SOCIAL_LINKS, whatsappLink } from "@/lib/site-config";
 
 const socials = [
   { icon: WhatsAppIcon, label: "WhatsApp", href: whatsappLink() },
-  { icon: LinkedInIcon, label: "LinkedIn", href: "#" },
-  { icon: FacebookIcon, label: "Facebook", href: "#" },
-  { icon: Mail, label: "Email", href: "mailto:hello@example.com" },
-];
+  { icon: InstagramIcon, label: "Instagram", href: SOCIAL_LINKS.instagram },
+  { icon: LinkedInIcon, label: "LinkedIn", href: SOCIAL_LINKS.linkedin },
+  { icon: FacebookIcon, label: "Facebook", href: SOCIAL_LINKS.facebook },
+  { icon: Mail, label: "Email", href: `mailto:${CONTACT_EMAIL}` },
+].filter((s) => s.href);
 
 export function Footer() {
   return (
@@ -30,6 +31,7 @@ export function Footer() {
             key={s.label}
             href={s.href}
             aria-label={s.label}
+            {...(s.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
             className="glass flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:border-primary-2/50"
           >
             <s.icon className="h-[18px] w-[18px]" />
