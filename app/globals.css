@@ -546,3 +546,46 @@ main section:not([data-onscreen]) *::after {
 @media (prefers-reduced-motion: reduce) {
   .type-on > span { animation: none; opacity: 1; }
 }
+
+/* Partners (AI fit) section */
+.neon-hum { animation: neon-hum 6s ease-in-out infinite; }
+@keyframes neon-hum {
+  0%, 100% { opacity: 1; }
+  44% { opacity: 0.86; }
+  47% { opacity: 1; }
+  49% { opacity: 0.55; }
+  51% { opacity: 1; }
+  80% { opacity: 0.92; }
+}
+
+.gear-spin { animation-name: neon-hum, gear-spin; animation-duration: 6s, 14s; animation-timing-function: ease-in-out, linear; animation-iteration-count: infinite; }
+@keyframes gear-spin { to { rotate: 360deg; } }
+
+.typing-ellipsis > span { animation: typing-ellipsis 1.4s ease-in-out infinite; }
+.typing-ellipsis > span:nth-child(2) { animation-delay: 0.2s; }
+.typing-ellipsis > span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typing-ellipsis {
+  0%, 100% { opacity: 1; }
+  40% { opacity: 0.2; }
+}
+
+.neon-on { animation: neon-on 0.9s linear both; }
+@keyframes neon-on {
+  0% { opacity: 0; box-shadow: 0 0 0 transparent; }
+  12% { opacity: 0.9; }
+  18% { opacity: 0.15; }
+  30% { opacity: 1; }
+  36% { opacity: 0.4; box-shadow: 0 0 34px -4px var(--neon, transparent); }
+  48%, 100% { opacity: 1; }
+}
+
+.twinkle { animation: twinkle 4s ease-in-out infinite; }
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neon-hum, .gear-spin, .typing-ellipsis > span, .twinkle { animation: none; }
+  .neon-on { animation: none; opacity: 1; }
+}
