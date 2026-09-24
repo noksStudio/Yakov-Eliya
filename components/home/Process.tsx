@@ -261,14 +261,14 @@ function Compass({
     >
       <div className="absolute inset-[4%] translate-x-[3%] translate-y-[5%] rounded-full bg-black/35 blur-[14px]" />
       <div className="compass-bob absolute inset-0">
-        <Image src="/home/compass-dial-v0.webp" alt="מצפן" fill sizes="(min-width: 768px) 280px, 44vw" className="object-contain" priority={false} />
+        <Image src="/home/compass-dial-v1.webp" alt="מצפן" fill sizes="(min-width: 768px) 280px, 44vw" className="object-contain" priority={false} />
         <div className="absolute inset-0 drop-shadow-[2px_5px_4px_rgba(0,0,0,0.45)]">
           <m.div style={{ rotate }} className="absolute inset-0">
-            <Image src="/home/compass-needle-v0.webp" alt="" fill sizes="(min-width: 768px) 280px, 44vw" className="object-contain" />
+            <Image src="/home/compass-needle-v1.webp" alt="" fill sizes="(min-width: 768px) 280px, 44vw" className="object-contain" />
           </m.div>
         </div>
         {/* Glass dome: soft edge vignette, a moving glare and a thin rim highlight. */}
-        <div className="pointer-events-none absolute inset-[9%] overflow-hidden rounded-full shadow-[inset_0_0_18px_rgba(0,0,0,0.35)]">
+        <div className="pointer-events-none absolute inset-[13%] overflow-hidden rounded-full shadow-[inset_0_0_18px_rgba(0,0,0,0.35)]">
           <m.div
             style={{ x: glareX, y: glareY }}
             className="absolute -left-[10%] -top-[18%] h-[70%] w-[80%] rotate-[-28deg] rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,0.38),rgba(255,255,255,0.08)_60%,transparent)]"
