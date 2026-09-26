@@ -1,0 +1,131 @@
+.logo {
+  --cycle: 0.66s;
+  --rail-cycle: 1.6s; /* 100 path units ≈ 404 viewBox units: matches the planted foot's speed */
+  overflow: visible;
+}
+
+.logo line,
+.logo polyline {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Rail: a cyan line with light-cyan streaks gliding back under the runner's feet. */
+.railGlow {
+  stroke: #22d3ee;
+  stroke-width: 18;
+  opacity: 0.14;
+}
+.rail {
+  stroke-width: 8;
+}
+.railFlowSoft,
+.railFlowCore {
+  animation: rail-flow var(--rail-cycle) linear infinite;
+}
+.railFlowSoft {
+  stroke: #a5f3fc;
+  stroke-width: 8;
+  stroke-dasharray: 12 13;
+  opacity: 0.45;
+}
+.railFlowCore {
+  stroke: #ecfeff;
+  stroke-width: 3.5;
+  stroke-dasharray: 6 19;
+  stroke-dashoffset: -3;
+  opacity: 0.9;
+}
+@keyframes rail-flow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 100; }
+}
+.railFlowCore { animation-name: rail-flow-core; }
+@keyframes rail-flow-core {
+  from { stroke-dashoffset: -3; }
+  to { stroke-dashoffset: 97; }
+}
+.arrow {
+  stroke: #67e8f9;
+  stroke-width: 8;
+}
+
+/* Runner */
+.bounce line {
+  stroke: #f8fafc;
+}
+.thigh line,
+.shin line {
+  stroke-width: 14;
+}
+.foot {
+  stroke-width: 10 !important;
+}
+.upperArm line,
+.forearm line {
+  stroke-width: 11;
+}
+.torso {
+  stroke-width: 19;
+}
+.head {
+  fill: #f8fafc;
+}
+.limbsBack line {
+  stroke: #b9c6d6;
+}
+
+.bounce {
+  animation: bounce calc(var(--cycle) / 2) ease-in-out infinite;
+}
+@keyframes bounce {
+  0%, 100% { translate: 0 -4px; }
+  50% { translate: 0 1.5px; }
+}
+
+/* Static pose = mid-stride (used with reduced motion); the keyframes run the full stride. */
+.thigh { rotate: -40deg; animation: thigh var(--cycle) linear infinite; }
+.shin { rotate: 60deg; animation: shin var(--cycle) linear infinite; }
+.thigh.late { rotate: 28deg; }
+.shin.late { rotate: 40deg; }
+.upperArm { rotate: 45deg; animation: upper-arm var(--cycle) ease-in-out infinite; }
+.forearm { rotate: -95deg; animation: forearm var(--cycle) ease-in-out infinite; }
+.upperArm.late { rotate: -50deg; }
+.forearm.late { rotate: -85deg; }
+.late { animation-delay: calc(var(--cycle) / -2) !important; }
+
+@keyframes thigh {
+  0% { rotate: -32deg; }
+  12% { rotate: -18deg; }
+  25% { rotate: 0deg; }
+  40% { rotate: 24deg; }
+  52% { rotate: 34deg; }
+  65% { rotate: 10deg; }
+  80% { rotate: -40deg; }
+  90% { rotate: -52deg; }
+  100% { rotate: -32deg; }
+}
+@keyframes shin {
+  0% { rotate: 22deg; }
+  12% { rotate: 18deg; }
+  25% { rotate: 22deg; }
+  40% { rotate: 18deg; }
+  52% { rotate: 55deg; }
+  65% { rotate: 120deg; }
+  80% { rotate: 105deg; }
+  90% { rotate: 60deg; }
+  100% { rotate: 22deg; }
+}
+@keyframes upper-arm {
+  0%, 100% { rotate: 50deg; }
+  50% { rotate: -55deg; }
+}
+@keyframes forearm {
+  0%, 100% { rotate: -80deg; }
+  50% { rotate: -100deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .railFlowSoft, .railFlowCore, .bounce, .thigh, .shin, .upperArm, .forearm { animation: none; }
+}
