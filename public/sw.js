@@ -60,7 +60,8 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/admin")) return;
+  // Private areas (admin, the personal life OS) are never cached on the device.
+  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/admin") || url.pathname.startsWith("/life")) return;
   // Client-side navigation payloads must always be fresh.
   if (url.searchParams.has("_rsc") || request.headers.get("RSC")) return;
 

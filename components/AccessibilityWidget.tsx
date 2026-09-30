@@ -72,7 +72,8 @@ function loadSettings(): Settings {
 
 export function AccessibilityProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(loadSettings);
-  const hidden = usePathname().startsWith("/admin");
+  const pathname = usePathname();
+  const hidden = pathname.startsWith("/admin") || pathname.startsWith("/life");
 
   useEffect(() => {
     const root = document.documentElement;

@@ -23,7 +23,9 @@ export default function AdminLoginPage() {
     });
 
     if (res.ok) {
-      router.push("/admin/leads");
+      // Only same-site paths we know about, never an arbitrary URL from the query string.
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.push(next === "/life" ? "/life" : "/admin/leads");
       router.refresh();
     } else {
       const data = await res.json().catch(() => null);
