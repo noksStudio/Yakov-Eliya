@@ -12,6 +12,7 @@ import { MetricCard } from "./MetricsView";
 import { AREA_STYLE } from "./areas";
 import { Bidi } from "./Bidi";
 import { LessonStory } from "./GrowthView";
+import { LIFE_CHANGED } from "./QuickCapture";
 
 type DayResponse = { day: DayView; demo: boolean };
 type CheckinPatch = Partial<Omit<Checkin, "date" | "updated_at">>;
@@ -46,7 +47,13 @@ export function TodayView() {
     const tick = () => setNow(israelNow());
     tick();
     const id = window.setInterval(tick, 30_000);
-    return () => window.clearInterval(id);
+    // Something added with the "+" button shows up right away.
+    const onChanged = () => void reload();
+    window.addEventListener(LIFE_CHANGED, onChanged);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener(LIFE_CHANGED, onChanged);
+    };
   }, [reload]);
 
   const saveCheckin = async (patch: CheckinPatch) => {

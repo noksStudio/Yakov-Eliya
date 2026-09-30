@@ -1,11 +1,10 @@
 import { NextResponse, after } from "next/server";
-import { AgentNotConfiguredError, askAgent } from "@/lib/life/agents";
+import { AgentNotConfiguredError, askAgent, isAgentConnected } from "@/lib/life/agents";
 import { loadBodyPlan } from "@/lib/life/body";
 import { financeSummary } from "@/lib/life/finance";
-import { getIdeasStore } from "@/lib/life/ideas";
 import { goalsProgress, weekFocus } from "@/lib/life/growth";
-import { getLessonsStore } from "@/lib/life/lessons";
-import { addReminder, parseWhen, removeReminder, upcomingReminders } from "@/lib/life/reminders";
+import { removeReminder, upcomingReminders } from "@/lib/life/reminders";
+import { capture, type CaptureKind, type CaptureResult } from "@/lib/life/capture";
 import { metricsMessage, morningMessage } from "@/lib/life/notify";
 import { EXPENSE_CATEGORIES, financeEntrySchema } from "@/lib/life/ops-types";
 import { getOpsStore } from "@/lib/life/ops-store";
@@ -53,16 +52,8 @@ export async function POST(request: Request) {
   const chatId = message.chat.id;
   const text = message.text.trim();
   const [rawCommand, ...rest] = text.split(/\s+/);
-  let command = rawCommand.startsWith("/") ? rawCommand.slice(1).split("@")[0].toLowerCase() : null;
-  let raw = command ? text.slice(rawCommand.length).trim() : text;
-  // Plain Hebrew works too: "לקח: …", "רעיון: …", "תזכורת: …", "תזכיר לי מחר ב־10:00 …".
-  if (!command) {
-    const prefix = TEXT_PREFIXES.find(([re]) => re.test(text));
-    if (prefix) {
-      command = prefix[1];
-      raw = text.replace(prefix[0], "").trim();
-    }
-  }
+  const command = rawCommand.startsWith("/") ? rawCommand.slice(1).split("@")[0].toLowerCase() : null;
+  const raw = command ? text.slice(rawCommand.length).trim() : text;
 
   // Binding: the deep link from settings opens the bot with "/start <code>".
   if (command === "start" && rest[0] && telegram.link_code && safeEqual(rest[0], telegram.link_code)) {
@@ -78,7 +69,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    const reply = command ? await runCommand(store, command, rest, new URL(request.url).origin, raw) : null;
+    const origin = new URL(request.url).origin;
+    // Plain Hebrew is captured the same way as the app's "+" (לקח: …, תזכיר לי …, הכנסה 1500,
+    // קניות: …); anything it does not recognise goes to the chief manager, or, until the API key
+    // is connected, becomes a task so nothing written is lost.
+    const reply = command
+      ? await runCommand(store, command, rest, origin, raw)
+      : await capture(store, getOpsStore(), text, !isAgentConnected()).then((r) => (r ? captureReply(r, origin) : null));
     if (reply) {
       await sendMessage(chatId, reply, true);
       return ok();
@@ -97,12 +94,22 @@ export async function POST(request: Request) {
   return ok();
 }
 
-const TEXT_PREFIXES: [RegExp, string][] = [
-  [/^לקח\s*[:\-־]\s*/, "lesson"],
-  [/^רעיון\s*[:\-־]\s*/, "idea"],
-  // (No \b: JavaScript word boundaries do not see Hebrew letters.)
-  [/^(?:תזכורת\s*[:\-־]|תזכירי? לי(?=\s|$))\s*/, "remind"],
-];
+const CAPTURE_ICON: Record<CaptureKind, string> = {
+  lesson: "💡",
+  idea: "💡",
+  reminder: "⏰",
+  income: "💰",
+  expense: "🧾",
+  weight: "⚖️",
+  workout: "💪",
+  shopping: "🛒",
+  task: "✅",
+};
+
+function captureReply(r: CaptureResult, origin: string) {
+  if ("error" in r) return r.error;
+  return `${CAPTURE_ICON[r.kind]} ${escapeHtml(r.message)}\n<a href="${origin}${r.href}">פתיחה באפליקציה</a>`;
+}
 
 function whenLabel(date: string, today: string) {
   if (date === today) return "היום";
@@ -126,31 +133,15 @@ async function runCommand(store: LifeStore, command: string, args: string[], ori
       return morningMessage(store, ops, await loadDay(store, today), origin);
     case "metrics":
       return metricsMessage(store, ops, today, origin);
-    case "idea": {
-      const text = raw;
-      if (!text) return "כתוב את הרעיון אחרי הפקודה, למשל: /idea מערכת הזמנות בוואטסאפ ליבואנים";
-      // First line is the title; anything after it goes to the notes.
-      const [title, ...rest] = text.split("\n");
-      const idea = await getIdeasStore().add({ title: title.slice(0, 200), notes: rest.join("\n").trim() });
-      return `💡 נשמר ברעיונות: <b>${escapeHtml(idea.title)}</b>\n<a href="${origin}/life/ideas/${idea.id}">לפתוח ולהוסיף פרטים</a>`;
-    }
-    case "lesson": {
-      // "#טיול #פארק" anywhere makes it contextual: shown only when the schedule mentions them.
-      const triggers = [...raw.matchAll(/#([^\s#]{2,40})/g)].map((m) => m[1].replace(/_/g, " "));
-      const [rule, ...story] = raw.replace(/#[^\s#]{2,40}/g, "").replace(/[ \t]+\n/g, "\n").trim().split("\n");
-      if (!rule || rule.trim().length < 3) return "כתוב את הלקח אחרי הפקודה, למשל: /lesson לא שולחים הצעת מחיר בלי שיחת אבחון";
-      const lesson = await getLessonsStore().add({ rule: rule.trim(), story: story.join("\n").trim() || null, triggers });
-      return triggers.length
-        ? `💡 נשמר לקח: <b>${escapeHtml(lesson.rule)}</b>\nיופיע רק כשבלו״ז יש: ${triggers.map(escapeHtml).join(", ")}, ביום עצמו ובערב שלפני.`
-        : `💡 נשמר לקח: <b>${escapeHtml(lesson.rule)}</b>\nיחזור אליך ${whenLabel(lesson.next_review, today)} בבוקר, ואחר כך ברווחים הולכים וגדלים.\nללקח שרלוונטי רק בהקשר, הוסף מילים עם #, למשל: #טיול`;
-    }
-    case "remind": {
+    case "idea":
+      if (!raw) return "כתוב את הרעיון אחרי הפקודה, למשל: /idea מערכת הזמנות בוואטסאפ ליבואנים";
+      return captureReply((await capture(store, ops, `רעיון: ${raw}`))!, origin);
+    case "lesson":
+      if (!raw) return "כתוב את הלקח אחרי הפקודה, למשל: /lesson לא שולחים הצעת מחיר בלי שיחת אבחון\nללקח שרלוונטי רק בהקשר, הוסף מילים עם #, למשל: #טיול";
+      return captureReply((await capture(store, ops, `לקח: ${raw}`))!, origin);
+    case "remind":
       if (!raw) return "למשל: /remind מחר 10:00 להתקשר לדני\nאו פשוט: ״תזכיר לי בעוד 20 דקות לצאת״";
-      const parsed = parseWhen(raw);
-      if ("error" in parsed) return parsed.error;
-      await addReminder(store, parsed);
-      return `⏰ אזכיר לך ${whenLabel(parsed.date, today)} ב־${parsed.time}: ${escapeHtml(parsed.text)}`;
-    }
+      return captureReply((await capture(store, ops, `תזכורת: ${raw}`))!, origin);
     case "reminders": {
       const list = await upcomingReminders(store);
       if (!list.length) return "אין תזכורות פתוחות. להוספה: /remind מחר 10:00 להתקשר לדני";
