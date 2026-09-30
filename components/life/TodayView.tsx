@@ -22,6 +22,8 @@ export function TodayView() {
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<Metric[] | null>(null);
+  // The time of day picks the view; a tap can look at another part of the day for now.
+  const [picked, setPicked] = useState<Phase | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -62,6 +64,11 @@ export function TodayView() {
   if (!day || !now) return <LoadingDay />;
   if (day.restDay) return <RestScreen name={day.restDay.name} kind={day.restDay.kind} />;
 
+  const phase = phaseOf(day, now);
+  const shown = picked ?? phase;
+  // On a day off, work items stay in the timeline but are never "next up".
+  const nextUp = <NextUp timeline={day.dayOff ? day.timeline.filter((i) => i.area !== "business") : day.timeline} now={now} />;
+
   return (
     <div className="flex flex-col gap-4">
       <header className="flex items-start justify-between gap-3">
@@ -96,20 +103,135 @@ export function TodayView() {
         </p>
       )}
 
-      <WeekFocus day={day} />
-      <ContextLessons day={day} />
+      <PhaseSwitch phase={shown} auto={phase} onPick={setPicked} />
 
-      {/* On a day off, work items stay in the timeline but are never "next up". */}
-      <NextUp timeline={day.dayOff ? day.timeline.filter((i) => i.area !== "business") : day.timeline} now={now} />
-      <ChiefShortcuts />
-      {metrics && <TodayMetrics metrics={metrics} />}
-      <BodyToday day={day} now={now} onSave={saveCheckin} />
-      <Learning day={day} onChange={reload} onError={setError} />
-      <MorningCheckin checkin={day.checkin} onSave={saveCheckin} />
-      <Timeline day={day} now={now} onChange={reload} onError={setError} />
-      <Tasks day={day} onChange={reload} onError={setError} />
-      <EveningCheckin checkin={day.checkin} onSave={saveCheckin} />
+      {/* Only what matters at this time of day; everything else waits under "עוד להיום". */}
+      {shown === "morning" && (
+        <>
+          {!morningDone(day.checkin) && <MorningCheckin checkin={day.checkin} onSave={saveCheckin} />}
+          <ContextLessons day={day} />
+          <TopTasks day={day} onChange={reload} onError={setError} />
+          {nextUp}
+          <WeekFocus day={day} />
+          <BodyToday day={day} now={now} onSave={saveCheckin} />
+          <Learning day={day} onChange={reload} onError={setError} />
+        </>
+      )}
+      {shown === "day" && (
+        <>
+          {nextUp}
+          <ContextLessons day={day} />
+          <TopTasks day={day} onChange={reload} onError={setError} />
+          {!morningDone(day.checkin) && <MorningCheckin checkin={day.checkin} onSave={saveCheckin} />}
+          <BodyToday day={day} now={now} onSave={saveCheckin} />
+          <Learning day={day} onChange={reload} onError={setError} />
+          <WeekFocus day={day} />
+        </>
+      )}
+      {shown === "evening" && (
+        <>
+          <EveningCheckin day={day} onSave={saveCheckin} onError={setError} />
+          <ContextLessons day={day} />
+          {nextUp}
+        </>
+      )}
+
+      <MoreToday count={day.openTasks.length}>
+        <Timeline day={day} now={now} onChange={reload} onError={setError} />
+        <Tasks day={day} onChange={reload} onError={setError} />
+        {metrics && <TodayMetrics metrics={metrics} />}
+        <ChiefShortcuts />
+        {shown !== "evening" && <EveningCheckin day={day} onSave={saveCheckin} onError={setError} />}
+        {shown === "evening" && <MorningCheckin checkin={day.checkin} onSave={saveCheckin} />}
+      </MoreToday>
     </div>
+  );
+}
+
+type Phase = "morning" | "day" | "evening";
+const PHASES: { key: Phase; label: string }[] = [
+  { key: "morning", label: "בוקר" },
+  { key: "day", label: "יום" },
+  { key: "evening", label: "ערב" },
+];
+
+/** Morning until deep work starts; evening from half an hour before closing the day. */
+function phaseOf(day: DayView, now: string): Phase {
+  const minutes = toMinutes(now);
+  if (minutes < toMinutes(day.settings.deep_work_start)) return "morning";
+  if (minutes >= toMinutes(day.settings.day_close_time) - 30) return "evening";
+  return "day";
+}
+
+function morningDone(c: Checkin | null) {
+  return Boolean(c && c.sleep_hours !== null && c.energy !== null && c.mood !== null);
+}
+
+function PhaseSwitch({ phase, auto, onPick }: { phase: Phase; auto: Phase; onPick: (p: Phase | null) => void }) {
+  return (
+    <div role="tablist" aria-label="חלק ביום" className="grid grid-cols-3 rounded-xl bg-white/[0.04] p-1 text-xs">
+      {PHASES.map((p) => (
+        <button
+          key={p.key}
+          type="button"
+          role="tab"
+          aria-selected={phase === p.key}
+          onClick={() => onPick(p.key === auto ? null : p.key)}
+          className={`rounded-lg py-1.5 font-semibold ${phase === p.key ? "bg-white/15 text-foreground" : "text-muted"}`}
+        >
+          {p.label}
+          {p.key === auto && <span className="ms-1 text-[10px] font-normal text-gold-2">· עכשיו</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Everything that is not needed right now, one tap away. */
+function MoreToday({ count, children }: { count: number; children: React.ReactNode }) {
+  return (
+    <details className="group rounded-2xl border border-border-soft bg-surface/60">
+      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold">
+        <span>עוד להיום</span>
+        <span className="text-xs font-normal text-muted">
+          לו״ז מלא · {count} משימות · מדדים <span className="inline-block transition-transform group-open:rotate-180">▾</span>
+        </span>
+      </summary>
+      <div className="flex flex-col gap-4 px-0 pb-1 pt-1">{children}</div>
+    </details>
+  );
+}
+
+/** The three most important open tasks, to tick off without opening the full list. */
+function TopTasks({ day, onChange, onError }: { day: DayView; onChange: () => void; onError: (m: string) => void }) {
+  const tasks = day.openTasks.filter((t) => !(day.dayOff && t.area === "business")).slice(0, 3);
+  if (!tasks.length) return null;
+  const done = async (t: Task) => {
+    try {
+      await lifeApi(`/tasks/${t.id}`, { method: "PATCH", body: { done: true } });
+      onChange();
+    } catch (e) {
+      onError((e as Error).message);
+    }
+  };
+  return (
+    <Card title="3 הדברים של היום" action={<span className="text-xs text-muted">{day.doneToday.length} הושלמו</span>}>
+      <ul className="grid gap-1">
+        {tasks.map((t) => (
+          <li key={t.id} className="flex items-center gap-3 py-1 text-sm">
+            <button
+              type="button"
+              onClick={() => done(t)}
+              aria-label={`סמן ${t.title} כבוצע`}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/25 hover:border-gold"
+            />
+            <span className={`h-2 w-2 shrink-0 rounded-full ${AREA_STYLE[t.area].dot}`} />
+            <span className="min-w-0 flex-1">{t.title}</span>
+            {t.scheduled_time && <bdi dir="ltr" className="font-latin shrink-0 text-xs text-muted">{t.scheduled_time}</bdi>}
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 }
 
@@ -509,18 +631,40 @@ function MorningCheckin({ checkin, onSave }: { checkin: Checkin | null; onSave: 
   );
 }
 
-function EveningCheckin({ checkin, onSave }: { checkin: Checkin | null; onSave: (p: CheckinPatch) => void }) {
-  const habits = [
+/** Closing the day in about 30 seconds: prayers, workout, how the day was, and one takeaway. */
+function EveningCheckin({ day, onSave, onError }: { day: DayView; onSave: (p: CheckinPatch) => void; onError: (m: string) => void }) {
+  const checkin = day.checkin;
+  const toggles = [
     { key: "shacharit", label: "שחרית" },
     { key: "mincha", label: "מנחה" },
     { key: "arvit", label: "ערבית" },
     { key: "hitbodedut", label: "התבודדות" },
+    ...(day.body.activity ? [{ key: "workout", label: "אימון" } as const] : []),
   ] as const;
   const [note, setNote] = useState(checkin?.note ?? "");
+  const [asLesson, setAsLesson] = useState(false);
+  const [savedLesson, setSavedLesson] = useState(false);
+  const filled = toggles.filter(({ key }) => checkin?.[key]).length + (checkin?.day_rating ? 1 : 0);
+
+  const saveNote = async () => {
+    if (note === (checkin?.note ?? "")) return;
+    onSave({ note: note || null });
+  };
+  const saveLesson = async () => {
+    if (note.trim().length < 3) return;
+    try {
+      await lifeApi("/growth/lessons", { method: "POST", body: { rule: note.trim(), source: "mine" } });
+      setSavedLesson(true);
+      setAsLesson(false);
+    } catch (e) {
+      onError((e as Error).message);
+    }
+  };
+
   return (
-    <Card title="סגירת יום" icon={<MoonStar className="h-4 w-4 text-gold-2" />}>
-      <div className="grid grid-cols-2 gap-2">
-        {habits.map(({ key, label }) => {
+    <Card title="סגירת יום" icon={<MoonStar className="h-4 w-4 text-gold-2" />} action={<span className="text-xs text-muted">30 שניות</span>}>
+      <div className="flex flex-wrap gap-1.5">
+        {toggles.map(({ key, label }) => {
           const done = Boolean(checkin?.[key]);
           return (
             <button
@@ -528,14 +672,12 @@ function EveningCheckin({ checkin, onSave }: { checkin: Checkin | null; onSave: 
               type="button"
               aria-pressed={done}
               onClick={() => onSave({ [key]: !done })}
-              className={`flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
                 done ? "border-gold/50 bg-gold/15 text-gold-2" : "border-border-soft bg-white/[0.03] text-muted"
               }`}
             >
+              {done && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
               {label}
-              <span className={`flex h-5 w-5 items-center justify-center rounded-full ${done ? "bg-gold text-[#1d1407]" : "border border-white/20"}`}>
-                {done && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
-              </span>
             </button>
           );
         })}
@@ -543,14 +685,35 @@ function EveningCheckin({ checkin, onSave }: { checkin: Checkin | null; onSave: 
       <div className="mt-3">
         <Scale label="איך היה היום?" value={checkin?.day_rating ?? null} onPick={(v) => onSave({ day_rating: v })} />
       </div>
-      <textarea
+      <input
         value={note}
-        onChange={(e) => setNote(e.target.value)}
-        onBlur={() => note !== (checkin?.note ?? "") && onSave({ note: note || null })}
-        placeholder="משפט אחד על היום (לא חובה)"
-        rows={2}
-        className="mt-3 w-full resize-none rounded-lg bg-white/5 px-3 py-2 text-sm outline-none placeholder:text-muted/70"
+        onChange={(e) => {
+          setNote(e.target.value);
+          setSavedLesson(false);
+        }}
+        onBlur={saveNote}
+        placeholder="מה למדתי היום? (משפט אחד, לא חובה)"
+        aria-label="מה למדתי היום"
+        className="mt-3 w-full rounded-lg bg-white/5 px-3 py-2 text-sm outline-none placeholder:text-muted/70"
       />
+      {note.trim().length >= 3 && !savedLesson && (
+        <label className="mt-2 flex items-center gap-2 text-xs text-muted">
+          <input
+            type="checkbox"
+            checked={asLesson}
+            onChange={(e) => {
+              setAsLesson(e.target.checked);
+              if (e.target.checked) void saveLesson();
+            }}
+            className="h-4 w-4 accent-[#d4a24e]"
+          />
+          לשמור גם כלקח שיחזור אליי
+        </label>
+      )}
+      {savedLesson && <p className="mt-2 text-xs text-emerald-300">נשמר ברשימת הלקחים ✓</p>}
+      <p className="mt-2 text-[11px] text-muted">
+        מולאו {filled} מתוך {toggles.length + 1}. מהנתונים האלה המערכת לומדת עליך.
+      </p>
     </Card>
   );
 }
