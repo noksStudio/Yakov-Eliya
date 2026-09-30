@@ -11,7 +11,7 @@ import { EXPENSE_CATEGORIES, financeEntrySchema } from "@/lib/life/ops-types";
 import { getOpsStore } from "@/lib/life/ops-store";
 import { loadDay } from "@/lib/life/service";
 import { getLifeStore, type LifeStore } from "@/lib/life/store";
-import { HELP_TEXT, escapeHtml, loadTelegram, safeEqual, saveTelegram, sendMessage, telegramCall, webhookSecret } from "@/lib/life/telegram";
+import { ALL_TEXT, HELP_TEXT, escapeHtml, loadTelegram, safeEqual, saveTelegram, sendMessage, telegramCall, webhookSecret } from "@/lib/life/telegram";
 import { addDays, israelToday } from "@/lib/life/time";
 
 // Telegram webhook. Outside the proxy matcher: Telegram proves itself with the secret token set in
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   // Binding: the deep link from settings opens the bot with "/start <code>".
   if (command === "start" && rest[0] && telegram.link_code && safeEqual(rest[0], telegram.link_code)) {
     await saveTelegram(store, { chat_id: chatId, link_code: null, linked_at: new Date().toISOString() });
-    await sendMessage(chatId, `✅ <b>מחובר!</b> מעכשיו ההתראות והמנהל הראשי כאן.\n\n${HELP_TEXT}`, true);
+    await sendMessage(chatId, `✅ <b>מחובר!</b> מעכשיו ההתראות והמנהל הראשי כאן.\n\n${ALL_TEXT}`, true);
     return ok();
   }
 
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     }
     const agentText = command === "plan" ? "תכנן איתי את היום: מה החשוב, מה בלו״ז, ומה לדחות." : command ? null : text;
     if (!agentText) {
-      await sendMessage(chatId, HELP_TEXT, true);
+      await sendMessage(chatId, `לא מכיר את הפקודה הזו. הנה כל מה שאפשר:\n\n${ALL_TEXT}`, true);
       return ok();
     }
     // Answer Telegram right away; the agent replies in its own message when it is done.
@@ -117,6 +117,9 @@ async function runCommand(store: LifeStore, command: string, args: string[], ori
     case "start":
     case "help":
       return HELP_TEXT;
+    case "all":
+    case "commands":
+      return ALL_TEXT;
     case "today":
       return morningMessage(store, ops, await loadDay(store, today), origin);
     case "metrics":
@@ -221,7 +224,7 @@ async function replyWithAgent(store: LifeStore, chatId: number, text: string, de
     await sendMessage(chatId, reply);
   } catch (error) {
     if (error instanceof AgentNotConfiguredError) {
-      await sendMessage(chatId, `המנהל הראשי עוד לא מחובר (חסר מפתח API). בינתיים הפקודות עובדות:\n\n${HELP_TEXT}`, true).catch(() => {});
+      await sendMessage(chatId, `המנהל הראשי עוד לא מחובר (חסר מפתח API). בינתיים הפקודות עובדות:\n\n${ALL_TEXT}`, true).catch(() => {});
       return;
     }
     console.error("[telegram/agent]", error);

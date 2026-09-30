@@ -103,40 +103,79 @@ export function safeEqual(a: string, b: string) {
   return diff === 0;
 }
 
-export const BOT_COMMANDS = [
-  { command: "today", description: "התכנית של היום" },
-  { command: "plan", description: "המנהל מתכנן איתי את היום" },
-  { command: "w", description: "שקילה: /w 84.6" },
-  { command: "in", description: "הכנסה: /in 1500 לקוח" },
-  { command: "out", description: "הוצאה: /out 300 שיווק" },
-  { command: "workout", description: "סימון אימון שבוצע" },
-  { command: "idea", description: "רעיון: /idea מערכת הזמנות" },
-  { command: "lesson", description: "לקח: /lesson לא שולחים מחיר בלי אבחון" },
-  { command: "remind", description: "תזכורת: /remind מחר 10:00 להתקשר לדני" },
-  { command: "reminders", description: "התזכורות הפתוחות" },
-  { command: "goals", description: "חזון 30: היעדים" },
-  { command: "focus", description: "הפוקוס של השבוע" },
-  { command: "metrics", description: "המדדים שלי" },
-  { command: "help", description: "מה אפשר לעשות כאן" },
+// One list of every command, grouped: the bot's command menu and /all are both built from it.
+type BotCommand = { command: string; usage?: string; description: string };
+const COMMAND_GROUPS: { title: string; commands: BotCommand[] }[] = [
+  {
+    title: "📅 היום והשבוע",
+    commands: [
+      { command: "today", description: "התכנית של היום" },
+      { command: "plan", description: "המנהל מתכנן איתי את היום" },
+      { command: "focus", description: "הפוקוס של השבוע" },
+    ],
+  },
+  {
+    title: "✍️ רישום מהיר",
+    commands: [
+      { command: "w", usage: "84.6", description: "שקילה" },
+      { command: "in", usage: "1500 לקוח", description: "הכנסה" },
+      { command: "out", usage: "300 שיווק", description: "הוצאה" },
+      { command: "workout", description: "אימון בוצע" },
+    ],
+  },
+  {
+    title: "🌱 זיכרון וצמיחה",
+    commands: [
+      { command: "lesson", usage: "לא שולחים מחיר בלי אבחון", description: "שמירת לקח" },
+      { command: "idea", usage: "מערכת הזמנות", description: "שמירת רעיון" },
+      { command: "remind", usage: "מחר 10:00 להתקשר לדני", description: "תזכורת" },
+      { command: "reminders", description: "התזכורות הפתוחות" },
+      { command: "cancel", usage: "1", description: "ביטול תזכורת לפי המספר ברשימה" },
+    ],
+  },
+  {
+    title: "🎯 יעדים ומדדים",
+    commands: [
+      { command: "goals", description: "חזון 30: היעדים" },
+      { command: "metrics", description: "כל המדדים" },
+    ],
+  },
+  {
+    title: "❔ עזרה",
+    commands: [
+      { command: "all", description: "כל הפקודות ומה כל אחת עושה" },
+      { command: "help", description: "הסבר קצר" },
+    ],
+  },
 ];
+
+/** For setMyCommands: the menu shown when typing "/" (descriptions carry the example). */
+export const BOT_COMMANDS = [
+  ...COMMAND_GROUPS.flatMap((g) => g.commands).filter((c) => c.command === "all"),
+  ...COMMAND_GROUPS.flatMap((g) => g.commands).filter((c) => c.command !== "all"),
+].map((c) => ({ command: c.command, description: (c.usage ? `${c.description}: /${c.command} ${c.usage}` : c.description).slice(0, 256) }));
+
+/** /all: every command with what it does, by group. */
+export const ALL_TEXT = [
+  "<b>כל הפקודות</b>",
+  ...COMMAND_GROUPS.flatMap((g) => [
+    "",
+    `<b>${g.title}</b>`,
+    ...g.commands.map((c) => `/${c.command}${c.usage ? ` ${c.usage}` : ""} · ${c.description}`),
+  ]),
+  "",
+  "<b>💬 בלי פקודות</b>",
+  "״לקח: …״ · שמירת לקח",
+  "״רעיון: …״ · שמירת רעיון",
+  "״תזכיר לי מחר ב־10:00 …״ · תזכורת",
+  "כל טקסט אחר · המנהל הראשי עונה, מתכנן ומעדכן משימות ולו״ז",
+].join("\n");
 
 export const HELP_TEXT = [
   "<b>מה אפשר לעשות כאן</b>",
   "סתם לכתוב לי: המנהל הראשי עונה, מתכנן ומעדכן משימות ולו״ז.",
+  "רישום מהיר: שקילה, הכנסות, לקחים, רעיונות ותזכורות, גם בעברית רגילה (״תזכיר לי מחר ב־10:00 …״).",
   "",
   "/today · התכנית של היום",
-  "/plan · תכנון יום מלא עם המנהל",
-  "/w 84.6 · שקילה",
-  "/in 1500 הערה · הכנסה",
-  "/out 300 שיווק · הוצאה",
-  "/workout · אימון בוצע",
-  "/idea טקסט · שמירת רעיון",
-  "/lesson טקסט · שמירת לקח",
-  "/remind מחר 10:00 טקסט · תזכורת",
-  "/reminders · התזכורות (ביטול: /cancel 1)",
-  "/goals · חזון 30",
-  "/focus · הפוקוס של השבוע",
-  "",
-  "גם בלי פקודות: ״לקח: …״, ״רעיון: …״, ״תזכיר לי מחר ב־10:00 …״",
-  "/metrics · המדדים",
+  "/all · כל הפקודות ומה כל אחת עושה",
 ].join("\n");
