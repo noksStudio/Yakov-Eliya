@@ -84,6 +84,7 @@ export function buildDay(
   learning: LearningToday,
   /** Weekly commitments already filtered to this date (see recurringFor). */
   recurring: Recurring[] = [],
+  weekFocus: string[] = [],
 ): DayView {
   const activity: TimelineItem[] = body.activity
     ? [
@@ -162,6 +163,7 @@ export function buildDay(
     restDay: settings.shabbat_silence ? restDayOf(date) : null,
     dayOff,
     startsOn: settings.start_date && date < settings.start_date ? settings.start_date : null,
+    weekFocus,
     timeline,
     openTasks,
     doneToday,

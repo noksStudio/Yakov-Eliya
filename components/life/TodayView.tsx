@@ -95,6 +95,8 @@ export function TodayView() {
         </p>
       )}
 
+      <WeekFocus day={day} />
+
       {/* On a day off, work items stay in the timeline but are never "next up". */}
       <NextUp timeline={day.dayOff ? day.timeline.filter((i) => i.area !== "business") : day.timeline} now={now} />
       <ChiefShortcuts />
@@ -106,6 +108,32 @@ export function TodayView() {
       <Tasks day={day} onChange={reload} onError={setError} />
       <EveningCheckin checkin={day.checkin} onSave={saveCheckin} />
     </div>
+  );
+}
+
+/** This week's focus from the weekly review; on Sunday without one, an invitation to do it. */
+function WeekFocus({ day }: { day: DayView }) {
+  if (day.weekFocus.length) {
+    return (
+      <Link href="/life/growth?tab=review" className="rounded-2xl border border-border-soft bg-surface p-3">
+        <p className="mb-1 text-xs text-gold-2">הפוקוס של השבוע</p>
+        <ul className="grid gap-0.5 text-sm">
+          {day.weekFocus.map((f) => (
+            <li key={f}>• {f}</li>
+          ))}
+        </ul>
+      </Link>
+    );
+  }
+  if (new Date(`${day.date}T12:00:00Z`).getUTCDay() !== 0 || day.dayOff || day.startsOn) return null;
+  return (
+    <Link href="/life/growth?tab=review" className="flex items-center justify-between rounded-2xl border border-gold/30 bg-gold/[0.07] p-3 text-sm">
+      <span>
+        <span className="block font-semibold">סקירה שבועית</span>
+        <span className="text-xs text-muted">5 דקות: מה הלך, מה הלקח, ו־3 פוקוסים לשבוע</span>
+      </span>
+      <span className="text-gold-2">להתחיל</span>
+    </Link>
   );
 }
 

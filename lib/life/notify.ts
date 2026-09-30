@@ -5,6 +5,8 @@ import { businessSummary } from "./business";
 import { loadCouple, occasionLabel, reminderDays, upcomingOccasions } from "./couple";
 import { financeSummary } from "./finance";
 import { computeMetrics } from "./metrics";
+import { computeInsights, goalsProgress } from "./growth";
+import { getLessonsStore, markLessonShown, pickLesson } from "./lessons";
 import { loadDay } from "./service";
 import { escapeHtml, loadTelegram, sendMessage } from "./telegram";
 import { addDays, fromMinutes, israelNow, israelToday, restDayOf, toMinutes } from "./time";
@@ -79,6 +81,12 @@ export function dueSlots(day: DayView, prefs: NotifyPrefs, sent: string[], nowMi
 const ils = (n: number) => `${Math.round(n).toLocaleString("he-IL")} ₪`;
 const link = (origin: string, path: string, label: string) => `<a href="${origin}${path}">${label}</a>`;
 
+/** Today's lesson, preferring ones from the areas the day is about (workout, sales, events). */
+export async function lessonForDay(day: DayView) {
+  const areas = [...new Set(day.timeline.filter((i) => i.kind !== "anchor").map((i) => i.area))];
+  return pickLesson(await getLessonsStore().list(), day.date, areas);
+}
+
 export async function morningMessage(store: LifeStore, ops: OpsStore, day: DayView, origin: string) {
   const business = await businessSummary(ops, day.date);
   const lines = [`☀️ <b>בוקר טוב!</b> ${day.weekday}, ${day.hebrewDate}`];
@@ -109,6 +117,9 @@ export async function morningMessage(store: LifeStore, ops: OpsStore, day: DayVi
       ),
     );
   }
+  if (day.weekFocus.length) lines.push("", "<b>הפוקוס של השבוע</b>", ...day.weekFocus.map((f) => `• ${escapeHtml(f)}`));
+  const lesson = await lessonForDay(day);
+  if (lesson) lines.push("", `💡 <b>לקח:</b> ${escapeHtml(lesson.rule)}`);
   if (!day.checkin?.weight) lines.push("", "⚖️ לא לשכוח להישקל: שלח /w ומשקל");
   lines.push("", link(origin, "/life", "לפתוח את היום שלי"));
   return lines.join("\n");
@@ -178,8 +189,28 @@ export async function metricsMessage(store: LifeStore, ops: OpsStore, date: stri
   ].join("\n");
 }
 
-const weeklyMessage = (store: LifeStore, ops: OpsStore, date: string, origin: string) =>
-  metricsMessage(store, ops, date, origin, "🗓️ <b>שבוע חדש</b>: איפה אני עומד מול היעדים");
+const goalNum = (n: number) => (Math.abs(n) >= 1000 ? Math.round(n).toLocaleString("he-IL") : String(Math.round(n * 10) / 10));
+
+/** Sunday after Shacharit: where the goals stand, what the data taught, and the review link. */
+async function weeklyMessage(store: LifeStore, ops: OpsStore, date: string, origin: string) {
+  const [goals, checkins, activity] = await Promise.all([
+    goalsProgress(store, ops, date),
+    store.listCheckins(addDays(date, -41), date),
+    ops.listActivity(addDays(date, -41), date),
+  ]);
+  const mark = { done: "✅", on_track: "🟢", behind: "🟠", no_data: "⚪️" } as const;
+  const insights = computeInsights(checkins, activity).slice(0, 2);
+  return [
+    "🗓️ <b>שבוע חדש: סקירה שבועית</b>",
+    "",
+    "<b>חזון 30</b>",
+    ...goals.map((g) => `${mark[g.status]} ${escapeHtml(g.title)}: ${g.current === null ? "—" : goalNum(g.current)} / ${goalNum(g.target)} ${escapeHtml(g.unit)}`),
+    ...(insights.length ? ["", "<b>מה למדנו עליך</b>", ...insights.map((i) => `• ${escapeHtml(i.text)}`)] : []),
+    "",
+    "5 דקות: מה הלך טוב, מה לא, איזה לקח לוקחים, ו־3 פוקוסים לשבוע.",
+    link(origin, "/life/growth?tab=review", "לסקירה השבועית"),
+  ].join("\n");
+}
 
 export type NotifyResult = {
   date: string;
@@ -222,6 +253,11 @@ export async function runNotifications(store: LifeStore, ops: OpsStore, origin: 
     }
     await sendMessage(telegram.chat_id!, text, true);
     log.sent.push(slot.id);
+    if (slot.rule === "morning") {
+      // The lesson in this morning's message counts as seen; it comes back later on its schedule.
+      const lesson = await lessonForDay(day);
+      if (lesson) await markLessonShown(lesson, date);
+    }
     // Logged after each send so a failure part-way does not repeat what already went out.
     await store.saveDoc("notify_log", log);
     base.sent.push({ id: slot.id, at: slot.at });

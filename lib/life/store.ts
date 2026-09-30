@@ -32,7 +32,9 @@ export type DocKey =
   | "notify_log"
   | "recurring"
   | "couple"
-  | "seeds";
+  | "seeds"
+  | "goals"
+  | "reviews";
 
 export interface LifeStore {
   getSettings(): Promise<Settings>;

@@ -141,6 +141,20 @@ create table if not exists life_ideas (
   steps jsonb not null default '[]'::jsonb
 );
 
+create table if not exists life_lessons (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  rule text not null,
+  story text,
+  source text not null default 'mine' check (source in ('mine', 'others')),
+  source_name text,
+  area text not null default 'general',
+  reviews int not null default 0,
+  next_review date not null default current_date,
+  last_shown date,
+  archived boolean not null default false
+);
+
 -- Safe to re-run on a database created from an earlier version of this file.
 alter table life_checkins add column if not exists workout boolean not null default false;
 alter table life_settings add column if not exists chol_hamoed_off boolean not null default true;
@@ -156,6 +170,7 @@ create index if not exists life_finance_date_idx on life_finance (date);
 create index if not exists life_deals_stage_idx on life_deals (stage, next_date);
 create index if not exists life_journal_kind_idx on life_journal (kind, created_at desc);
 create index if not exists life_tasks_event_idx on life_tasks (event_id);
+create index if not exists life_lessons_review_idx on life_lessons (archived, next_review);
 create index if not exists life_ideas_status_idx on life_ideas (status, updated_at desc);
 
 alter table life_settings enable row level security;
@@ -170,3 +185,4 @@ alter table life_deals enable row level security;
 alter table life_activity enable row level security;
 alter table life_journal enable row level security;
 alter table life_ideas enable row level security;
+alter table life_lessons enable row level security;

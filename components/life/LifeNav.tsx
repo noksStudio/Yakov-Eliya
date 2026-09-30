@@ -17,6 +17,7 @@ import {
   MessageCircle,
   MoonStar,
   Settings,
+  Sprout,
   ShoppingCart,
   Wallet,
   X,
@@ -41,6 +42,7 @@ const DRAWER: { title: string; items: DrawerItem[] }[] = [
     items: [
       { href: "/life", label: "היום שלי", icon: CalendarDays },
       { href: "/life/chat", label: "המנהל הראשי", hint: "לו״ז ומשימות", icon: Crown },
+      { href: "/life/growth", label: "צמיחה", hint: "חזון 30, לקחים וסקירה שבועית", icon: Sprout },
       { href: "/life/ideas", label: "רעיונות", hint: "מערכות ומוצרים לפתח", icon: Lightbulb },
     ],
   },

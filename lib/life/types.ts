@@ -137,6 +137,8 @@ export type DayView = {
   dayOff: string | null;
   /** The routine's start date, while it is still ahead. */
   startsOn: string | null;
+  /** Up to three focus items from this week's review. */
+  weekFocus: string[];
   timeline: TimelineItem[];
   openTasks: Task[];
   doneToday: Task[];

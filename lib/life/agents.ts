@@ -25,6 +25,8 @@ import { loadDay } from "./service";
 import { anchorConflict } from "./day";
 import { calendarRange, weekStart } from "./calendar";
 import { getIdeasStore, newIdeaSchema } from "./ideas";
+import { goalPatchSchema, growthSummary, newLessonSchema, reviewSchema, saveReview, updateGoal } from "./growth";
+import { getLessonsStore } from "./lessons";
 import {
   addGift,
   addSpecialDate,
@@ -54,7 +56,11 @@ const MAX_ITERATIONS = 8;
 // System prompts. Stable across requests (no dates or per-user state) so they can be served from
 // the prompt cache; the current date and time travel in each user message instead.
 
-const SHARED = `## מי הוא
+const SHARED = `## מטרת המערכת
+ללמוד את אורח החיים של יעקב, את ההרגלים הטובים והפחות טובים, ולקדם אותו ליעדים ברורים ומדידים ("חזון 30": היעדים עד יום ההולדת ה־30 ב־10.3.2027). ללמוד מטעויות, שלו ושל אחרים, ולהזכיר את הלקחים בזמן הנכון.
+כשעולה טעות, תובנה או משהו שעבד, הצע לשמור אותו כלקח (save_lesson) בניסוח של כלל קצר ומעשי.
+
+## מי הוא
 - יעקב-אליה, בעל עסק (Noks Studio): הטמעת AI, אוטומציות, מערכות CRM ואתרים לעסקים. נישה: יבואנים, מפיצים ולוגיסטיקה.
 - שומר תורה ומצוות: 3 תפילות ביום ושעת התבודדות בלילה. אוכל כשר.
 - יום הולדת: 10 במרץ (יהיה בן 30 ב־2027).
@@ -96,6 +102,12 @@ ${SHARED}
 
 ## רעיונות
 כשיעקב כותב "רעיון: ..." או מספר על מערכת או מוצר שהוא רוצה לפתח, שמור עם save_idea (כותרת קצרה, והפרטים בהערות). אל תהפוך רעיון למשימה אלא אם ביקש.
+
+## סקירה שבועית (ראשון אחרי שחרית)
+1. get_growth: מצב היעדים מול הקצב, התובנות מהנתונים והסקירות הקודמות.
+2. שאל בהודעה אחת: מה הלך טוב, מה היה קשה, ואיזה לקח לוקחים.
+3. הצע עד 3 פוקוסים לשבוע שמקדמים את היעד שהכי בפיגור, ושמור הכל עם save_weekly_review. את הלקח שמור גם עם save_lesson.
+4. אחר כך פזר את הפוקוסים על השבוע (get_week, add_task).
 
 ## לו״ז שבועי
 get_week מראה את השבוע. כשיעקב מספר על משהו שחוזר כל שבוע (שיעור, חוג, פגישה קבועה), שמור אותו עם add_recurring ולא כאירוע חד־פעמי. בתכנון שבוע, פזר את המשימות הגדולות על פני הימים ושמור על ימים עם אימון קלים יותר.
@@ -398,6 +410,63 @@ function coupleTools(store: LifeStore) {
   ];
 }
 
+function growthTools(store: LifeStore) {
+  const lessons = getLessonsStore();
+  return [
+    betaZodTool({
+      name: "get_growth",
+      description: "חזון 30: היעדים עם ההתקדמות מול הקצב והיעד לנקודת הביקורת הבאה, הלקחים, הסקירה של השבוע והקודמות, ותובנות שנלמדו מהנתונים.",
+      inputSchema: z.object({}),
+      run: async () => {
+        const g = await growthSummary(store, getOpsStore());
+        return json({
+          daysToVision: g.daysToVision,
+          goals: g.goals.map(({ id, title, current, target, unit, pct, expectedPct, status, checkpoint, currentNote }) => ({
+            id,
+            title,
+            current,
+            target,
+            unit,
+            pct,
+            expectedPct,
+            status,
+            checkpoint,
+            currentNote,
+          })),
+          insights: g.insights.map((i) => i.text),
+          review: g.review,
+          pastReviews: g.pastReviews.slice(0, 3),
+          lessons: g.lessons.slice(0, 20).map((l) => ({ rule: l.rule, area: l.area, source: l.source_name ?? l.source })),
+        });
+      },
+    }),
+    betaZodTool({
+      name: "save_lesson",
+      description: "שומר לקח שיחזור אליו בהודעת הבוקר ברווחים הולכים וגדלים. rule: כלל קצר ומעשי. story: מה קרה. source: mine או others (ואז source_name: ספר, מנטור, לקוח).",
+      inputSchema: newLessonSchema,
+      run: async (input) => {
+        const lesson = await lessons.add(input);
+        return json({ id: lesson.id, rule: lesson.rule, next_review: lesson.next_review });
+      },
+    }),
+    betaZodTool({
+      name: "save_weekly_review",
+      description: "שומר את הסקירה השבועית של השבוע הנוכחי: מה הלך טוב, מה היה קשה, הלקח, ועד 3 פוקוסים לשבוע (מופיעים במסך היום ובהודעת הבוקר).",
+      inputSchema: reviewSchema,
+      run: async (input) => json(await saveReview(store, input)),
+    }),
+    betaZodTool({
+      name: "update_goal",
+      description: "מעדכן יעד לפי id: value (ערך נוכחי ליעד מותאם אישית), target או deadline.",
+      inputSchema: goalPatchSchema.extend({ id: z.string() }),
+      run: async ({ id, ...patch }) => {
+        const goal = await updateGoal(store, id, patch);
+        return goal ? json(goal) : "שגיאה: יעד לא נמצא";
+      },
+    }),
+  ];
+}
+
 function ideaTools() {
   return [
     betaZodTool({
@@ -672,16 +741,22 @@ function bodyTools(store: LifeStore) {
 const AGENT_CONFIG: Record<AgentId, { system: string; tools: (store: LifeStore) => BetaToolRunnerParams["tools"] }> = {
   chief: {
     system: CHIEF_PROMPT,
-    tools: (s) => [...dayTools(s), ...checkinTools(s), ...shoppingTools(s), ...learningTools(s), ...memoryTools(s), ...ideaTools()],
+    tools: (s) => [...dayTools(s), ...checkinTools(s), ...shoppingTools(s), ...learningTools(s), ...memoryTools(s), ...ideaTools(), ...growthTools(s)],
   },
   body: { system: BODY_PROMPT, tools: (s) => [...bodyTools(s), ...checkinTools(s), ...shoppingTools(s), ...dayTools(s).slice(0, 1), ...memoryTools(s).slice(0, 1)] },
-  business: { system: BUSINESS_PROMPT, tools: (s) => [...businessTools(), ...dayTools(s).slice(1, 3), ...memoryTools(s).slice(0, 1)] },
+  business: {
+    system: BUSINESS_PROMPT,
+    tools: (s) => [...businessTools(), ...dayTools(s).slice(1, 3), ...memoryTools(s).slice(0, 1), ...pick(growthTools(s), ["save_lesson"])],
+  },
   finance: { system: FINANCE_PROMPT, tools: (s) => [...financeTools(s), ...memoryTools(s).slice(0, 1)] },
   spirit: {
     system: SPIRIT_PROMPT,
     tools: (s) => [...spiritTools(s), ...checkinTools(s).slice(1), ...learningTools(s), ...memoryTools(s).slice(0, 1)],
   },
-  mind: { system: MIND_PROMPT, tools: (s) => [...mindTools(s), ...checkinTools(s), ...memoryTools(s).slice(0, 1)] },
+  mind: {
+    system: MIND_PROMPT,
+    tools: (s) => [...mindTools(s), ...checkinTools(s), ...memoryTools(s).slice(0, 1), ...pick(growthTools(s), ["get_growth", "save_lesson"])],
+  },
   couple: {
     system: COUPLE_PROMPT,
     tools: (s) => [...coupleTools(s), ...pick(dayTools(s), ["add_task", "update_task", "add_event", "get_week", "add_recurring"])],
