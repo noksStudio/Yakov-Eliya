@@ -56,6 +56,7 @@ create table if not exists life_checkins (
   mincha boolean not null default false,
   arvit boolean not null default false,
   hitbodedut boolean not null default false,
+  workout boolean not null default false,
   day_rating int,
   note text,
   updated_at timestamptz not null default now()
@@ -64,16 +65,39 @@ create table if not exists life_checkins (
 create table if not exists life_messages (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
+  agent text not null default 'chief',
   role text not null check (role in ('user', 'assistant')),
   content text not null
 );
 
+-- Body plan documents (profile, meal plan, workout plan), rewritten wholesale by the body coach.
+create table if not exists life_docs (
+  key text primary key,
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists life_shopping (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  title text not null,
+  qty text,
+  category text not null default 'שונות',
+  checked boolean not null default false
+);
+
+-- Safe to re-run on a database created from an earlier version of this file.
+alter table life_checkins add column if not exists workout boolean not null default false;
+alter table life_messages add column if not exists agent text not null default 'chief';
+
 create index if not exists life_tasks_open_idx on life_tasks (done, due_date);
 create index if not exists life_events_date_idx on life_events (date, start_time);
-create index if not exists life_messages_created_idx on life_messages (created_at desc);
+create index if not exists life_messages_created_idx on life_messages (agent, created_at desc);
 
 alter table life_settings enable row level security;
 alter table life_tasks enable row level security;
 alter table life_events enable row level security;
 alter table life_checkins enable row level security;
 alter table life_messages enable row level security;
+alter table life_docs enable row level security;
+alter table life_shopping enable row level security;

@@ -2,18 +2,40 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Crown, Loader2, Send } from "lucide-react";
-import type { ChatMessage } from "@/lib/life/types";
+import { Crown, Dumbbell, Loader2, Send } from "lucide-react";
+import type { AgentId, ChatMessage } from "@/lib/life/types";
 import { lifeApi } from "./api";
 
-const PRESETS: Record<string, string> = {
-  morning: "בנה לי את תכנית הבוקר להיום.",
-  evening: "בוא נסגור את היום ונתכנן את מחר.",
+const AGENT_UI: Record<
+  AgentId,
+  { name: string; subtitle: string; icon: typeof Crown; presets: Record<string, string>; suggestions: string[]; empty: string }
+> = {
+  chief: {
+    name: "המנהל הראשי",
+    subtitle: "מוריד הכל ללו״ז ולמשימות",
+    icon: Crown,
+    presets: {
+      morning: "בנה לי את תכנית הבוקר להיום.",
+      evening: "בוא נסגור את היום ונתכנן את מחר.",
+    },
+    suggestions: ["בנה לי את תכנית הבוקר להיום.", "מה הכי חשוב לעשות עכשיו?", "בוא נסגור את היום ונתכנן את מחר."],
+    empty: "ספר לי מה על הפרק, או בחר אחת מההצעות.",
+  },
+  body: {
+    name: "מאמן הגוף",
+    subtitle: "כושר, תזונה, שינה והרגלים",
+    icon: Dumbbell,
+    presets: {
+      shopping: "תעבור איתי על רשימת הקניות לשבוע הבא ותתאים אותה.",
+    },
+    suggestions: ["שקלתי היום, תרשום לי.", "תחליף לי ארוחה שאני לא אוהב.", "אין לי ציוד בבית, תתאים את האימונים."],
+    empty: "ספר לי איך אתה מרגיש, מה אכלת או מה לשנות בתוכנית.",
+  },
 };
 
-const SUGGESTIONS = ["בנה לי את תכנית הבוקר להיום.", "מה הכי חשוב לעשות עכשיו?", "בוא נסגור את היום ונתכנן את מחר."];
-
-export function ChiefChat() {
+export function AgentChat({ agent }: { agent: AgentId }) {
+  const ui = AGENT_UI[agent];
+  const Icon = ui.icon;
   const params = useSearchParams();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [connected, setConnected] = useState(true);
@@ -31,7 +53,7 @@ export function ChiefChat() {
     setError(null);
     setInput("");
     try {
-      const data = await lifeApi<{ messages: ChatMessage[] }>("/chat", { method: "POST", body: { message } });
+      const data = await lifeApi<{ messages: ChatMessage[] }>("/chat", { method: "POST", body: { message, agent } });
       setMessages((prev) => [...prev, ...data.messages]);
     } catch (e) {
       setError((e as Error).message);
@@ -42,21 +64,21 @@ export function ChiefChat() {
   };
 
   useEffect(() => {
-    lifeApi<{ messages: ChatMessage[]; connected: boolean }>("/chat")
+    lifeApi<{ messages: ChatMessage[]; connected: boolean }>(`/chat?agent=${agent}`)
       .then((data) => {
         setMessages(data.messages);
         setConnected(data.connected);
       })
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoaded(true));
-  }, []);
+  }, [agent]);
 
   // A shortcut from "היום שלי" (?preset=morning|evening) sends its request once, after loading.
   useEffect(() => {
-    const preset = PRESETS[params.get("preset") ?? ""];
+    const preset = ui.presets[params.get("preset") ?? ""];
     if (!loaded || !preset || presetSent.current || !connected) return;
     presetSent.current = true;
-    window.history.replaceState(null, "", "/life/chat");
+    window.history.replaceState(null, "", window.location.pathname);
     void send(preset);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, connected, params]);
@@ -69,24 +91,24 @@ export function ChiefChat() {
     <div className="flex min-h-[calc(100svh-7rem)] flex-col">
       <header className="flex items-center gap-3 pb-3">
         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#f8d995,#c98f3e)] text-[#1d1407]">
-          <Crown className="h-5 w-5" />
+          <Icon className="h-5 w-5" />
         </span>
         <div>
-          <h1 className="text-lg font-black">המנהל הראשי</h1>
-          <p className="text-xs text-muted">מוריד הכל ללו״ז ולמשימות</p>
+          <h1 className="text-lg font-black">{ui.name}</h1>
+          <p className="text-xs text-muted">{ui.subtitle}</p>
         </div>
       </header>
 
       {!connected && (
         <div className="mb-3 rounded-xl border border-amber-400/25 bg-amber-400/10 p-3 text-sm text-amber-200">
-          המנהל עוד לא מחובר. כדי להפעיל אותו צריך להוסיף מפתח API של Anthropic בהגדרות הסביבה (ANTHROPIC_API_KEY).
+          {ui.name} עוד לא מחובר. כדי להפעיל אותו צריך להוסיף מפתח API של Anthropic בהגדרות הסביבה (ANTHROPIC_API_KEY).
         </div>
       )}
 
       <div className="flex flex-1 flex-col gap-2.5 pb-3" aria-live="polite">
         {loaded && messages.length === 0 && !pending && (
           <div className="mt-6 text-center text-sm text-muted">
-            <p>ספר לי מה על הפרק, או בחר אחת מההצעות.</p>
+            <p>{ui.empty}</p>
           </div>
         )}
         {messages.map((m) => (
@@ -96,7 +118,7 @@ export function ChiefChat() {
           <>
             <Bubble role="user" text={pending} />
             <div className="flex items-center gap-2 self-start rounded-2xl rounded-ss-sm bg-surface-strong px-4 py-3 text-sm text-muted" role="status">
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> המנהל חושב…
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> {ui.name} חושב…
             </div>
           </>
         )}
@@ -106,7 +128,7 @@ export function ChiefChat() {
 
       <div className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] -mx-4 bg-background/95 px-4 pb-2 pt-2">
         <div className="mb-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
-          {SUGGESTIONS.map((s) => (
+          {ui.suggestions.map((s) => (
             <button
               key={s}
               type="button"
@@ -135,8 +157,8 @@ export function ChiefChat() {
               }
             }}
             rows={1}
-            placeholder="כתוב למנהל…"
-            aria-label="הודעה למנהל"
+            placeholder={`כתוב ל${ui.name}…`}
+            aria-label={`הודעה ל${ui.name}`}
             className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border border-border-soft bg-surface px-4 py-2.5 text-[15px] outline-none placeholder:text-muted/70 focus:border-gold/40"
           />
           <button

@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Crown, Settings } from "lucide-react";
+import { CalendarDays, Crown, Dumbbell, Settings, ShoppingCart } from "lucide-react";
 
 const TABS = [
-  { href: "/life", label: "היום שלי", icon: CalendarDays },
-  { href: "/life/chat", label: "המנהל", icon: Crown },
-  { href: "/life/settings", label: "הגדרות", icon: Settings },
+  { href: "/life", label: "היום שלי", icon: CalendarDays, also: [] as string[] },
+  { href: "/life/body", label: "גוף", icon: Dumbbell, also: ["/life/coach"] },
+  { href: "/life/shopping", label: "קניות", icon: ShoppingCart, also: [] },
+  { href: "/life/chat", label: "המנהל", icon: Crown, also: [] },
+  { href: "/life/settings", label: "הגדרות", icon: Settings, also: [] },
 ];
 
 export function LifeNav() {
@@ -17,9 +19,9 @@ export function LifeNav() {
       aria-label="ניווט"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border-soft bg-[#07081a]/95 pb-[env(safe-area-inset-bottom)]"
     >
-      <div className="mx-auto grid max-w-md grid-cols-3">
-        {TABS.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
+      <div className="mx-auto grid max-w-md grid-cols-5">
+        {TABS.map(({ href, label, icon: Icon, also }) => {
+          const active = pathname === href || also.includes(pathname);
           return (
             <Link
               key={href}

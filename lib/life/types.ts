@@ -1,3 +1,5 @@
+import type { BodyToday } from "./body";
+
 export const AREAS = ["business", "body", "spirit", "mind", "finance", "home", "general"] as const;
 export type Area = (typeof AREAS)[number];
 
@@ -76,14 +78,19 @@ export type Checkin = {
   mincha: boolean;
   arvit: boolean;
   hitbodedut: boolean;
+  workout: boolean;
   day_rating: number | null;
   note: string | null;
   updated_at: string;
 };
 
+export const AGENTS = ["chief", "body"] as const;
+export type AgentId = (typeof AGENTS)[number];
+
 export type ChatMessage = {
   id: string;
   created_at: string;
+  agent: AgentId;
   role: "user" | "assistant";
   content: string;
 };
@@ -107,6 +114,7 @@ export type TimelineItem = {
 export type RestDay = { kind: "shabbat" | "yomtov"; name: string };
 
 export type DayView = {
+  body: BodyToday;
   date: string;
   weekday: string;
   gregorian: string;

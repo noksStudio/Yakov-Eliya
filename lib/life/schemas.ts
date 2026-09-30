@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { AREAS } from "./types";
+
+// Validation messages in Hebrew, for every schema in the life OS (the UI shows them as-is).
+z.config(z.locales.he());
 import { DATE_RE, TIME_RE } from "./time";
 
 export const timeSchema = z.string().regex(TIME_RE, "שעה בפורמט HH:MM");
@@ -35,6 +38,7 @@ export const checkinPatchSchema = z.object({
   mincha: z.boolean().optional(),
   arvit: z.boolean().optional(),
   hitbodedut: z.boolean().optional(),
+  workout: z.boolean().optional(),
   day_rating: scale.optional(),
   note: z.string().max(2000).nullable().optional(),
 });

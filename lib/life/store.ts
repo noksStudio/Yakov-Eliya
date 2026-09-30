@@ -1,5 +1,6 @@
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/server";
-import { DEFAULT_SETTINGS, type Area, type ChatMessage, type Checkin, type LifeEvent, type Settings, type Task } from "./types";
+import { DEFAULT_SETTINGS, type AgentId, type Area, type ChatMessage, type Checkin, type LifeEvent, type Settings, type Task } from "./types";
+import type { ShoppingCategory, ShoppingItem, ShoppingSeed } from "./body-types";
 import { addDays, israelToday } from "./time";
 
 export type NewTask = {
@@ -17,6 +18,8 @@ export type NewEvent = Pick<LifeEvent, "date" | "start_time" | "title"> & {
   source?: LifeEvent["source"];
 };
 export type CheckinPatch = Partial<Omit<Checkin, "date" | "updated_at">>;
+export type ShoppingPatch = Partial<Pick<ShoppingItem, "title" | "qty" | "category" | "checked">>;
+export type DocKey = "body_profile" | "meal_plan" | "workout_plan";
 
 export interface LifeStore {
   getSettings(): Promise<Settings>;
@@ -32,8 +35,17 @@ export interface LifeStore {
   getCheckin(date: string): Promise<Checkin | null>;
   listCheckins(from: string, to: string): Promise<Checkin[]>;
   saveCheckin(date: string, patch: CheckinPatch): Promise<Checkin>;
-  listMessages(limit: number): Promise<ChatMessage[]>;
-  addMessage(role: ChatMessage["role"], content: string): Promise<ChatMessage>;
+  listMessages(agent: AgentId, limit: number): Promise<ChatMessage[]>;
+  addMessage(agent: AgentId, role: ChatMessage["role"], content: string): Promise<ChatMessage>;
+  /** A stored JSON document, or null when it was never saved (callers fall back to defaults). */
+  getDoc<T>(key: DocKey): Promise<T | null>;
+  saveDoc<T>(key: DocKey, data: T): Promise<T>;
+  listShopping(): Promise<ShoppingItem[]>;
+  /** Adds items, skipping titles already on the list and not yet bought. Returns what was added. */
+  addShopping(items: ShoppingSeed[]): Promise<ShoppingItem[]>;
+  updateShopping(id: string, patch: ShoppingPatch): Promise<ShoppingItem | null>;
+  deleteShopping(id: string): Promise<boolean>;
+  clearCheckedShopping(): Promise<number>;
 }
 
 export class LifeStoreUnavailableError extends Error {}
@@ -47,6 +59,7 @@ const EMPTY_CHECKIN: Omit<Checkin, "date" | "updated_at"> = {
   mincha: false,
   arvit: false,
   hitbodedut: false,
+  workout: false,
   day_rating: null,
   note: null,
 };
@@ -66,6 +79,22 @@ function newTask(input: NewTask): Omit<Task, "id" | "created_at"> {
     done_at: null,
     source: input.source ?? "user",
   };
+}
+
+const normalize = (title: string) => title.trim().replace(/\s+/g, " ");
+
+function uniqueNew(items: ShoppingSeed[], existing: Set<string>) {
+  const seen = new Set(existing);
+  return items.filter((item) => {
+    const key = normalize(item.title);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function toShoppingRow(seed: ShoppingSeed): Omit<ShoppingItem, "id" | "created_at"> {
+  return { title: normalize(seed.title), qty: seed.qty ?? null, category: seed.category as ShoppingCategory, checked: false };
 }
 
 function withDoneAt(patch: TaskPatch) {
@@ -136,12 +165,42 @@ function supabaseStore(): LifeStore {
       const row = { ...current, ...patch, date, updated_at: new Date().toISOString() };
       return check(await db.from("life_checkins").upsert(row).select("*").single()) as Checkin;
     },
-    async listMessages(limit) {
-      const rows = check(await db.from("life_messages").select("*").order("created_at", { ascending: false }).limit(limit)) as ChatMessage[];
+    async listMessages(agent, limit) {
+      const rows = check(
+        await db.from("life_messages").select("*").eq("agent", agent).order("created_at", { ascending: false }).limit(limit),
+      ) as ChatMessage[];
       return rows.reverse();
     },
-    async addMessage(role, content) {
-      return check(await db.from("life_messages").insert({ role, content }).select("*").single()) as ChatMessage;
+    async addMessage(agent, role, content) {
+      return check(await db.from("life_messages").insert({ agent, role, content }).select("*").single()) as ChatMessage;
+    },
+    async getDoc<T>(key: DocKey) {
+      const row = check(await db.from("life_docs").select("data").eq("key", key).maybeSingle()) as { data: T } | null;
+      return row?.data ?? null;
+    },
+    async saveDoc<T>(key: DocKey, data: T) {
+      check(await db.from("life_docs").upsert({ key, data, updated_at: new Date().toISOString() }));
+      return data;
+    },
+    async listShopping() {
+      return check(await db.from("life_shopping").select("*").order("created_at")) as ShoppingItem[];
+    },
+    async addShopping(items) {
+      const open = new Set((await this.listShopping()).filter((i) => !i.checked).map((i) => normalize(i.title)));
+      const fresh = uniqueNew(items, open);
+      if (!fresh.length) return [];
+      return check(await db.from("life_shopping").insert(fresh.map(toShoppingRow)).select("*")) as ShoppingItem[];
+    },
+    async updateShopping(id, patch) {
+      return check(await db.from("life_shopping").update(patch).eq("id", id).select("*").maybeSingle()) as ShoppingItem | null;
+    },
+    async deleteShopping(id) {
+      const rows = check(await db.from("life_shopping").delete().eq("id", id).select("id"));
+      return (rows ?? []).length > 0;
+    },
+    async clearCheckedShopping() {
+      const rows = check(await db.from("life_shopping").delete().eq("checked", true).select("id"));
+      return (rows ?? []).length;
     },
   };
 }
@@ -155,12 +214,22 @@ type Memory = {
   events: LifeEvent[];
   checkins: Map<string, Checkin>;
   messages: ChatMessage[];
+  docs: Map<DocKey, unknown>;
+  shopping: ShoppingItem[];
 };
 
 const globalForLife = globalThis as unknown as { __lifeMemory?: Memory };
 
 function memoryStore(): LifeStore {
-  const initial: Memory = { settings: { ...DEFAULT_SETTINGS }, tasks: [], events: [], checkins: new Map(), messages: [] };
+  const initial: Memory = {
+    settings: { ...DEFAULT_SETTINGS },
+    tasks: [],
+    events: [],
+    checkins: new Map(),
+    messages: [],
+    docs: new Map(),
+    shopping: [],
+  };
   const mem = (globalForLife.__lifeMemory ??= initial);
   const stamp = () => new Date().toISOString();
 
@@ -225,13 +294,46 @@ function memoryStore(): LifeStore {
       mem.checkins.set(date, next);
       return { ...next };
     },
-    async listMessages(limit) {
-      return mem.messages.slice(-limit).map((m) => ({ ...m }));
+    async listMessages(agent, limit) {
+      return mem.messages.filter((m) => m.agent === agent).slice(-limit).map((m) => ({ ...m }));
     },
-    async addMessage(role, content) {
-      const message: ChatMessage = { id: crypto.randomUUID(), created_at: stamp(), role, content };
+    async addMessage(agent, role, content) {
+      const message: ChatMessage = { id: crypto.randomUUID(), created_at: stamp(), agent, role, content };
       mem.messages.push(message);
       return { ...message };
+    },
+    async getDoc<T>(key: DocKey) {
+      const doc = mem.docs.get(key);
+      return doc === undefined ? null : (structuredClone(doc) as T);
+    },
+    async saveDoc<T>(key: DocKey, data: T) {
+      mem.docs.set(key, structuredClone(data));
+      return data;
+    },
+    async listShopping() {
+      return mem.shopping.map((i) => ({ ...i }));
+    },
+    async addShopping(items) {
+      const open = new Set(mem.shopping.filter((i) => !i.checked).map((i) => normalize(i.title)));
+      const added = uniqueNew(items, open).map((seed) => ({ id: crypto.randomUUID(), created_at: stamp(), ...toShoppingRow(seed) }));
+      mem.shopping.push(...added);
+      return added.map((i) => ({ ...i }));
+    },
+    async updateShopping(id, patch) {
+      const item = mem.shopping.find((i) => i.id === id);
+      if (!item) return null;
+      Object.assign(item, patch);
+      return { ...item };
+    },
+    async deleteShopping(id) {
+      const before = mem.shopping.length;
+      mem.shopping = mem.shopping.filter((i) => i.id !== id);
+      return mem.shopping.length < before;
+    },
+    async clearCheckedShopping() {
+      const before = mem.shopping.length;
+      mem.shopping = mem.shopping.filter((i) => !i.checked);
+      return before - mem.shopping.length;
     },
   };
 }

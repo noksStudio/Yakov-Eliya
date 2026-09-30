@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, Loader2, MoonStar, Plus, Sunrise, Trash2, X } from "lucide-react";
+import { Check, Dumbbell, Footprints, Loader2, MoonStar, Plus, Sunrise, Trash2, X } from "lucide-react";
 import type { Area, Checkin, DayView, Task, TimelineItem } from "@/lib/life/types";
 import { AREA_LABELS, AREAS } from "@/lib/life/types";
 import { israelNow, toMinutes } from "@/lib/life/time";
 import { lifeApi } from "./api";
 import { AREA_STYLE } from "./areas";
+import { Bidi } from "./Bidi";
 
 type DayResponse = { day: DayView; demo: boolean };
 type CheckinPatch = Partial<Omit<Checkin, "date" | "updated_at">>;
@@ -74,6 +75,7 @@ export function TodayView() {
 
       <NextUp timeline={day.timeline} now={now} />
       <ChiefShortcuts />
+      <BodyToday day={day} now={now} onSave={saveCheckin} />
       <MorningCheckin checkin={day.checkin} onSave={saveCheckin} />
       <Timeline day={day} now={now} onChange={reload} onError={setError} />
       <Tasks day={day} onChange={reload} onError={setError} />
@@ -93,6 +95,7 @@ function emptyCheckin(date: string): Checkin {
     mincha: false,
     arvit: false,
     hitbodedut: false,
+    workout: false,
     day_rating: null,
     note: null,
     updated_at: "",
@@ -182,6 +185,65 @@ function NextUp({ timeline, now }: { timeline: TimelineItem[]; now: string }) {
       </p>
       {next.note && <p className="mt-0.5 text-sm text-muted">{next.note}</p>}
     </div>
+  );
+}
+
+function BodyToday({ day, now, onSave }: { day: DayView; now: string; onSave: (p: CheckinPatch) => void }) {
+  const { body } = day;
+  if (body.daysToStart > 0) {
+    return (
+      <Link href="/life/body" className="flex items-center gap-3 rounded-2xl border border-border-soft bg-surface p-4">
+        <Dumbbell className="h-5 w-5 shrink-0 text-gold-2" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-bold">תוכנית הגוף מתחילה בעוד {body.daysToStart === 1 ? "יום" : `${body.daysToStart} ימים`}</span>
+          <span className="block text-xs text-muted">תפריט, אימונים ורשימת קניות מוכנים. לחץ לצפייה.</span>
+        </span>
+      </Link>
+    );
+  }
+  const nowMin = toMinutes(now);
+  const nextMeal = body.meals.find((m) => toMinutes(m.time) + 30 > nowMin) ?? null;
+  const done = Boolean(day.checkin?.workout);
+  return (
+    <Card title="הגוף היום" icon={<Dumbbell className="h-4 w-4 text-gold-2" />} action={<Link href="/life/body" className="text-xs text-gold-2">לתוכנית</Link>}>
+      {nextMeal && (
+        <div className="mb-3 rounded-xl bg-white/[0.03] p-3">
+          <p className="text-xs text-muted">
+            הארוחה הבאה · <span className="font-latin">{nextMeal.time}</span>
+          </p>
+          <p className="mt-0.5 font-bold">{nextMeal.label}</p>
+          <p className="text-sm text-foreground/85">
+            <Bidi text={nextMeal.items.join(" · ")} />
+          </p>
+        </div>
+      )}
+      {body.activity ? (
+        <button
+          type="button"
+          aria-pressed={done}
+          onClick={() => onSave({ workout: !done })}
+          className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-start transition-colors ${
+            done ? "border-gold/50 bg-gold/15" : "border-border-soft bg-white/[0.03]"
+          }`}
+        >
+          {body.activity.workout ? <Dumbbell className="h-4 w-4 text-gold-2" /> : <Footprints className="h-4 w-4 text-emerald-300" />}
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">{body.activity.title}</span>
+            <span className="text-xs text-muted">
+              <span className="font-latin">{body.activity.time}</span> · {body.activity.minutes} דק׳
+            </span>
+          </span>
+          <span className={`flex h-6 w-6 items-center justify-center rounded-full ${done ? "bg-gold text-[#1d1407]" : "border border-white/25"}`}>
+            {done && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+          </span>
+        </button>
+      ) : (
+        <p className="text-sm text-muted">היום יום מנוחה מאימונים.</p>
+      )}
+      <p className="mt-2 text-xs text-muted">
+        <Bidi text={`יעד: ~${body.calories.toLocaleString("he-IL")} קלוריות · ${body.protein} גרם חלבון · 2.5–3 ליטר מים`} />
+      </p>
+    </Card>
   );
 }
 
