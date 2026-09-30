@@ -126,6 +126,8 @@ const COMMAND_GROUPS: { title: string; commands: BotCommand[] }[] = [
       { command: "today", description: "התכנית של היום" },
       { command: "plan", description: "המנהל מתכנן איתי את היום" },
       { command: "focus", description: "הפוקוס של השבוע" },
+      { command: "mute", description: "השתקת ההתראות עד מחר בבוקר (תזכורות עדיין מגיעות)" },
+      { command: "unmute", description: "ביטול ההשתקה" },
     ],
   },
   {

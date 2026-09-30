@@ -37,7 +37,8 @@ export type DocKey =
   | "reviews"
   | "reminders"
   | "cron_seen"
-  | "calendar";
+  | "calendar"
+  | "notify_mute";
 
 export interface LifeStore {
   getSettings(): Promise<Settings>;

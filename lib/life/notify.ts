@@ -15,7 +15,9 @@ import { addDays, fromMinutes, israelNow, israelToday, restDayOf, toMinutes } fr
 
 // Scheduled Telegram nudges. A cron pings /api/cron/notify every few minutes; each rule fires once
 // a day, in the first run inside its 10-minute window. Nothing is sent on Shabbat or Yom Tov, or
-// from 14:00 on the eve of one.
+// from 14:00 on the eve of one. Fewer, fuller messages: whatever falls within 15 minutes goes out
+// as one message, "mute today" silences the rest of the day (reminders he set still come), and a
+// day off (Chol HaMoed) gets only the morning message.
 
 export const NOTIFY_RULES = [
   { key: "morning", label: "תכנית בוקר", hint: "5 דקות אחרי הקימה: משימות, אימון, לימוד ותזכורת שקילה", default: true },
@@ -33,6 +35,8 @@ export type NotifyKey = (typeof NOTIFY_RULES)[number]["key"];
 export type NotifyPrefs = Record<NotifyKey, boolean>;
 
 const WINDOW_MINUTES = 10;
+/** Nudges due within this many minutes of each other go out together, in the earliest one's run. */
+export const BATCH_MINUTES = 15;
 const EVE_CUTOFF = toMinutes("14:00");
 
 export async function loadNotifyPrefs(store: LifeStore): Promise<NotifyPrefs> {
@@ -41,6 +45,15 @@ export async function loadNotifyPrefs(store: LifeStore): Promise<NotifyPrefs> {
 }
 
 type NotifyLog = { date: string; sent: string[] };
+type MuteDoc = { date: string | null };
+
+/** "Mute today": silences the scheduled nudges until tomorrow morning. Reminders still come. */
+export async function isMuted(store: LifeStore, date = israelToday()) {
+  return (await store.getDoc<MuteDoc>("notify_mute"))?.date === date;
+}
+export async function setMuted(store: LifeStore, muted: boolean, date = israelToday()) {
+  await store.saveDoc<MuteDoc>("notify_mute", { date: muted ? date : null });
+}
 
 export type Slot = { id: string; rule: NotifyKey; at: string };
 
@@ -72,12 +85,19 @@ export function quietReason(date: string, nowMinutes: number) {
   return null;
 }
 
-export function dueSlots(day: DayView, prefs: NotifyPrefs, sent: string[], nowMinutes: number) {
-  return slotsFor(day).filter((slot) => {
-    if (day.dayOff && slot.rule === "deep") return false;
-    const at = toMinutes(slot.at);
-    return prefs[slot.rule] && !sent.includes(slot.id) && nowMinutes >= at && nowMinutes < at + WINDOW_MINUTES;
-  });
+/**
+ * What to send in this run: the nudges whose window is open now, plus any others due within
+ * BATCH_MINUTES of the earliest of them (or of `anchor`, a reminder going out now), so they arrive
+ * as one message instead of several a few minutes apart.
+ */
+export function dueSlots(day: DayView, prefs: NotifyPrefs, sent: string[], nowMinutes: number, anchor: number | null = null) {
+  // A day off gets only the morning message.
+  const open = slotsFor(day).filter((slot) => prefs[slot.rule] && !sent.includes(slot.id) && !(day.dayOff && slot.rule !== "morning"));
+  const due = open.filter((slot) => nowMinutes >= toMinutes(slot.at) && nowMinutes < toMinutes(slot.at) + WINDOW_MINUTES);
+  const starts = [...due.map((slot) => toMinutes(slot.at)), ...(anchor === null ? [] : [anchor])];
+  if (!starts.length) return [];
+  const until = Math.min(...starts) + BATCH_MINUTES;
+  return open.filter((slot) => due.includes(slot) || (toMinutes(slot.at) > nowMinutes && toMinutes(slot.at) <= until));
 }
 
 const ils = (n: number) => `${Math.round(n).toLocaleString("he-IL")} ₪`;
@@ -138,7 +158,7 @@ export async function morningMessage(store: LifeStore, ops: OpsStore, day: DayVi
   const lesson = await lessonForDay(day);
   if (lesson) lines.push("", `💡 <b>לקח:</b> ${escapeHtml(lesson.rule)}`);
   if (!day.checkin?.weight) lines.push("", "⚖️ לא לשכוח להישקל: שלח /w ומשקל");
-  lines.push("", link(origin, "/life", "לפתוח את היום שלי"));
+  lines.push("", link(origin, "/life", "לפתוח את היום שלי"), "🔕 יום עמוס? /mute משתיק את שאר ההתראות של היום");
   return lines.join("\n");
 }
 
@@ -163,11 +183,11 @@ async function messageFor(slot: Slot, store: LifeStore, ops: OpsStore, day: DayV
       ].join("\n");
     }
     case "workout":
-      return `🏋️ בעוד 15 דקות: <b>${escapeHtml(day.body.activity?.title ?? "אימון")}</b>.\nאחרי האימון שלח /workout.`;
+      return `🏋️ ב־${day.body.activity?.time ?? ""}: <b>${escapeHtml(day.body.activity?.title ?? "אימון")}</b>.\nאחרי האימון שלח /workout.`;
     case "prayers": {
       const name = slot.id === "mincha" ? "מנחה" : "ערבית";
       const time = slot.id === "mincha" ? s.mincha_time : s.arvit_time;
-      return `🕍 ${name} בעוד 10 דקות (${time}).`;
+      return `🕍 ${name} ב־${time}.`;
     }
     case "close": {
       const [b, f] = await Promise.all([businessSummary(ops, day.date), financeSummary(store, ops, day.date)]);
@@ -188,7 +208,7 @@ async function messageFor(slot: Slot, store: LifeStore, ops: OpsStore, day: DayV
       ].join("\n");
     }
     case "hitbodedut":
-      return `🌌 בעוד 5 דקות התבודדות, ${s.hitbodedut_minutes} דקות. הטלפון בצד.`;
+      return `🌌 התבודדות ב־${s.hitbodedut_time}, ${s.hitbodedut_minutes} דקות. הטלפון בצד.`;
     case "screens":
       return `📵 מסכים כבויים. שינה ב־${s.sleep_time}. לילה טוב.`;
     case "weekly":
@@ -253,50 +273,57 @@ export async function runNotifications(store: LifeStore, ops: OpsStore, origin: 
   if (quiet) return { ...base, skipped: quiet };
 
   await applySeeds(store);
-  // Reminders he set himself go out even before the routine starts.
-  const telegramDoc = await loadTelegram(store);
-  const due = dueReminders(await loadReminders(store), date, nowMinutes);
-  if (due.length && (opts.dry || telegramDoc.chat_id)) {
-    for (const r of due) {
-      const text = `⏰ <b>תזכורת:</b> ${escapeHtml(r.text)}`;
-      if (opts.dry) {
-        base.sent.push({ id: `reminder-${r.id}`, at: r.time, text });
-        continue;
-      }
-      await sendMessage(telegramDoc.chat_id!, text, true);
-      base.sent.push({ id: `reminder-${r.id}`, at: r.time });
-    }
-    if (!opts.dry) await markRemindersSent(store, due.map((r) => r.id));
+  const telegram = await loadTelegram(store);
+  const canSend = opts.dry || telegram.chat_id !== null;
+  // Everything due in this run becomes one message; `ids` are what it covers.
+  const parts: { ids: { id: string; at: string }[]; text: string }[] = [];
+
+  // Reminders he set himself go out even before the routine starts, and even when muted.
+  const due = canSend ? dueReminders(await loadReminders(store), date, nowMinutes) : [];
+  if (due.length) {
+    parts.push({
+      ids: due.map((r) => ({ id: `reminder-${r.id}`, at: r.time })),
+      text: due.map((r) => `⏰ <b>תזכורת:</b> ${escapeHtml(r.text)}`).join("\n"),
+    });
   }
 
   const settings = await store.getSettings();
-  if (settings.start_date && date < settings.start_date) {
-    return { ...base, skipped: `השגרה מתחילה ב־${settings.start_date.split("-").reverse().join(".")}` };
-  }
-
-  const telegram = telegramDoc;
-  if (!opts.dry && !telegram.chat_id) return { ...base, skipped: "הבוט עוד לא מחובר לצ׳אט" };
-
-  const [day, prefs, savedLog] = await Promise.all([loadDay(store, date), loadNotifyPrefs(store), store.getDoc<NotifyLog>("notify_log")]);
+  let skipped: string | undefined;
+  let slots: Slot[] = [];
+  let day: DayView | null = null;
+  const [prefs, savedLog, muted] = await Promise.all([loadNotifyPrefs(store), store.getDoc<NotifyLog>("notify_log"), isMuted(store, date)]);
   const log: NotifyLog = savedLog?.date === date ? savedLog : { date, sent: [] };
-  const slots = dueSlots(day, prefs, opts.dry ? [] : log.sent, nowMinutes);
-
-  for (const slot of slots) {
-    const text = await messageFor(slot, store, ops, day, origin);
-    if (opts.dry) {
-      base.sent.push({ id: slot.id, at: slot.at, text });
-      continue;
-    }
-    await sendMessage(telegram.chat_id!, text, true);
-    log.sent.push(slot.id);
-    if (slot.rule === "morning") {
-      // The lesson in this morning's message counts as seen; it comes back later on its schedule.
-      const lesson = await lessonForDay(day);
-      if (lesson) await markLessonShown(lesson, date);
-    }
-    // Logged after each send so a failure part-way does not repeat what already went out.
-    await store.saveDoc("notify_log", log);
-    base.sent.push({ id: slot.id, at: slot.at });
+  if (settings.start_date && date < settings.start_date) {
+    skipped = `השגרה מתחילה ב־${settings.start_date.split("-").reverse().join(".")}`;
+  } else if (!canSend) {
+    skipped = "הבוט עוד לא מחובר לצ׳אט";
+  } else if (muted) {
+    skipped = "הושתק להיום";
+  } else {
+    day = await loadDay(store, date);
+    const anchor = due.length ? Math.min(...due.map((r) => toMinutes(r.time))) : null;
+    slots = dueSlots(day, prefs, opts.dry ? [] : log.sent, nowMinutes, anchor);
+    for (const slot of slots) parts.push({ ids: [{ id: slot.id, at: slot.at }], text: await messageFor(slot, store, ops, day, origin) });
   }
-  return base;
+
+  if (parts.length) {
+    const text = parts.map((p) => p.text).join("\n\n━━━━━━━━\n\n");
+    if (opts.dry) {
+      base.sent.push(...parts.flatMap((p) => p.ids).map((x, i) => ({ ...x, ...(i === 0 ? { text } : {}) })));
+    } else {
+      await sendMessage(telegram.chat_id!, text, true);
+      if (due.length) await markRemindersSent(store, due.map((r) => r.id));
+      if (slots.length) {
+        log.sent.push(...slots.map((slot) => slot.id));
+        await store.saveDoc("notify_log", log);
+      }
+      if (day && slots.some((slot) => slot.rule === "morning")) {
+        // The lesson in this morning's message counts as seen; it comes back later on its schedule.
+        const lesson = await lessonForDay(day);
+        if (lesson) await markLessonShown(lesson, date);
+      }
+      base.sent.push(...parts.flatMap((p) => p.ids));
+    }
+  }
+  return skipped ? { ...base, skipped } : base;
 }

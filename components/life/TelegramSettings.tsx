@@ -13,6 +13,7 @@ type Status = {
   deep_link: string | null;
   rules: readonly { key: NotifyKey; label: string; hint: string }[];
   prefs: NotifyPrefs;
+  muted: boolean;
   cron_sql: string;
 };
 
@@ -30,7 +31,7 @@ export function TelegramSettings({ demo }: { demo: boolean }) {
       .catch((e) => setError((e as Error).message));
   }, []);
 
-  const act = async (action: "setup" | "test" | "unlink") => {
+  const act = async (action: "setup" | "test" | "unlink" | "mute" | "unmute") => {
     setBusy(action);
     setError(null);
     setNote(null);
@@ -143,8 +144,27 @@ export function TelegramSettings({ demo }: { demo: boolean }) {
           {note && <p className="text-xs text-emerald-300">{note}</p>}
           {error && <p className="rounded-xl bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</p>}
 
+          {status.linked && (
+            <div className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 ${status.muted ? "bg-amber-400/10" : "bg-white/5"}`}>
+              <span className="min-w-0">
+                <span className="block font-semibold">{status.muted ? "🔕 מושתק עד מחר בבוקר" : "יום עמוס?"}</span>
+                <span className="text-xs text-muted">{status.muted ? "תזכורות שקבעת עדיין יגיעו" : "השתקת שאר ההתראות של היום. תזכורות עדיין יגיעו"}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => act(status.muted ? "unmute" : "mute")}
+                disabled={busy !== null}
+                className={`${button} shrink-0 ${status.muted ? "bg-white/10" : "bg-gold text-[#1d1407]"}`}
+              >
+                {(busy === "mute" || busy === "unmute") && <Loader2 className="h-4 w-4 animate-spin" />}
+                {status.muted ? "ביטול השתקה" : "השתק היום"}
+              </button>
+            </div>
+          )}
+
           <fieldset className="grid gap-1 border-t border-border-soft pt-3">
             <legend className="mb-1 text-xs font-bold text-muted">אילו התראות</legend>
+            <p className="mb-1 text-xs text-muted">התראות שנופלות בטווח של 15 דקות מגיעות כהודעה אחת. בחול המועד מגיעה רק הודעת הבוקר.</p>
             {status.rules.map((rule) => (
               <label key={rule.key} className="flex items-center justify-between gap-3 py-1">
                 <span>

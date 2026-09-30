@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { NOTIFY_RULES, loadNotifyPrefs } from "@/lib/life/notify";
+import { NOTIFY_RULES, isMuted, loadNotifyPrefs, setMuted } from "@/lib/life/notify";
 import { readJson, withStore } from "@/lib/life/service";
 import type { LifeStore } from "@/lib/life/store";
 import {
@@ -19,7 +19,7 @@ import {
 // Settings-side control of the Telegram bot (behind the admin login via proxy.ts).
 
 async function status(store: LifeStore, origin: string) {
-  const [telegram, prefs, token] = await Promise.all([loadTelegram(store), loadNotifyPrefs(store), cronToken()]);
+  const [telegram, prefs, token, muted] = await Promise.all([loadTelegram(store), loadNotifyPrefs(store), cronToken(), isMuted(store)]);
   return {
     configured: isTelegramConfigured(),
     linked: telegram.chat_id !== null,
@@ -28,6 +28,7 @@ async function status(store: LifeStore, origin: string) {
     deep_link: telegram.bot_username && telegram.link_code ? `https://t.me/${telegram.bot_username}?start=${telegram.link_code}` : null,
     rules: NOTIFY_RULES,
     prefs,
+    muted,
     cron_sql: cronSql(origin, token),
   };
 }
@@ -37,13 +38,17 @@ export async function GET(request: Request) {
   return withStore(async (store) => ({ telegram: await status(store, origin) }));
 }
 
-const actionSchema = z.object({ action: z.enum(["setup", "test", "unlink"]) });
+const actionSchema = z.object({ action: z.enum(["setup", "test", "unlink", "mute", "unmute"]) });
 
 export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
   const body = await readJson(request);
   return withStore(async (store) => {
     const { action } = actionSchema.parse(body);
+    if (action === "mute" || action === "unmute") {
+      await setMuted(store, action === "mute");
+      return { telegram: await status(store, origin) };
+    }
     try {
       if (action === "setup") {
         const me = await telegramCall<{ username: string }>("getMe");

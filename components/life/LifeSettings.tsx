@@ -172,7 +172,7 @@ export function LifeSettings() {
         <label className="mt-3 flex items-center justify-between gap-3 border-t border-border-soft pt-3 text-sm">
           <span>
             <span className="block font-bold">חופש בחול המועד</span>
-            <span className="text-xs text-muted">בלי בלוק עבודה, יעדי מכירות ותזכורות עסקיות בחול המועד סוכות ופסח</span>
+            <span className="text-xs text-muted">בחול המועד סוכות ופסח: בלי בלוק עבודה ויעדי מכירות, ובטלגרם רק הודעת בוקר ותזכורות</span>
           </span>
           <input
             type="checkbox"
