@@ -100,7 +100,14 @@ export async function searchAll(store: LifeStore, ops: OpsStore, query: string, 
     add("idea", i.id, i.title, `רעיון ${i.notes} ${i.steps.map((s) => s.text).join(" ")}`, `${IDEA_STATUS_LABELS[i.status]}${i.steps.length ? ` · ${i.steps.filter((s) => s.done).length}/${i.steps.length} צעדים` : ""}`, `/life/ideas/${i.id}`);
   }
   for (const l of lessons) {
-    add("lesson", l.id, l.rule, `לקח ${l.story ?? ""} ${l.source_name ?? ""}`, l.source === "others" ? `מ${l.source_name ?? "אחרים"}` : "טעות שלי", "/life/growth?tab=lessons");
+    add(
+      "lesson",
+      l.id,
+      l.rule,
+      `לקח ${l.story ?? ""} ${l.source_name ?? ""} ${(l.triggers ?? []).join(" ")}`,
+      l.triggers?.length ? `מופיע לפני: ${l.triggers.slice(0, 4).join(", ")}` : l.source === "others" ? `מ${l.source_name ?? "אחרים"}` : "טעות שלי",
+      "/life/growth?tab=lessons",
+    );
   }
   for (const g of goals) {
     add("goal", g.id, g.title, "יעד חזון 30", `יעד ${g.target.toLocaleString("he-IL")} ${g.unit} עד ${shortDate(g.deadline)}`, "/life/growth");

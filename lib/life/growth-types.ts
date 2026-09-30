@@ -66,6 +66,11 @@ export const newLessonSchema = z.object({
   /** Book, podcast, mentor or client, for lessons from others. */
   source_name: z.string().trim().max(120).nullable().optional(),
   area: areaSchema.optional(),
+  /**
+   * Words that make it relevant ("טיול", "פארק"). With triggers the lesson is contextual: it comes
+   * up only when today's or tomorrow's schedule mentions one of them, never in the daily rotation.
+   */
+  triggers: z.array(z.string().trim().min(2).max(40)).max(20).default([]),
 });
 // Spelled out rather than newLessonSchema.partial(): a partial schema still applies `source`'s
 // default, which would reset "others" to "mine" on any edit.
@@ -75,6 +80,7 @@ export const lessonPatchSchema = z.object({
   source: z.enum(LESSON_SOURCES).optional(),
   source_name: z.string().trim().max(120).nullable().optional(),
   area: areaSchema.optional(),
+  triggers: z.array(z.string().trim().min(2).max(40)).max(20).optional(),
   archived: z.boolean().optional(),
 });
 
@@ -90,7 +96,11 @@ export type Lesson = {
   next_review: string;
   last_shown: string | null;
   archived: boolean;
+  triggers: string[];
 };
+
+/** A contextual lesson matched to something on the schedule today or tomorrow. */
+export type ContextLesson = { lesson: Lesson; when: "today" | "tomorrow"; match: string; trigger: string };
 
 export const reviewSchema = z.object({
   went_well: z.string().trim().max(1000).default(""),

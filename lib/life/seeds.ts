@@ -10,7 +10,7 @@ import { israelNow, israelToday, toMinutes } from "./time";
 
 type SeedIdea = NewIdea & { status?: IdeaStatus; steps?: string[] };
 type SeedReminder = { date: string; time: string; text: string };
-type SeedLesson = { rule: string; story?: string; source?: "mine" | "others"; source_name?: string; area?: Area };
+type SeedLesson = { rule: string; story?: string; source?: "mine" | "others"; source_name?: string; area?: Area; triggers?: string[] };
 type SeedBatch = { id: string; ideas?: SeedIdea[]; reminders?: SeedReminder[]; lessons?: SeedLesson[] };
 
 const SEEDS: SeedBatch[] = [
@@ -21,6 +21,8 @@ const SEEDS: SeedBatch[] = [
         rule: "לפני טיול: אורזים בערב שלפני לפי רשימת הציוד, ומתאמים עם החברים מי מביא מה",
         story: "30.9 (חול המועד), טיול בפארק: אני, אשתי, אילן וחברים. חסרו בקבוק מים, קפה ועוד. הרשימה לפעם הבאה:\n\nשתייה ואוכל\n• בקבוק מים לכל אחד, ובקבוק עם פיה לאילן\n• ערכת קפה: גזייה, פינג׳אן, קפה, סוכר, כוסות (או תרמוס מוכן מהבית)\n• כריכים, פירות חתוכים וחטיפים, וחטיף שאילן אוהב\n• צידנית עם קרחונים\n• כלים חד־פעמיים, מפיות, שקית זבל\n• נטלה ומים לנטילת ידיים, אם אוכלים לחם\n\nלאילן\n• חיתולים, מגבונים ומשטח החתלה\n• בגדי החלפה ושכבה חמה לערב\n• כובע וקרם הגנה\n• צעצועים לחול או כדור\n• עגלה או מנשא\n\nישיבה וצל\n• מחצלת או שמיכת פיקניק, כיסאות מתקפלים\n• שמשייה או אוהל צל\n\nבטיחות ועוד\n• ערכת עזרה ראשונה: פלסטרים, חיטוי, תרופה להורדת חום לילדים\n• תכשיר נגד יתושים\n• סוללה ניידת לטלפון\n• שקיות לבגדים רטובים או מלוכלכים\n• סידור, אם הטיול נמשך עד מנחה\n\nלפני שיוצאים\n• לתאם עם החברים מי מביא מה, כדי שלא יחסר ולא יהיה כפול\n• לארוז בערב שלפני, לפי הרשימה",
         area: "home",
+        // Only before outings, never in the daily rotation.
+        triggers: ["טיול", "פארק", "פיקניק", "יציאה", "טבע", "חוף", "ים", "גן חיות", "גן החיות", "בריכה", "נופש"],
       },
     ],
   },

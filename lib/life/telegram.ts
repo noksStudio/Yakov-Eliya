@@ -126,7 +126,7 @@ const COMMAND_GROUPS: { title: string; commands: BotCommand[] }[] = [
   {
     title: "🌱 זיכרון וצמיחה",
     commands: [
-      { command: "lesson", usage: "לא שולחים מחיר בלי אבחון", description: "שמירת לקח" },
+      { command: "lesson", usage: "לא שולחים מחיר בלי אבחון", description: "שמירת לקח (עם #טיול: רק בהקשר)" },
       { command: "idea", usage: "מערכת הזמנות", description: "שמירת רעיון" },
       { command: "remind", usage: "מחר 10:00 להתקשר לדני", description: "תזכורת" },
       { command: "reminders", description: "התזכורות הפתוחות" },

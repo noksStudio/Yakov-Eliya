@@ -83,6 +83,18 @@ export function dueSlots(day: DayView, prefs: NotifyPrefs, sent: string[], nowMi
 const ils = (n: number) => `${Math.round(n).toLocaleString("he-IL")} ₪`;
 const link = (origin: string, path: string, label: string) => `<a href="${origin}${path}">${label}</a>`;
 
+/** Contextual lessons with their full story (a packing list is only useful in full). */
+function contextLines(items: DayView["contextLessons"], only?: "today" | "tomorrow") {
+  return items
+    .filter((c) => !only || c.when === only)
+    .flatMap((c) => [
+      "",
+      `🎒 <b>${c.when === "today" ? "היום" : "מחר"}: ${escapeHtml(c.match)}</b>`,
+      `💡 ${escapeHtml(c.lesson.rule)}`,
+      ...(c.lesson.story ? [escapeHtml(c.lesson.story)] : []),
+    ]);
+}
+
 /** Today's lesson, preferring ones from the areas the day is about (workout, sales, events). */
 export async function lessonForDay(day: DayView) {
   const areas = [...new Set(day.timeline.filter((i) => i.kind !== "anchor").map((i) => i.area))];
@@ -122,6 +134,7 @@ export async function morningMessage(store: LifeStore, ops: OpsStore, day: DayVi
   const reminders = (await loadReminders(store)).filter((r) => !r.sent && r.date === day.date);
   if (reminders.length) lines.push("", "<b>תזכורות להיום</b>", ...reminders.map((r) => `⏰ ${r.time} ${escapeHtml(r.text)}`));
   if (day.weekFocus.length) lines.push("", "<b>הפוקוס של השבוע</b>", ...day.weekFocus.map((f) => `• ${escapeHtml(f)}`));
+  lines.push(...contextLines(day.contextLessons));
   const lesson = await lessonForDay(day);
   if (lesson) lines.push("", `💡 <b>לקח:</b> ${escapeHtml(lesson.rule)}`);
   if (!day.checkin?.weight) lines.push("", "⚖️ לא לשכוח להישקל: שלח /w ומשקל");
@@ -168,6 +181,8 @@ async function messageFor(slot: Slot, store: LifeStore, ops: OpsStore, day: DayV
           ? []
           : [`מכירות: ${b.activityDone}/${b.activityTarget}`, `רווח היום: ${ils(f.todayProfit)} · החודש ${ils(f.profit)} מתוך ${ils(f.goal.monthly_goal)}`]),
         `משימות שנסגרו היום: ${day.doneToday.length}`,
+        // The evening before a trip is when to pack: tomorrow's contextual lessons, in full.
+        ...contextLines(day.contextLessons, "tomorrow"),
         "",
         link(origin, "/life", "לסגור את היום ולתכנן מחר"),
       ].join("\n");

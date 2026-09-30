@@ -1,5 +1,6 @@
 import type { BodyToday } from "./body";
 import type { LearningToday } from "./learning";
+import type { ContextLesson } from "./growth-types";
 
 export const AREAS = ["business", "body", "spirit", "mind", "couple", "finance", "home", "general"] as const;
 export type Area = (typeof AREAS)[number];
@@ -139,6 +140,8 @@ export type DayView = {
   startsOn: string | null;
   /** Up to three focus items from this week's review. */
   weekFocus: string[];
+  /** Lessons whose triggers match today's or tomorrow's schedule (the trip list before a trip). */
+  contextLessons: ContextLesson[];
   timeline: TimelineItem[];
   openTasks: Task[];
   doneToday: Task[];

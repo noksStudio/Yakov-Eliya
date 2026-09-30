@@ -23,6 +23,7 @@ function fresh(input: unknown, today = israelToday()) {
     source: parsed.source,
     source_name: parsed.source_name ?? null,
     area: parsed.area ?? "general",
+    triggers: parsed.triggers,
     reviews: 0,
     // First comes back tomorrow morning.
     next_review: addDays(today, 1),
@@ -93,7 +94,8 @@ export function getLessonsStore(): LessonsStore {
 
 /** The lesson to show today: due ones first, those matching today's areas before the rest. */
 export function pickLesson(lessons: Lesson[], today: string, areas: Area[] = []): Lesson | null {
-  const due = lessons.filter((l) => !l.archived && l.next_review <= today);
+  // Contextual lessons (with triggers) wait for their moment; only general ones rotate.
+  const due = lessons.filter((l) => !l.archived && !(l.triggers?.length) && l.next_review <= today);
   if (!due.length) return null;
   return due.sort(
     (a, b) =>

@@ -254,18 +254,22 @@ function LessonsTab({ data, onAct }: { data: GrowthSummary; onAct: (fn: () => Pr
   const [source, setSource] = useState<"mine" | "others">("mine");
   const [sourceName, setSourceName] = useState("");
   const [area, setArea] = useState<Area>("business");
+  const [mode, setMode] = useState<"always" | "context">("always");
+  const [words, setWords] = useState("");
 
   const add = (e: React.FormEvent) => {
     e.preventDefault();
     if (rule.trim().length < 3) return;
+    const triggers = mode === "context" ? words.split(/[,،\n]/).map((w) => w.trim()).filter((w) => w.length >= 2) : [];
     onAct(async () => {
       await lifeApi("/growth/lessons", {
         method: "POST",
-        body: { rule, story: story || null, source, source_name: source === "others" ? sourceName || null : null, area },
+        body: { rule, story: story || null, source, source_name: source === "others" ? sourceName || null : null, area, triggers },
       });
       setRule("");
       setStory("");
       setSourceName("");
+      setWords("");
     });
   };
 
@@ -275,9 +279,44 @@ function LessonsTab({ data, onAct }: { data: GrowthSummary; onAct: (fn: () => Pr
 
       <form onSubmit={add} className="grid gap-2 rounded-2xl border border-border-soft bg-surface p-4">
         <h2 className="text-[15px] font-bold">לקח חדש</h2>
-        <p className="text-xs text-muted">כלל קצר שאפשר לפעול לפיו. הוא יחזור אליך בהודעת הבוקר: אחרי יומיים, שבוע, שבועיים, חודש, וכן הלאה.</p>
+        <p className="text-xs text-muted">כלל קצר שאפשר לפעול לפיו.</p>
         <input value={rule} onChange={(e) => setRule(e.target.value)} placeholder="למשל: לא שולחים הצעת מחיר בלי שיחת אבחון" aria-label="הלקח" className={field} />
-        <textarea value={story} onChange={(e) => setStory(e.target.value)} rows={2} placeholder="מה קרה? (לא חובה)" aria-label="מה קרה" className={`resize-none ${field}`} />
+        <textarea value={story} onChange={(e) => setStory(e.target.value)} rows={2} placeholder="מה קרה, או רשימה (לא חובה)" aria-label="מה קרה" className={`resize-none ${field}`} />
+        <fieldset className="grid gap-2">
+          <legend className="mb-1.5 text-xs text-muted">מתי להזכיר</legend>
+          <div className="grid grid-cols-2 rounded-xl bg-white/5 p-1" role="group" aria-label="מתי להזכיר">
+            {(
+              [
+                ["always", "בסבב הבוקר"],
+                ["context", "רק בהקשר"],
+              ] as const
+            ).map(([k, l]) => (
+              <button
+                key={k}
+                type="button"
+                aria-pressed={mode === k}
+                onClick={() => setMode(k)}
+                className={`rounded-lg py-1.5 text-xs font-semibold ${mode === k ? "bg-white/15 text-foreground" : "text-muted"}`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+          {mode === "always" ? (
+            <p className="text-[11px] text-muted">חוזר בהודעת הבוקר: אחרי יומיים, שבוע, שבועיים, חודש, וכן הלאה.</p>
+          ) : (
+            <>
+              <input
+                value={words}
+                onChange={(e) => setWords(e.target.value)}
+                placeholder="מילים, מופרדות בפסיק: טיול, פארק, פיקניק"
+                aria-label="מילים שמפעילות את הלקח"
+                className={field}
+              />
+              <p className="text-[11px] text-muted">יופיע רק כשבלו״ז של היום או מחר יש אחת המילים: במסך היום, בהודעת הבוקר ובסגירת היום שלפני.</p>
+            </>
+          )}
+        </fieldset>
         <div className="grid grid-cols-2 rounded-xl bg-white/5 p-1" role="group" aria-label="ממי הלקח">
           {(
             [
@@ -324,10 +363,17 @@ function LessonsTab({ data, onAct }: { data: GrowthSummary; onAct: (fn: () => Pr
                 <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${AREA_STYLE[l.area].dot}`} />
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold">{l.rule}</span>
-                  {l.story && <span className="mt-0.5 block whitespace-pre-line text-xs leading-relaxed text-muted">{l.story}</span>}
+                  {l.story && <LessonStory story={l.story} />}
                   <span className="mt-1 block text-[11px] text-muted">
-                    {l.source === "others" ? `מ${l.source_name ?? "אחרים"}` : "טעות שלי"} · חוזר ב־<bdi dir="ltr">{shortDate(l.next_review)}</bdi>
-                    {l.reviews > 0 && ` · נראה ${l.reviews} פעמים`}
+                    {l.source === "others" ? `מ${l.source_name ?? "אחרים"}` : "טעות שלי"} ·{" "}
+                    {l.triggers?.length ? (
+                      <span className="text-sky-300">מופיע לפני: {l.triggers.join(", ")}</span>
+                    ) : (
+                      <>
+                        חוזר ב־<bdi dir="ltr">{shortDate(l.next_review)}</bdi>
+                        {l.reviews > 0 && ` · נראה ${l.reviews} פעמים`}
+                      </>
+                    )}
                   </span>
                 </span>
                 <button
@@ -344,6 +390,18 @@ function LessonsTab({ data, onAct }: { data: GrowthSummary; onAct: (fn: () => Pr
         )}
       </section>
     </>
+  );
+}
+
+/** A long story (a checklist) folds away so the list of lessons stays readable. */
+export function LessonStory({ story, open = false }: { story: string; open?: boolean }) {
+  const lines = story.split("\n").length;
+  if (lines <= 3) return <span className="mt-0.5 block whitespace-pre-line text-xs leading-relaxed text-muted">{story}</span>;
+  return (
+    <details className="mt-1" open={open}>
+      <summary className="cursor-pointer text-xs text-gold-2">הפרטים המלאים</summary>
+      <span className="mt-1 block whitespace-pre-line text-xs leading-relaxed text-muted">{story}</span>
+    </details>
   );
 }
 

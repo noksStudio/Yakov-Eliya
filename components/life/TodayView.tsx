@@ -11,6 +11,7 @@ import type { Metric } from "@/lib/life/metrics";
 import { MetricCard } from "./MetricsView";
 import { AREA_STYLE } from "./areas";
 import { Bidi } from "./Bidi";
+import { LessonStory } from "./GrowthView";
 
 type DayResponse = { day: DayView; demo: boolean };
 type CheckinPatch = Partial<Omit<Checkin, "date" | "updated_at">>;
@@ -96,6 +97,7 @@ export function TodayView() {
       )}
 
       <WeekFocus day={day} />
+      <ContextLessons day={day} />
 
       {/* On a day off, work items stay in the timeline but are never "next up". */}
       <NextUp timeline={day.dayOff ? day.timeline.filter((i) => i.area !== "business") : day.timeline} now={now} />
@@ -108,6 +110,24 @@ export function TodayView() {
       <Tasks day={day} onChange={reload} onError={setError} />
       <EveningCheckin checkin={day.checkin} onSave={saveCheckin} />
     </div>
+  );
+}
+
+/** Lessons that matter because of something on today's or tomorrow's schedule (a trip list). */
+function ContextLessons({ day }: { day: DayView }) {
+  if (!day.contextLessons.length) return null;
+  return (
+    <>
+      {day.contextLessons.map((c) => (
+        <section key={c.lesson.id} className="rounded-2xl border border-sky-400/30 bg-sky-400/[0.06] p-3">
+          <p className="text-xs text-sky-300">
+            🎒 {c.when === "today" ? "היום" : "מחר"}: {c.match}
+          </p>
+          <p className="mt-1 text-sm font-bold">{c.lesson.rule}</p>
+          {c.lesson.story && <LessonStory story={c.lesson.story} open={c.when === "tomorrow"} />}
+        </section>
+      ))}
+    </>
   );
 }
 

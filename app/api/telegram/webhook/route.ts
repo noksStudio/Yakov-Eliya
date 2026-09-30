@@ -135,10 +135,14 @@ async function runCommand(store: LifeStore, command: string, args: string[], ori
       return `💡 נשמר ברעיונות: <b>${escapeHtml(idea.title)}</b>\n<a href="${origin}/life/ideas/${idea.id}">לפתוח ולהוסיף פרטים</a>`;
     }
     case "lesson": {
-      const [rule, ...story] = raw.split("\n");
+      // "#טיול #פארק" anywhere makes it contextual: shown only when the schedule mentions them.
+      const triggers = [...raw.matchAll(/#([^\s#]{2,40})/g)].map((m) => m[1].replace(/_/g, " "));
+      const [rule, ...story] = raw.replace(/#[^\s#]{2,40}/g, "").replace(/[ \t]+\n/g, "\n").trim().split("\n");
       if (!rule || rule.trim().length < 3) return "כתוב את הלקח אחרי הפקודה, למשל: /lesson לא שולחים הצעת מחיר בלי שיחת אבחון";
-      const lesson = await getLessonsStore().add({ rule: rule.trim(), story: story.join("\n").trim() || null });
-      return `💡 נשמר לקח: <b>${escapeHtml(lesson.rule)}</b>\nיחזור אליך ${whenLabel(lesson.next_review, today)} בבוקר, ואחר כך ברווחים הולכים וגדלים.`;
+      const lesson = await getLessonsStore().add({ rule: rule.trim(), story: story.join("\n").trim() || null, triggers });
+      return triggers.length
+        ? `💡 נשמר לקח: <b>${escapeHtml(lesson.rule)}</b>\nיופיע רק כשבלו״ז יש: ${triggers.map(escapeHtml).join(", ")}, ביום עצמו ובערב שלפני.`
+        : `💡 נשמר לקח: <b>${escapeHtml(lesson.rule)}</b>\nיחזור אליך ${whenLabel(lesson.next_review, today)} בבוקר, ואחר כך ברווחים הולכים וגדלים.\nללקח שרלוונטי רק בהקשר, הוסף מילים עם #, למשל: #טיול`;
     }
     case "remind": {
       if (!raw) return "למשל: /remind מחר 10:00 להתקשר לדני\nאו פשוט: ״תזכיר לי בעוד 20 דקות לצאת״";

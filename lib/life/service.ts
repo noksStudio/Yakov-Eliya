@@ -5,11 +5,12 @@ import { bodyForDate, loadBodyPlan } from "./body";
 import { learningForDate, loadLearningGoal } from "./learning";
 import { loadRecurring, recurringFor } from "./recurring";
 import { weekFocus } from "./growth";
+import { contextLessons } from "./lesson-context";
 import { getLifeStore, isDemoStore, type LifeStore } from "./store";
 import { applySeeds } from "./seeds";
 
 export async function loadDay(store: LifeStore, date: string) {
-  const [settings, events, tasks, checkin, plan, goal, recurring, focus] = await Promise.all([
+  const [settings, events, tasks, checkin, plan, goal, recurring, focus, lessons] = await Promise.all([
     store.getSettings(),
     store.listEvents(date),
     store.listTasks(),
@@ -18,6 +19,7 @@ export async function loadDay(store: LifeStore, date: string) {
     loadLearningGoal(store),
     loadRecurring(store),
     weekFocus(store, date),
+    contextLessons(store, date),
   ]);
   return buildDay(
     date,
@@ -29,6 +31,7 @@ export async function loadDay(store: LifeStore, date: string) {
     learningForDate(goal, date),
     recurringFor(recurring, date),
     focus,
+    lessons,
   );
 }
 
