@@ -6,6 +6,7 @@ import { learningForDate, loadLearningGoal } from "./learning";
 import { loadRecurring, recurringFor } from "./recurring";
 import { weekFocus } from "./growth";
 import { getLifeStore, isDemoStore, type LifeStore } from "./store";
+import { applySeeds } from "./seeds";
 
 export async function loadDay(store: LifeStore, date: string) {
   const [settings, events, tasks, checkin, plan, goal, recurring, focus] = await Promise.all([
@@ -34,7 +35,10 @@ export async function loadDay(store: LifeStore, date: string) {
 /** Runs a life API handler with the store, mapping failures to Hebrew JSON errors. */
 export async function withStore(fn: (store: LifeStore) => Promise<unknown>) {
   try {
-    const result = await fn(getLifeStore());
+    const store = getLifeStore();
+    // Content told in chat lands in his data on first use (a single doc read once applied).
+    await applySeeds(store);
+    const result = await fn(store);
     if (result instanceof Response) return result;
     return NextResponse.json({ ...(result as object), demo: isDemoStore() });
   } catch (error) {

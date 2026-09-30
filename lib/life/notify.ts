@@ -8,6 +8,7 @@ import { computeMetrics } from "./metrics";
 import { computeInsights, goalsProgress } from "./growth";
 import { getLessonsStore, markLessonShown, pickLesson } from "./lessons";
 import { dueReminders, loadReminders, markRemindersSent } from "./reminders";
+import { applySeeds } from "./seeds";
 import { loadDay } from "./service";
 import { escapeHtml, loadTelegram, sendMessage } from "./telegram";
 import { addDays, fromMinutes, israelNow, israelToday, restDayOf, toMinutes } from "./time";
@@ -236,6 +237,7 @@ export async function runNotifications(store: LifeStore, ops: OpsStore, origin: 
   const quiet = quietReason(date, nowMinutes);
   if (quiet) return { ...base, skipped: quiet };
 
+  await applySeeds(store);
   // Reminders he set himself go out even before the routine starts.
   const telegramDoc = await loadTelegram(store);
   const due = dueReminders(await loadReminders(store), date, nowMinutes);

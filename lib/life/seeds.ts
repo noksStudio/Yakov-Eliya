@@ -1,13 +1,25 @@
 import type { LifeStore } from "./store";
 import { getIdeasStore, type IdeaStatus, type NewIdea } from "./ideas";
+import { addReminder } from "./reminders";
+import { israelNow, israelToday, toMinutes } from "./time";
 
 // Content told in chat that belongs in the user's own data (not in code defaults): each batch is
 // applied once, then recorded in the "seeds" doc, so deleting an item later does not bring it back.
 
 type SeedIdea = NewIdea & { status?: IdeaStatus; steps?: string[] };
-type SeedBatch = { id: string; ideas?: SeedIdea[] };
+type SeedReminder = { date: string; time: string; text: string };
+type SeedBatch = { id: string; ideas?: SeedIdea[]; reminders?: SeedReminder[] };
 
 const SEEDS: SeedBatch[] = [
+  {
+    // Vermox for Ilan: first dose 30.9, second 10 days later, which is Shabbat (10.10), when
+    // nothing is sent. So: Friday morning for tomorrow, and Sunday morning to check it was given.
+    id: "2026-09-30-ilan-vermox",
+    reminders: [
+      { date: "2026-10-09", time: "08:00", text: "מחר בשבת: המנה השנייה של ורמוקס לאילן (10 ימים אחרי 30.9). להניח את התרופה במקום בולט כבר היום." },
+      { date: "2026-10-11", time: "08:00", text: "אילן קיבל את המנה השנייה של ורמוקס בשבת? אם לא, לתת היום." },
+    ],
+  },
   {
     id: "2026-09-30-ilan-books",
     ideas: [
@@ -74,7 +86,14 @@ export async function applySeeds(store: LifeStore) {
   // Recorded before inserting, so two requests at once cannot both add the same items.
   await store.saveDoc("seeds", { applied: [...applied, ...pending.map((b) => b.id)] });
   const ideas = getIdeasStore();
+  const today = israelToday();
+  const now = toMinutes(israelNow());
   for (const batch of pending) {
+    // A reminder whose time already passed (e.g. seeded after connecting late) is skipped, not
+    // sent late all at once.
+    for (const r of batch.reminders ?? []) {
+      if (r.date > today || (r.date === today && toMinutes(r.time) > now)) await addReminder(store, r);
+    }
     for (const { status, steps, ...input } of batch.ideas ?? []) {
       const idea = await ideas.add(input);
       if (status || steps?.length) {

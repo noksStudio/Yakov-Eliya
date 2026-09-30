@@ -11,6 +11,7 @@ import { EXPENSE_CATEGORIES, financeEntrySchema } from "@/lib/life/ops-types";
 import { getOpsStore } from "@/lib/life/ops-store";
 import { loadDay } from "@/lib/life/service";
 import { getLifeStore, type LifeStore } from "@/lib/life/store";
+import { applySeeds } from "@/lib/life/seeds";
 import { ALL_TEXT, HELP_TEXT, escapeHtml, loadTelegram, safeEqual, saveTelegram, sendMessage, telegramCall, webhookSecret } from "@/lib/life/telegram";
 import { addDays, israelToday } from "@/lib/life/time";
 
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
   if (!update || !message?.text || message.chat.type !== "private") return ok();
 
   const store = getLifeStore();
+  await applySeeds(store);
   const telegram = await loadTelegram(store);
   // Telegram retries until it gets a 200; never handle the same update twice.
   if (telegram.last_update_id !== null && update.update_id <= telegram.last_update_id) return ok();
