@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
   manifest: "/life-manifest.webmanifest",
   appleWebApp: { capable: true, title: "היום שלי", statusBarStyle: "black-translucent" },
-  icons: { apple: "/life-icons/icon-192.png" },
+  icons: { apple: { url: "/life-icons/apple-touch-icon.png", sizes: "180x180" } },
 };
 
 export const viewport: Viewport = {
