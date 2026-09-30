@@ -1,4 +1,4 @@
-const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 60; // 60 days (a personal app on his own phone)
 export const ADMIN_SESSION_COOKIE = "admin_session";
 
 async function getKey(secret: string) {
