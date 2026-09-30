@@ -24,6 +24,7 @@ import type { LifeStore } from "./store";
 import { loadDay } from "./service";
 import { anchorConflict } from "./day";
 import { calendarRange, weekStart } from "./calendar";
+import { getIdeasStore, newIdeaSchema } from "./ideas";
 import { RecurringConflictError, WEEKDAY_LABELS, addRecurring, loadRecurring, newRecurringSchema, removeRecurring } from "./recurring";
 import { bmi, bodyForDate, loadBodyPlan, weightSeries } from "./body";
 import { bodyProfileSchema, mealPlanSchema, shoppingSeedSchema, workoutPlanSchema } from "./body-types";
@@ -72,6 +73,17 @@ ${SHARED}
 
 ## שאלות פתוחות
 בתחילת כל הודעה מופיעות "שאלות פתוחות" שעוד לא נענו. כשזה מתאים (לא באמצע משימה דחופה), שאל אחת מהן. כשיעקב עונה, שמור את התשובה עם remember ואז סגור את השאלה עם resolve_question.
+
+## אירועים והכנות
+כשיעקב מזכיר אירוע (אירוע משפחתי, חתונה, בר מצווה, פגישה חשובה), אל תרשום אותו מיד. שאל קודם, בהודעה אחת קצרה, עד 3 שאלות:
+1. מתי ואיפה, אם זה לא נאמר (תאריך ושעה).
+2. מה צריך להכין: הצע אפשרויות שמתאימות לאירוע, למשל בגדים, מתנה, להזמין חברים, הסעה, תספורת, לעזור בארגון.
+3. יש עוד משהו שחשוב לו.
+אחרי שענה: add_event (אם האירוע חופף לתפילה או להתבודדות, אמור לו ושאל אם לוותר עליהם באותו ערב או להקדים אותם), ואז add_task לכל הכנה שאישר, עם event_id של האירוע ו־due_date אחורה מהאירוע: הזמנות כ־10 ימים לפני, בגדים כשבוע לפני, מתנה ותספורת 2–3 ימים לפני. אף הכנה לא בשבת או בחג, ולא אחרי האירוע. אם האירוע קרוב מדי, דחוס את ההכנות לימים שנשארו. סכם בשורה אחת לכל הכנה עם התאריך.
+צור רק מה שאישר. אל תוסיף הכנות שלא שאלת עליהן.
+
+## רעיונות
+כשיעקב כותב "רעיון: ..." או מספר על מערכת או מוצר שהוא רוצה לפתח, שמור עם save_idea (כותרת קצרה, והפרטים בהערות). אל תהפוך רעיון למשימה אלא אם ביקש.
 
 ## לו״ז שבועי
 get_week מראה את השבוע. כשיעקב מספר על משהו שחוזר כל שבוע (שיעור, חוג, פגישה קבועה), שמור אותו עם add_recurring ולא כאירוע חד־פעמי. בתכנון שבוע, פזר את המשימות הגדולות על פני הימים ושמור על ימים עם אימון קלים יותר.
@@ -228,7 +240,7 @@ function dayTools(store: LifeStore) {
     }),
     betaZodTool({
       name: "add_task",
-      description: "יוצר משימה. priority: 1 חובה, 2 רצוי, 3 נחמד. אפשר לשבץ עם due_date ו־scheduled_time.",
+      description: "יוצר משימה. priority: 1 חובה, 2 רצוי, 3 נחמד. אפשר לשבץ עם due_date ו־scheduled_time. משימת הכנה לאירוע: event_id של האירוע.",
       inputSchema: newTaskSchema,
       run: async (input) => json(await store.addTask({ ...input, source: "chief" })),
     }),
@@ -243,13 +255,14 @@ function dayTools(store: LifeStore) {
     }),
     betaZodTool({
       name: "add_event",
-      description: "מוסיף בלוק זמן ללו״ז. נדחה אם הוא חופף לעוגן או נופל בשבת או בחג.",
-      inputSchema: newEventSchema,
-      run: async (input) => {
+      description:
+        "מוסיף בלוק זמן ללו״ז. נדחה בשבת ובחג. נדחה אם חופף לעוגן, אלא אם override_anchor: רק לאירוע חשוב שנקבע מבחוץ (אירוע משפחתי), ורק אחרי שיעקב אישר במפורש לוותר על העוגן באותו יום.",
+      inputSchema: newEventSchema.extend({ override_anchor: z.boolean().optional() }),
+      run: async ({ override_anchor, ...input }) => {
         const rest = restDayOf(input.date);
         if (rest) return `שגיאה: ${input.date} הוא ${rest.name}. לא מתכננים בו.`;
         const conflict = anchorConflict(await store.getSettings(), input.start_time, input.end_time ?? null);
-        if (conflict) return `שגיאה: חופף לעוגן "${conflict}". בחר זמן אחר.`;
+        if (conflict && !override_anchor) return `שגיאה: חופף לעוגן "${conflict}". בחר זמן אחר, או שאל את יעקב אם לוותר על העוגן באותו יום.`;
         return json(await store.addEvent({ ...input, source: "chief" }));
       },
     }),
@@ -271,7 +284,7 @@ function dayTools(store: LifeStore) {
           days: cal.days.map((d) => ({
             date: d.date,
             rest: d.rest?.name,
-            items: d.items.map(({ kind, time, end, title, id, done }) => ({ kind, time, end, title, id, done: done || undefined })),
+            items: d.items.map(({ kind, time, end, title, id, done, prep }) => ({ kind, time, end, title, id, done: done || undefined, prep })),
           })),
           summary: cal.summary,
           recurring: recurring.map((r) => ({ id: r.id, day: WEEKDAY_LABELS[r.weekday], start: r.start_time, end: r.end_time, title: r.title })),
@@ -296,6 +309,20 @@ function dayTools(store: LifeStore) {
       description: "מוחק התחייבות קבועה לפי id.",
       inputSchema: z.object({ id: z.string() }),
       run: async ({ id }) => ((await removeRecurring(store, id)) ? "נמחק" : "שגיאה: לא נמצא"),
+    }),
+  ];
+}
+
+function ideaTools() {
+  return [
+    betaZodTool({
+      name: "save_idea",
+      description: "שומר רעיון במסך הרעיונות: כותרת קצרה, ובהערות הפרטים (מה לחבר, איזה API, למי זה מיועד). area ברירת מחדל: business.",
+      inputSchema: newIdeaSchema,
+      run: async (input) => {
+        const idea = await getIdeasStore().add(input);
+        return json({ id: idea.id, title: idea.title });
+      },
     }),
   ];
 }
@@ -560,7 +587,7 @@ function bodyTools(store: LifeStore) {
 const AGENT_CONFIG: Record<AgentId, { system: string; tools: (store: LifeStore) => BetaToolRunnerParams["tools"] }> = {
   chief: {
     system: CHIEF_PROMPT,
-    tools: (s) => [...dayTools(s), ...checkinTools(s), ...shoppingTools(s), ...learningTools(s), ...memoryTools(s)],
+    tools: (s) => [...dayTools(s), ...checkinTools(s), ...shoppingTools(s), ...learningTools(s), ...memoryTools(s), ...ideaTools()],
   },
   body: { system: BODY_PROMPT, tools: (s) => [...bodyTools(s), ...checkinTools(s), ...shoppingTools(s), ...dayTools(s).slice(0, 1), ...memoryTools(s).slice(0, 1)] },
   business: { system: BUSINESS_PROMPT, tools: (s) => [...businessTools(), ...dayTools(s).slice(1, 3), ...memoryTools(s).slice(0, 1)] },

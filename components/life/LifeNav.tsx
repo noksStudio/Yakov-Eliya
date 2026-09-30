@@ -10,6 +10,7 @@ import {
   CalendarDays,
   Crown,
   Dumbbell,
+  Lightbulb,
   LogOut,
   Menu,
   MessageCircle,
@@ -39,6 +40,7 @@ const DRAWER: { title: string; items: DrawerItem[] }[] = [
     items: [
       { href: "/life", label: "היום שלי", icon: CalendarDays },
       { href: "/life/chat", label: "המנהל הראשי", hint: "לו״ז ומשימות", icon: Crown },
+      { href: "/life/ideas", label: "רעיונות", hint: "מערכות ומוצרים לפתח", icon: Lightbulb },
     ],
   },
   {

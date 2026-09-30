@@ -56,6 +56,8 @@ export type Task = {
   done: boolean;
   done_at: string | null;
   source: "user" | "chief";
+  /** Set on prep tasks for an event (clothes, gift, invitations). */
+  event_id?: string | null;
 };
 
 export type LifeEvent = {

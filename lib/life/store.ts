@@ -10,8 +10,9 @@ export type NewTask = {
   due_date?: string | null;
   scheduled_time?: string | null;
   source?: Task["source"];
+  event_id?: string | null;
 };
-export type TaskPatch = Partial<Pick<Task, "title" | "area" | "priority" | "due_date" | "scheduled_time" | "done">>;
+export type TaskPatch = Partial<Pick<Task, "title" | "area" | "priority" | "due_date" | "scheduled_time" | "done" | "event_id">>;
 export type NewEvent = Pick<LifeEvent, "date" | "start_time" | "title"> & {
   end_time?: string | null;
   area?: Area;
@@ -39,6 +40,8 @@ export interface LifeStore {
   addTask(input: NewTask): Promise<Task>;
   updateTask(id: string, patch: TaskPatch): Promise<Task | null>;
   deleteTask(id: string): Promise<boolean>;
+  /** Every task (open or done, however old) linked to one of these events. */
+  listEventTasks(eventIds: string[]): Promise<Task[]>;
   listEvents(date: string): Promise<LifeEvent[]>;
   /** Events from `from` to `to` inclusive, by date and start time. */
   listEventsRange(from: string, to: string): Promise<LifeEvent[]>;
@@ -85,6 +88,8 @@ function newTask(input: NewTask): Omit<Task, "id" | "created_at"> {
     priority: input.priority ?? 2,
     due_date: input.due_date ?? null,
     scheduled_time: input.scheduled_time ?? null,
+    // Only sent when set, so inserts keep working before the event_id column is migrated.
+    ...(input.event_id ? { event_id: input.event_id } : {}),
     done: false,
     done_at: null,
     source: input.source ?? "user",
@@ -152,6 +157,10 @@ function supabaseStore(): LifeStore {
     async deleteTask(id) {
       const rows = check(await db.from("life_tasks").delete().eq("id", id).select("id"));
       return (rows ?? []).length > 0;
+    },
+    async listEventTasks(eventIds) {
+      if (!eventIds.length) return [];
+      return check(await db.from("life_tasks").select("*").in("event_id", eventIds).order("due_date")) as Task[];
     },
     async listEvents(date) {
       return check(await db.from("life_events").select("*").eq("date", date).order("start_time")) as LifeEvent[];
@@ -288,6 +297,9 @@ function memoryStore(): LifeStore {
       mem.tasks = mem.tasks.filter((t) => t.id !== id);
       return mem.tasks.length < before;
     },
+    async listEventTasks(eventIds) {
+      return mem.tasks.filter((t) => t.event_id && eventIds.includes(t.event_id)).map((t) => ({ ...t }));
+    },
     async listEvents(date) {
       return mem.events.filter((e) => e.date === date).map((e) => ({ ...e }));
     },
@@ -312,6 +324,8 @@ function memoryStore(): LifeStore {
     async deleteEvent(id) {
       const before = mem.events.length;
       mem.events = mem.events.filter((e) => e.id !== id);
+      // Mirrors "on delete set null" on life_tasks.event_id.
+      for (const t of mem.tasks) if (t.event_id === id) t.event_id = null;
       return mem.events.length < before;
     },
     async getCheckin(date) {

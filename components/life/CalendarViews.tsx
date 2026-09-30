@@ -165,7 +165,7 @@ function ItemList({ items, onChange, onError }: { items: CalItem[]; onChange: ()
       .then(onChange)
       .catch((e) => onError((e as Error).message));
   return (
-    <ul className="mt-2 grid gap-1.5">
+    <ul className="mt-2 grid grid-cols-1 gap-1.5">
       {items.map((item) => {
         const Icon = KIND_ICON[item.kind];
         return (
@@ -175,6 +175,11 @@ function ItemList({ items, onChange, onError }: { items: CalItem[]; onChange: ()
             <span className={`min-w-0 flex-1 ${item.done ? "text-muted line-through" : ""}`}>
               <span className="block truncate">{item.title}</span>
               {item.note && <span className="block truncate text-xs text-muted">{item.note}</span>}
+              {item.prep && (
+                <span className={`block text-xs ${item.prep.done === item.prep.total ? "text-emerald-300" : "text-muted"}`}>
+                  {item.prep.done === item.prep.total ? "כל ההכנות בוצעו ✓" : <>הכנות <bdi dir="ltr">{item.prep.done}/{item.prep.total}</bdi></>}
+                </span>
+              )}
             </span>
             {item.kind === "workout" && item.done && <Check className="h-4 w-4 text-emerald-300" aria-label="בוצע" />}
             {item.kind === "event" && item.id && (
@@ -225,15 +230,26 @@ function AddEventForm({ date, onDone, onCancel }: { date: string; onDone: () => 
   const [end, setEnd] = useState("");
   const [area, setArea] = useState<Area>("general");
   const [error, setError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<string | null>(null);
 
-  const submit = async (e: React.FormEvent) => {
+  const send = async (force: boolean) => {
+    setError(null);
+    const res = await fetch("/api/life/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date, title, start_time: start, end_time: end || null, area, force }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) return onDone();
+    // Overlapping an anchor is allowed once confirmed; anything else is a plain error.
+    if (res.status === 409 && data.conflict) setConflict(data.conflict);
+    else setError(data.error ?? "משהו השתבש");
+  };
+
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await lifeApi("/events", { method: "POST", body: { date, title, start_time: start, end_time: end || null, area } });
-      onDone();
-    } catch (err) {
-      setError((err as Error).message);
-    }
+    setConflict(null);
+    void send(false);
   };
   return (
     <form onSubmit={submit} className="mt-3 grid gap-2 rounded-xl bg-white/[0.03] p-3">
@@ -250,6 +266,14 @@ function AddEventForm({ date, onDone, onCancel }: { date: string; onDone: () => 
       </div>
       <AreaSelect value={area} onChange={setArea} />
       {error && <p className="text-xs text-red-300">{error}</p>}
+      {conflict && (
+        <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 p-2.5 text-xs text-amber-200">
+          <p>חופף ל{conflict}. להוסיף בכל זאת? {conflict} לא יזוז, רק תדע שבאותו יום יש התנגשות.</p>
+          <button type="button" onClick={() => void send(true)} className="mt-2 rounded-lg bg-amber-400/20 px-3 py-1.5 font-semibold text-amber-100">
+            להוסיף בכל זאת
+          </button>
+        </div>
+      )}
       <div className="flex gap-2">
         <button type="submit" className="flex-1 rounded-lg bg-gold py-2 text-sm font-bold text-[#1d1407]">
           הוספה
@@ -532,7 +556,7 @@ function RecurringManager({ onChange }: { onChange: () => void }) {
       </summary>
       <p className="mt-1 text-xs text-muted">שיעור, חוג, פגישה קבועה. מופיעים כל שבוע ביום שלהם, לא בשבת ובחג.</p>
       {items && items.length > 0 && (
-        <ul className="mt-3 grid gap-1">
+        <ul className="mt-3 grid grid-cols-1 gap-1">
           {items.map((r) => (
             <li key={r.id} className="flex items-center gap-2 text-sm">
               <span className={`h-2 w-2 shrink-0 rounded-full ${AREA_STYLE[r.area].dot}`} />

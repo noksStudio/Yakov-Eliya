@@ -2,12 +2,13 @@ import { NextResponse, after } from "next/server";
 import { AgentNotConfiguredError, askAgent } from "@/lib/life/agents";
 import { loadBodyPlan } from "@/lib/life/body";
 import { financeSummary } from "@/lib/life/finance";
+import { getIdeasStore } from "@/lib/life/ideas";
 import { metricsMessage, morningMessage } from "@/lib/life/notify";
 import { EXPENSE_CATEGORIES, financeEntrySchema } from "@/lib/life/ops-types";
 import { getOpsStore } from "@/lib/life/ops-store";
 import { loadDay } from "@/lib/life/service";
 import { getLifeStore, type LifeStore } from "@/lib/life/store";
-import { HELP_TEXT, loadTelegram, safeEqual, saveTelegram, sendMessage, telegramCall, webhookSecret } from "@/lib/life/telegram";
+import { HELP_TEXT, escapeHtml, loadTelegram, safeEqual, saveTelegram, sendMessage, telegramCall, webhookSecret } from "@/lib/life/telegram";
 import { israelToday } from "@/lib/life/time";
 
 // Telegram webhook. Outside the proxy matcher: Telegram proves itself with the secret token set in
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const reply = command ? await runCommand(store, command, rest, new URL(request.url).origin) : null;
+    const reply = command ? await runCommand(store, command, rest, new URL(request.url).origin, text.slice(rawCommand.length).trim()) : null;
     if (reply) {
       await sendMessage(chatId, reply, true);
       return ok();
@@ -82,7 +83,8 @@ export async function POST(request: Request) {
   return ok();
 }
 
-async function runCommand(store: LifeStore, command: string, args: string[], origin: string): Promise<string | null> {
+/** `raw`: everything after the command, line breaks kept (for /idea notes). */
+async function runCommand(store: LifeStore, command: string, args: string[], origin: string, raw: string): Promise<string | null> {
   const ops = getOpsStore();
   const today = israelToday();
   switch (command) {
@@ -93,6 +95,14 @@ async function runCommand(store: LifeStore, command: string, args: string[], ori
       return morningMessage(store, ops, await loadDay(store, today), origin);
     case "metrics":
       return metricsMessage(store, ops, today, origin);
+    case "idea": {
+      const text = raw;
+      if (!text) return "כתוב את הרעיון אחרי הפקודה, למשל: /idea מערכת הזמנות בוואטסאפ ליבואנים";
+      // First line is the title; anything after it goes to the notes.
+      const [title, ...rest] = text.split("\n");
+      const idea = await getIdeasStore().add({ title: title.slice(0, 200), notes: rest.join("\n").trim() });
+      return `💡 נשמר ברעיונות: <b>${escapeHtml(idea.title)}</b>\n<a href="${origin}/life/ideas/${idea.id}">לפתוח ולהוסיף פרטים</a>`;
+    }
     case "workout":
       await store.saveCheckin(today, { workout: true });
       return "💪 אימון נרשם. כל הכבוד!";

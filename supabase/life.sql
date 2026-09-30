@@ -130,9 +130,22 @@ create table if not exists life_journal (
   private boolean not null default false
 );
 
+create table if not exists life_ideas (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  title text not null,
+  area text not null default 'business',
+  status text not null default 'idea',
+  notes text not null default '',
+  steps jsonb not null default '[]'::jsonb
+);
+
 -- Safe to re-run on a database created from an earlier version of this file.
 alter table life_checkins add column if not exists workout boolean not null default false;
 alter table life_messages add column if not exists agent text not null default 'chief';
+-- Prep tasks for an event (clothes, gift, invitations) point at it.
+alter table life_tasks add column if not exists event_id uuid references life_events (id) on delete set null;
 
 create index if not exists life_tasks_open_idx on life_tasks (done, due_date);
 create index if not exists life_events_date_idx on life_events (date, start_time);
@@ -140,6 +153,8 @@ create index if not exists life_messages_created_idx on life_messages (agent, cr
 create index if not exists life_finance_date_idx on life_finance (date);
 create index if not exists life_deals_stage_idx on life_deals (stage, next_date);
 create index if not exists life_journal_kind_idx on life_journal (kind, created_at desc);
+create index if not exists life_tasks_event_idx on life_tasks (event_id);
+create index if not exists life_ideas_status_idx on life_ideas (status, updated_at desc);
 
 alter table life_settings enable row level security;
 alter table life_tasks enable row level security;
@@ -152,3 +167,4 @@ alter table life_finance enable row level security;
 alter table life_deals enable row level security;
 alter table life_activity enable row level security;
 alter table life_journal enable row level security;
+alter table life_ideas enable row level security;

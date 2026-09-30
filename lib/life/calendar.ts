@@ -25,6 +25,8 @@ export type CalItem = {
   /** Event or task id, for delete / done. */
   id?: string;
   done?: boolean;
+  /** Prep tasks linked to an event (clothes, gift, invitations). */
+  prep?: { done: number; total: number };
 };
 
 export type CalDay = {
@@ -75,6 +77,7 @@ export async function calendarRange(store: LifeStore, ops: OpsStore, from: strin
     store.listCheckins(from, to),
     ops.listFinance(from, to),
   ]);
+  const prepTasks = await store.listEventTasks(events.map((e) => e.id));
   const checkinByDate = new Map(checkins.map((c) => [c.date, c]));
   const openDeals = deals.filter((d) => OPEN_STAGES.includes(d.stage) && d.next_date);
   const summary: CalSummary = { workoutsDone: 0, workoutsPlanned: 0, prayersDone: 0, prayersPossible: 0, profit: 0, events: 0 };
@@ -86,7 +89,17 @@ export async function calendarRange(store: LifeStore, ops: OpsStore, from: strin
     const items: CalItem[] = [];
 
     for (const e of events.filter((ev) => ev.date === date)) {
-      items.push({ key: `event-${e.id}`, kind: "event", id: e.id, time: e.start_time, end: e.end_time, title: e.title, area: e.area });
+      const prep = prepTasks.filter((t) => t.event_id === e.id);
+      items.push({
+        key: `event-${e.id}`,
+        kind: "event",
+        id: e.id,
+        time: e.start_time,
+        end: e.end_time,
+        title: e.title,
+        area: e.area,
+        ...(prep.length ? { prep: { done: prep.filter((t) => t.done).length, total: prep.length } } : {}),
+      });
     }
     for (const r of recurringFor(recurring, date)) {
       items.push({ key: `rec-${r.id}-${date}`, kind: "recurring", time: r.start_time, end: r.end_time, title: r.title, area: r.area });

@@ -110,6 +110,7 @@ export const BOT_COMMANDS = [
   { command: "in", description: "הכנסה: /in 1500 לקוח" },
   { command: "out", description: "הוצאה: /out 300 שיווק" },
   { command: "workout", description: "סימון אימון שבוצע" },
+  { command: "idea", description: "רעיון: /idea מערכת הזמנות" },
   { command: "metrics", description: "המדדים שלי" },
   { command: "help", description: "מה אפשר לעשות כאן" },
 ];
@@ -124,5 +125,6 @@ export const HELP_TEXT = [
   "/in 1500 הערה · הכנסה",
   "/out 300 שיווק · הוצאה",
   "/workout · אימון בוצע",
+  "/idea טקסט · שמירת רעיון",
   "/metrics · המדדים",
 ].join("\n");

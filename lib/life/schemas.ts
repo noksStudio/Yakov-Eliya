@@ -15,6 +15,8 @@ export const newTaskSchema = z.object({
   priority: z.number().int().min(1).max(3).optional(),
   due_date: dateSchema.nullable().optional(),
   scheduled_time: timeSchema.nullable().optional(),
+  /** Links a prep task to the event it prepares for. */
+  event_id: z.string().uuid().nullable().optional(),
 });
 
 export const taskPatchSchema = newTaskSchema.partial().extend({ done: z.boolean().optional() });
