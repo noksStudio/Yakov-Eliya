@@ -48,8 +48,6 @@ export interface LifeStore {
   clearCheckedShopping(): Promise<number>;
 }
 
-export class LifeStoreUnavailableError extends Error {}
-
 const EMPTY_CHECKIN: Omit<Checkin, "date" | "updated_at"> = {
   sleep_hours: null,
   weight: null,
@@ -206,7 +204,8 @@ function supabaseStore(): LifeStore {
 }
 
 // ---------------------------------------------------------------------------------------------
-// In-memory (local development and demos only; data is lost on restart)
+// In-memory demo store, used while Supabase is not connected. Data lives in the server process
+// only (and on serverless hosting may reset between requests); the UI marks this as demo mode.
 
 type Memory = {
   settings: Settings;
@@ -221,9 +220,20 @@ type Memory = {
 const globalForLife = globalThis as unknown as { __lifeMemory?: Memory };
 
 function memoryStore(): LifeStore {
+  const today = israelToday();
+  const sample = (title: string, area: Area, priority: number, scheduled_time: string | null = null): Task => ({
+    id: crypto.randomUUID(),
+    created_at: new Date().toISOString(),
+    ...newTask({ title, area, priority, due_date: today, scheduled_time }),
+  });
   const initial: Memory = {
     settings: { ...DEFAULT_SETTINGS },
-    tasks: [],
+    tasks: [
+      sample("20 בקשות חיבור בלינקדאין ליבואנים", "business", 1, "09:00"),
+      sample("פולואפ לדיבי פלאסט: לקבוע פגישה", "business", 1, "11:15"),
+      sample("קניות לשבוע לפי התפריט", "home", 2),
+      sample("להקליט סרטון הדגמה של 30 שניות", "business", 2),
+    ],
     events: [],
     checkins: new Map(),
     messages: [],
@@ -343,8 +353,6 @@ export function isDemoStore() {
 }
 
 export function getLifeStore(): LifeStore {
-  if (isSupabaseConfigured()) return supabaseStore();
-  // Never silently fall back to memory in production: data would vanish between requests.
-  if (process.env.NODE_ENV !== "production" || process.env.LIFE_DEMO === "1") return memoryStore();
-  throw new LifeStoreUnavailableError("מסד הנתונים לא מחובר — הוסף את פרטי Supabase והרץ את supabase/life.sql");
+  // Without Supabase the area runs as a clearly-labelled demo (see isDemoStore) instead of failing.
+  return isSupabaseConfigured() ? supabaseStore() : memoryStore();
 }

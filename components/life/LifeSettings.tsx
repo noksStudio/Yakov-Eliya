@@ -166,7 +166,7 @@ export function LifeSettings() {
 
       <section className="rounded-2xl border border-border-soft bg-surface p-4 text-sm">
         <h2 className="mb-2 text-[15px] font-bold">חיבורים</h2>
-        <Status ok={!demo} label="מסד נתונים" hint={demo ? "מצב ניסיון: הנתונים לא נשמרים לאחר הפעלה מחדש" : undefined} />
+        <Status ok={!demo} label="מסד נתונים" hint={demo ? "מצב הדגמה: Supabase לא מחובר, הנתונים לא נשמרים" : undefined} />
         <Status ok={Boolean(connected)} label="המנהל הראשי (Claude)" hint={connected === false ? "חסר ANTHROPIC_API_KEY" : undefined} />
       </section>
 

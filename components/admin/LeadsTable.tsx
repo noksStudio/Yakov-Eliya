@@ -14,7 +14,8 @@ const statusLabels: Record<LeadStatus, string> = {
   lost: "לא רלוונטי",
 };
 
-export function LeadsTable({ leads }: { leads: Lead[] }) {
+/** `demo`: sample data while Supabase isn't connected; edits stay in the page and aren't sent. */
+export function LeadsTable({ leads, demo = false }: { leads: Lead[]; demo?: boolean }) {
   const [search, setSearch] = useState("");
   const [trackFilter, setTrackFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -86,7 +87,21 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
         </select>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-2xl border border-border-soft">
+      <div className="mt-6 grid gap-3 md:hidden">
+        {filtered.map((lead) => (
+          <LeadCard
+            key={lead.id}
+            lead={lead}
+            expanded={expandedId === lead.id}
+            onToggle={() => setExpandedId(expandedId === lead.id ? null : lead.id)}
+            onSaved={(patch) => updateLocal(lead.id, patch)}
+            demo={demo}
+          />
+        ))}
+        {filtered.length === 0 && <p className="py-8 text-center text-sm text-muted">אין לידים שתואמים את הסינון</p>}
+      </div>
+
+      <div className="mt-6 hidden overflow-hidden rounded-2xl border border-border-soft md:block">
         <table className="w-full text-start text-sm">
           <thead className="bg-surface-strong text-muted">
             <tr>
@@ -107,6 +122,7 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
                 expanded={expandedId === lead.id}
                 onToggle={() => setExpandedId(expandedId === lead.id ? null : lead.id)}
                 onSaved={(patch) => updateLocal(lead.id, patch)}
+                demo={demo}
               />
             ))}
             {filtered.length === 0 && (
@@ -128,36 +144,15 @@ function LeadRow({
   expanded,
   onToggle,
   onSaved,
+  demo,
 }: {
   lead: Lead;
   expanded: boolean;
   onToggle: () => void;
   onSaved: (patch: Partial<Lead>) => void;
+  demo: boolean;
 }) {
-  const [status, setStatus] = useState<LeadStatus>(lead.status);
-  const [gender, setGender] = useState(lead.gender ?? "");
-  const [age, setAge] = useState(lead.age?.toString() ?? "");
-  const [notes, setNotes] = useState(lead.notes ?? "");
-  const [saving, setSaving] = useState(false);
-
   const track = tracks.find((t) => t.slug === lead.track_slug);
-
-  async function save() {
-    setSaving(true);
-    const patch = {
-      status,
-      gender: gender || null,
-      age: age ? Number(age) : null,
-      notes: notes || null,
-    };
-    const res = await fetch(`/api/admin/leads/${lead.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    if (res.ok) onSaved(patch);
-    setSaving(false);
-  }
 
   return (
     <>
@@ -179,7 +174,7 @@ function LeadRow({
           {new Date(lead.created_at).toLocaleDateString("he-IL")}
         </td>
         <td className="px-4 py-3">
-          <button onClick={onToggle} aria-label="פרטים נוספים">
+          <button onClick={onToggle} aria-label="פרטים נוספים" aria-expanded={expanded}>
             <ChevronDown className={cn("h-4 w-4 transition-transform", expanded && "rotate-180")} />
           </button>
         </td>
@@ -187,66 +182,148 @@ function LeadRow({
       {expanded && (
         <tr className="border-t border-border-soft bg-surface/40">
           <td colSpan={7} className="px-4 py-4">
-            <div className="grid gap-3 sm:grid-cols-4">
-              <label className="flex flex-col gap-1 text-xs text-muted">
-                סטטוס
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as LeadStatus)}
-                  className="rounded-lg bg-surface px-2 py-2 text-sm text-foreground"
-                >
-                  {Object.entries(statusLabels).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-xs text-muted">
-                מגדר
-                <input
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                  placeholder="זכר / נקבה / אחר"
-                  className="rounded-lg bg-surface px-2 py-2 text-sm text-foreground outline-none"
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-xs text-muted">
-                גיל
-                <input
-                  value={age}
-                  onChange={(e) => setAge(e.target.value.replace(/\D/g, ""))}
-                  placeholder="גיל"
-                  className="rounded-lg bg-surface px-2 py-2 text-sm text-foreground outline-none"
-                />
-              </label>
-              <div className="flex items-end">
-                <button
-                  onClick={save}
-                  disabled={saving}
-                  className="flex items-center gap-2 rounded-lg bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-2))] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-                >
-                  <Save className="h-3.5 w-3.5" />
-                  {saving ? "שומר..." : "שמירה"}
-                </button>
-              </div>
-            </div>
-            <label className="mt-3 flex flex-col gap-1 text-xs text-muted">
-              סיכום שיחת מכירה / הערות
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-                placeholder="מה סוכם בשיחה, מה השלב הבא..."
-                className="rounded-lg bg-surface px-3 py-2 text-sm text-foreground outline-none"
-              />
-            </label>
-            {lead.pain && (
-              <p className="mt-3 text-xs text-muted">
-                <span className="font-semibold text-foreground">הקושי שדווח בצ&apos;אט: </span>
-                {lead.pain}
-              </p>
-            )}
+            <LeadEditor lead={lead} onSaved={onSaved} demo={demo} />
           </td>
         </tr>
+      )}
+    </>
+  );
+}
+
+/** Phones: one card per lead instead of a seven-column table. */
+function LeadCard({
+  lead,
+  expanded,
+  onToggle,
+  onSaved,
+  demo,
+}: {
+  lead: Lead;
+  expanded: boolean;
+  onToggle: () => void;
+  onSaved: (patch: Partial<Lead>) => void;
+  demo: boolean;
+}) {
+  const track = tracks.find((t) => t.slug === lead.track_slug);
+  return (
+    <div className="rounded-2xl border border-border-soft bg-surface">
+      <button onClick={onToggle} aria-expanded={expanded} className="flex w-full items-start gap-3 px-4 py-3 text-start">
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="font-semibold">{lead.name ?? "—"}</span>
+            <span className="rounded-full bg-surface-strong px-2 py-0.5 text-[11px]">{statusLabels[lead.status]}</span>
+          </span>
+          <span className="mt-0.5 block truncate text-sm text-muted">{lead.business_type ?? "—"}</span>
+          <span className="mt-0.5 block text-xs text-muted">
+            {track?.title ?? "ללא מסלול"} · {new Date(lead.created_at).toLocaleDateString("he-IL")}
+          </span>
+        </span>
+        <ChevronDown className={cn("mt-1 h-4 w-4 shrink-0 text-muted transition-transform", expanded && "rotate-180")} />
+      </button>
+      <div className="flex gap-2 px-4 pb-3">
+        {lead.phone && (
+          <a href={`tel:${lead.phone}`} className="rounded-lg bg-surface-strong px-3 py-1.5 text-xs text-primary-2" dir="ltr">
+            {lead.phone}
+          </a>
+        )}
+      </div>
+      {expanded && (
+        <div className="border-t border-border-soft px-4 py-4">
+          <LeadEditor lead={lead} onSaved={onSaved} demo={demo} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LeadEditor({ lead, onSaved, demo }: { lead: Lead; onSaved: (patch: Partial<Lead>) => void; demo: boolean }) {
+  const [status, setStatus] = useState<LeadStatus>(lead.status);
+  const [gender, setGender] = useState(lead.gender ?? "");
+  const [age, setAge] = useState(lead.age?.toString() ?? "");
+  const [notes, setNotes] = useState(lead.notes ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    const patch = {
+      status,
+      gender: gender || null,
+      age: age ? Number(age) : null,
+      notes: notes || null,
+    };
+    if (demo) {
+      onSaved(patch);
+      setSaving(false);
+      return;
+    }
+    const res = await fetch(`/api/admin/leads/${lead.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (res.ok) onSaved(patch);
+    setSaving(false);
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <label className="flex flex-col gap-1 text-xs text-muted">
+          סטטוס
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as LeadStatus)}
+            className="rounded-lg bg-surface px-2 py-2 text-sm text-foreground"
+          >
+            {Object.entries(statusLabels).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted">
+          מגדר
+          <input
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            placeholder="זכר / נקבה / אחר"
+            className="rounded-lg bg-surface px-2 py-2 text-sm text-foreground outline-none"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted">
+          גיל
+          <input
+            value={age}
+            onChange={(e) => setAge(e.target.value.replace(/\D/g, ""))}
+            placeholder="גיל"
+            className="rounded-lg bg-surface px-2 py-2 text-sm text-foreground outline-none"
+          />
+        </label>
+        <div className="flex items-end">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="flex items-center gap-2 rounded-lg bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-2))] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            <Save className="h-3.5 w-3.5" />
+            {saving ? "שומר..." : "שמירה"}
+          </button>
+        </div>
+      </div>
+      <label className="mt-3 flex flex-col gap-1 text-xs text-muted">
+        סיכום שיחת מכירה / הערות
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={3}
+          placeholder="מה סוכם בשיחה, מה השלב הבא..."
+          className="rounded-lg bg-surface px-3 py-2 text-sm text-foreground outline-none"
+        />
+      </label>
+      {lead.pain && (
+        <p className="mt-3 text-xs text-muted">
+          <span className="font-semibold text-foreground">הקושי שדווח בצ&apos;אט: </span>
+          {lead.pain}
+        </p>
       )}
     </>
   );

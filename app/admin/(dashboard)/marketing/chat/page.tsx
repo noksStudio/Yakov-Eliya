@@ -1,13 +1,19 @@
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/server";
 import { ConversationsList } from "@/components/admin/ConversationsList";
-import { SupabaseNotConfigured } from "@/components/admin/SupabaseNotConfigured";
+import { DemoBanner } from "@/components/admin/DemoBanner";
+import { DEMO_CONVERSATIONS } from "@/lib/admin-demo";
 import type { Conversation } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function MarketingChatPage() {
   if (!isSupabaseConfigured()) {
-    return <SupabaseNotConfigured />;
+    return (
+      <>
+        <DemoBanner />
+        <ConversationsList conversations={DEMO_CONVERSATIONS} />
+      </>
+    );
   }
 
   const supabase = getSupabaseAdmin();

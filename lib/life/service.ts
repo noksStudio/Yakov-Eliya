@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { buildDay } from "./day";
 import { bodyForDate, loadBodyPlan } from "./body";
-import { getLifeStore, isDemoStore, LifeStoreUnavailableError, type LifeStore } from "./store";
+import { getLifeStore, isDemoStore, type LifeStore } from "./store";
 
 export async function loadDay(store: LifeStore, date: string) {
   const [settings, events, tasks, checkin, plan] = await Promise.all([
@@ -22,9 +22,6 @@ export async function withStore(fn: (store: LifeStore) => Promise<unknown>) {
     if (result instanceof Response) return result;
     return NextResponse.json({ ...(result as object), demo: isDemoStore() });
   } catch (error) {
-    if (error instanceof LifeStoreUnavailableError) {
-      return NextResponse.json({ error: error.message }, { status: 503 });
-    }
     if (error instanceof ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message ?? "קלט לא תקין" }, { status: 400 });
     }

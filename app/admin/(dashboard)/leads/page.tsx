@@ -1,13 +1,19 @@
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/server";
 import { LeadsTable } from "@/components/admin/LeadsTable";
-import { SupabaseNotConfigured } from "@/components/admin/SupabaseNotConfigured";
+import { DemoBanner } from "@/components/admin/DemoBanner";
+import { DEMO_LEADS } from "@/lib/admin-demo";
 import type { Lead } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminLeadsPage() {
   if (!isSupabaseConfigured()) {
-    return <SupabaseNotConfigured />;
+    return (
+      <>
+        <DemoBanner />
+        <LeadsTable leads={DEMO_LEADS} demo />
+      </>
+    );
   }
 
   const supabase = getSupabaseAdmin();
