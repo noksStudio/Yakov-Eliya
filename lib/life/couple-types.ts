@@ -46,8 +46,18 @@ export const newSpecialDateSchema = z.object({
   date: dateSchema,
   /** Every year on the same day (a birthday), or once. */
   yearly: z.boolean().default(true),
+  /** A birthday: the label shows the age. */
+  age: z.boolean().default(false),
+  /** A big celebration (a party, a chalakah): reminders start three months ahead. */
+  big: z.boolean().default(false),
 });
-export type SpecialDate = { id: string; title: string; date: string; yearly: boolean };
+export type SpecialDate = { id: string; title: string; date: string; yearly: boolean; age?: boolean; big?: boolean };
+
+/** Family dates known from the start (told in chat); used until the list is first edited. */
+export const DEFAULT_DATES: SpecialDate[] = [
+  { id: "ilan-birthday", title: "יום ההולדת של אילן", date: "2024-05-25", yearly: true, age: true, big: true },
+  { id: "my-birthday", title: "יום ההולדת שלי", date: "1997-03-10", yearly: true, age: true, big: true },
+];
 
 export type CoupleDoc = { profile: CoupleProfile; gifts: Gift[]; dates: SpecialDate[] };
 
@@ -72,7 +82,16 @@ export type Occasion = {
   daysLeft: number;
   /** Years since the original date (her age, years married), when the year is known. */
   years: number | null;
+  /** Show the age in the label (birthdays). */
+  age: boolean;
+  /** Big celebration: reminders start earlier. */
+  big: boolean;
 };
+
+/** Days before an occasion when the morning summary mentions it. */
+export function reminderDays(o: Occasion) {
+  return o.big ? [90, 60, 45, 30, 21, 14, 7, 3, 1, 0] : [14, 7, 3, 1, 0];
+}
 
 function daysBetween(from: string, to: string) {
   return Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000);
@@ -98,21 +117,22 @@ export function nextYearly(original: string, from: string) {
 export function upcomingOccasions(doc: CoupleDoc, from: string, horizon = 366): Occasion[] {
   const name = doc.profile.partner_name ?? "אשתי";
   const list: Occasion[] = [];
-  const push = (key: string, kind: Occasion["kind"], title: string, original: string, yearly: boolean) => {
+  const push = (key: string, kind: Occasion["kind"], title: string, original: string, yearly: boolean, extra = { age: false, big: false }) => {
     const date = yearly ? nextYearly(original, from) : original;
     const daysLeft = daysBetween(from, date);
     if (daysLeft < 0 || daysLeft > horizon) return;
     const years = yearly ? Number(date.slice(0, 4)) - Number(original.slice(0, 4)) : null;
-    list.push({ key, kind, title, date, daysLeft, years: years && years > 0 ? years : null });
+    list.push({ key, kind, title, date, daysLeft, years: years && years > 0 ? years : null, ...extra });
   };
-  if (doc.profile.birthday) push("birthday", "birthday", `יום ההולדת של ${name}`, doc.profile.birthday, true);
+  if (doc.profile.birthday) push("birthday", "birthday", `יום ההולדת של ${name}`, doc.profile.birthday, true, { age: true, big: false });
   if (doc.profile.anniversary) push("anniversary", "anniversary", "יום הנישואין", doc.profile.anniversary, true);
-  for (const d of doc.dates) push(`date-${d.id}`, "custom", d.title, d.date, d.yearly);
+  for (const d of doc.dates) push(`date-${d.id}`, "custom", d.title, d.date, d.yearly, { age: Boolean(d.age), big: Boolean(d.big) });
   return list.sort((a, b) => a.daysLeft - b.daysLeft);
 }
 
 /** Label with the round number when known: "יום ההולדת של נועה (30)", "יום הנישואין (5 שנים)". */
 export function occasionLabel(o: Occasion) {
   if (!o.years) return o.title;
-  return o.kind === "anniversary" ? `${o.title} (${o.years === 1 ? "שנה" : `${o.years} שנים`})` : o.kind === "birthday" ? `${o.title} (${o.years})` : o.title;
+  if (o.kind === "anniversary") return `${o.title} (${o.years === 1 ? "שנה" : `${o.years} שנים`})`;
+  return o.age ? `${o.title} (${o.years})` : o.title;
 }

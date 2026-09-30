@@ -125,8 +125,12 @@ export function AgentChat({ agent }: { agent: AgentId }) {
   }, [agent]);
 
   // A shortcut from "היום שלי" (?preset=morning|evening) sends its request once, after loading.
+  // ?plan=<occasion> asks to plan a specific upcoming event (from the family dates).
   useEffect(() => {
-    const preset = ui.presets[params.get("preset") ?? ""];
+    const plan = params.get("plan");
+    const preset =
+      ui.presets[params.get("preset") ?? ""] ??
+      (plan ? `בוא נתכנן את ${plan.slice(0, 80)}. תשאל אותי מה צריך, ואחרי שאענה תכין אירוע ומשימות הכנה בזמן.` : undefined);
     if (!loaded || !preset || presetSent.current || !connected) return;
     presetSent.current = true;
     window.history.replaceState(null, "", window.location.pathname);

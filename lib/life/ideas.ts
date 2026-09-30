@@ -47,28 +47,9 @@ function supabaseIdeas(): IdeasStore {
 
 const globalForIdeas = globalThis as unknown as { __lifeIdeas?: Idea[] };
 
-function seedIdeas(): Idea[] {
-  const now = new Date().toISOString();
-  return [
-    {
-      id: crypto.randomUUID(),
-      created_at: now,
-      updated_at: now,
-      title: "מערכת הזמנות בוואטסאפ ליבואנים",
-      area: "business",
-      status: "exploring",
-      notes: "לקוח שולח הזמנה בוואטסאפ, המערכת מזהה מוצרים וכמויות ופותחת הזמנה.\nלבדוק: WhatsApp Cloud API, חיבור לחשבשבת או פריוריטי.",
-      steps: [
-        { id: crypto.randomUUID(), text: "לבדוק מחירים של WhatsApp Cloud API", done: true },
-        { id: crypto.randomUUID(), text: "לשאול את דיבי פלאסט איך הם מקבלים הזמנות היום", done: false },
-        { id: crypto.randomUUID(), text: "דמו של 2 דקות לפגישת מכירה", done: false },
-      ],
-    },
-  ];
-}
-
 function memoryIdeas(): IdeasStore {
-  const ideas = (globalForIdeas.__lifeIdeas ??= seedIdeas());
+  // Starts empty; real starting content comes from seeds.ts, same as with Supabase.
+  const ideas = (globalForIdeas.__lifeIdeas ??= []);
   const find = (id: string) => ideas.find((i) => i.id === id);
   return {
     async list() {

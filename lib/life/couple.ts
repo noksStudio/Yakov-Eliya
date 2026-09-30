@@ -1,5 +1,6 @@
 import type { LifeStore } from "./store";
 import {
+  DEFAULT_DATES,
   EMPTY_PROFILE,
   coupleProfileSchema,
   giftPatchSchema,
@@ -22,7 +23,7 @@ export async function loadCouple(store: LifeStore): Promise<CoupleDoc> {
   return {
     profile: { ...EMPTY_PROFILE, ...(doc?.profile ?? {}) },
     gifts: doc?.gifts ?? [],
-    dates: doc?.dates ?? [],
+    dates: doc?.dates ?? DEFAULT_DATES,
   };
 }
 

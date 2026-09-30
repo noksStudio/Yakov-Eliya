@@ -128,8 +128,14 @@ function Upcoming({ upcoming }: { upcoming: Occasion[] }) {
               <span className="block truncate text-sm font-semibold">{occasionLabel(o)}</span>
               <span className="text-xs text-muted">{o.daysLeft === 0 ? "היום!" : o.daysLeft === 1 ? "מחר" : gregorianLabel(o.date)}</span>
             </span>
-            {o.daysLeft <= 30 && o.kind !== "custom" && (
+            {o.kind !== "custom" && o.daysLeft <= 30 && (
               <Link href="/life/agent/couple?preset=birthday" className="shrink-0 rounded-lg bg-white/5 px-2.5 py-1.5 text-xs text-rose-200">
+                לתכנן
+              </Link>
+            )}
+            {o.kind === "custom" && o.big && (
+              // Big family events go to the chief manager, who owns events and prep tasks.
+              <Link href={`/life/chat?plan=${encodeURIComponent(occasionLabel(o))}`} className="shrink-0 rounded-lg bg-white/5 px-2.5 py-1.5 text-xs text-rose-200">
                 לתכנן
               </Link>
             )}
@@ -360,17 +366,22 @@ function SpecialDates({ dates, onAct }: { dates: SpecialDate[]; onAct: (fn: () =
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [yearly, setYearly] = useState(true);
+  const [age, setAge] = useState(false);
+  const [big, setBig] = useState(false);
   return (
     <details className="rounded-2xl border border-border-soft bg-surface p-4">
       <summary className="flex cursor-pointer items-center gap-2 text-[15px] font-bold">
-        <CalendarHeart className="h-4 w-4 text-rose-400" /> תאריכים נוספים{dates.length ? ` (${dates.length})` : ""}
+        <CalendarHeart className="h-4 w-4 text-rose-400" /> תאריכים במשפחה{dates.length ? ` (${dates.length})` : ""}
       </summary>
-      <p className="mt-1 text-xs text-muted">ימי הולדת של ההורים שלה, הפגישה הראשונה, כל מה שכדאי לזכור.</p>
+      <p className="mt-1 text-xs text-muted">ימי הולדת של הילדים, שלך ושל ההורים, וכל מה שכדאי לזכור. אירוע גדול מקבל תזכורות כבר שלושה חודשים לפני.</p>
       {dates.length > 0 && (
         <ul className="mt-2 grid grid-cols-1 gap-1">
           {dates.map((d) => (
             <li key={d.id} className="flex items-center gap-2 text-sm">
-              <span className="min-w-0 flex-1 truncate">{d.title}</span>
+              <span className="min-w-0 flex-1 truncate">
+                {d.title}
+                {d.big && <span className="ms-1.5 rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] text-rose-200">אירוע גדול</span>}
+              </span>
               <span className="shrink-0 text-xs text-muted">
                 <bdi dir="ltr">{d.date.split("-").reverse().join(".")}</bdi>
                 {d.yearly && " · כל שנה"}
@@ -392,23 +403,35 @@ function SpecialDates({ dates, onAct }: { dates: SpecialDate[]; onAct: (fn: () =
           e.preventDefault();
           if (!title.trim() || !date) return;
           onAct(async () => {
-            await lifeApi("/couple/dates", { method: "POST", body: { title, date, yearly } });
+            await lifeApi("/couple/dates", { method: "POST", body: { title, date, yearly, age, big } });
             setTitle("");
             setDate("");
+            setAge(false);
+            setBig(false);
           });
         }}
         className="mt-3 grid gap-2 border-t border-border-soft pt-3"
       >
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="מה? למשל: יום ההולדת של אמא שלה" aria-label="שם התאריך" className={field} />
-        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="מה? למשל: יום ההולדת של אמא" aria-label="שם התאריך" className={field} />
+        <div className="grid grid-cols-[1fr_auto] items-center gap-2">
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="תאריך" className={`font-latin ${field}`} />
-          <label className="flex items-center gap-1.5 text-xs text-muted">
-            <input type="checkbox" checked={yearly} onChange={(e) => setYearly(e.target.checked)} className="h-4 w-4 accent-rose-500" />
-            כל שנה
-          </label>
           <button type="submit" aria-label="הוספת תאריך" className="flex w-10 items-center justify-center rounded-xl bg-white/10 py-2">
             <Plus className="h-4 w-4" />
           </button>
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted">
+          {(
+            [
+              ["כל שנה", yearly, setYearly],
+              ["יום הולדת (להציג גיל)", age, setAge],
+              ["אירוע גדול", big, setBig],
+            ] as const
+          ).map(([label, value, setter]) => (
+            <label key={label} className="flex items-center gap-1.5">
+              <input type="checkbox" checked={value} onChange={(e) => setter(e.target.checked)} className="h-4 w-4 accent-rose-500" />
+              {label}
+            </label>
+          ))}
         </div>
       </form>
     </details>
