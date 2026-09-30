@@ -16,7 +16,7 @@ export function CalendarSubscribe() {
   const [rotating, setRotating] = useState(false);
 
   useEffect(() => {
-    lifeApi<{ calendar: Calendar }>("/calendar")
+    lifeApi<{ calendar: Calendar }>("/calendar-feed")
       .then((d) => setCalendar(d.calendar))
       .catch((e) => setError((e as Error).message));
   }, []);
@@ -50,7 +50,7 @@ export function CalendarSubscribe() {
     if (!window.confirm("לאפס את הקישור? היומן שכבר מחובר יפסיק להתעדכן, וצריך יהיה לחבר מחדש.")) return;
     setRotating(true);
     try {
-      setCalendar((await lifeApi<{ calendar: Calendar }>("/calendar", { method: "POST", body: { action: "rotate" } })).calendar);
+      setCalendar((await lifeApi<{ calendar: Calendar }>("/calendar-feed", { method: "POST", body: { action: "rotate" } })).calendar);
     } catch (e) {
       setError((e as Error).message);
     } finally {
