@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Crown, Dumbbell, Loader2, Send } from "lucide-react";
+import { Briefcase, Crown, Dumbbell, Loader2, Send, Wallet } from "lucide-react";
 import type { AgentId, ChatMessage } from "@/lib/life/types";
 import { lifeApi } from "./api";
 
@@ -30,6 +30,22 @@ const AGENT_UI: Record<
     },
     suggestions: ["שקלתי היום, תרשום לי.", "תחליף לי ארוחה שאני לא אוהב.", "אין לי ציוד בבית, תתאים את האימונים."],
     empty: "ספר לי איך אתה מרגיש, מה אכלת או מה לשנות בתוכנית.",
+  },
+  business: {
+    name: "מנהל העסק",
+    subtitle: "עסקאות, פולואפים ופעילות מכירה",
+    icon: Briefcase,
+    presets: {},
+    suggestions: ["מה הפולואפים של היום?", "סיכום שבועי של המכירות.", "דיברתי עם ליד חדש, תרשום."],
+    empty: "ספר לי על שיחה, ליד או פגישה, או שאל מה הצעד הבא.",
+  },
+  finance: {
+    name: "מנהל הכספים",
+    subtitle: "רווח, הוצאות ויעד חודשי",
+    icon: Wallet,
+    presets: {},
+    suggestions: ["איך אני עומד מול היעד החודשי?", "נכנסה הכנסה, תרשום.", "כמה הוצאתי על שיווק החודש?"],
+    empty: "ספר לי על הכנסה או הוצאה, או שאל איך אתה עומד מול היעד.",
   },
 };
 

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
   Brain,
   Briefcase,
   CalendarDays,
@@ -44,15 +45,18 @@ const DRAWER: { title: string; items: DrawerItem[] }[] = [
     title: "הצוות",
     items: [
       { href: "/life/coach", label: "מאמן הגוף", hint: "כושר, תזונה ושינה", icon: MessageCircle },
-      { label: "מנהל העסק", hint: "בקרוב", icon: Briefcase },
+      { href: "/life/agent/business", label: "מנהל העסק", hint: "עסקאות ופעילות מכירה", icon: Briefcase },
+      { href: "/life/agent/finance", label: "מנהל הכספים", hint: "רווח ויעד חודשי", icon: Wallet },
       { label: "המלווה הרוחני", hint: "בקרוב", icon: MoonStar },
       { label: "המאמן המנטלי", hint: "בקרוב", icon: Brain },
-      { label: "מנהל הכספים", hint: "בקרוב", icon: Wallet },
     ],
   },
   {
     title: "כלים",
     items: [
+      { href: "/life/metrics", label: "מדדים", hint: "כל היעדים במקום אחד", icon: BarChart3 },
+      { href: "/life/business", label: "עסק", hint: "עסקאות, פולואפים ופעילות", icon: Briefcase },
+      { href: "/life/finance", label: "כספים", hint: "רווח מול יעד", icon: Wallet },
       { href: "/life/body", label: "גוף", hint: "תפריט, אימונים ומשקל", icon: Dumbbell },
       { href: "/life/shopping", label: "רשימת קניות", icon: ShoppingCart },
     ],

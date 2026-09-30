@@ -86,6 +86,39 @@ create table if not exists life_shopping (
   checked boolean not null default false
 );
 
+-- Finance ledger (the finance manager) and sales pipeline + daily outreach (the business manager).
+create table if not exists life_finance (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  date date not null,
+  kind text not null check (kind in ('income', 'expense')),
+  amount numeric not null check (amount > 0),
+  category text not null,
+  scope text not null default 'business' check (scope in ('business', 'personal')),
+  note text
+);
+
+create table if not exists life_deals (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  name text not null,
+  contact text,
+  stage text not null default 'lead',
+  value numeric,
+  next_action text,
+  next_date date,
+  notes text
+);
+
+create table if not exists life_activity (
+  date date primary key,
+  connections int not null default 0,
+  followups int not null default 0,
+  calls int not null default 0,
+  meetings int not null default 0
+);
+
 -- Safe to re-run on a database created from an earlier version of this file.
 alter table life_checkins add column if not exists workout boolean not null default false;
 alter table life_messages add column if not exists agent text not null default 'chief';
@@ -93,6 +126,8 @@ alter table life_messages add column if not exists agent text not null default '
 create index if not exists life_tasks_open_idx on life_tasks (done, due_date);
 create index if not exists life_events_date_idx on life_events (date, start_time);
 create index if not exists life_messages_created_idx on life_messages (agent, created_at desc);
+create index if not exists life_finance_date_idx on life_finance (date);
+create index if not exists life_deals_stage_idx on life_deals (stage, next_date);
 
 alter table life_settings enable row level security;
 alter table life_tasks enable row level security;
@@ -101,3 +136,6 @@ alter table life_checkins enable row level security;
 alter table life_messages enable row level security;
 alter table life_docs enable row level security;
 alter table life_shopping enable row level security;
+alter table life_finance enable row level security;
+alter table life_deals enable row level security;
+alter table life_activity enable row level security;

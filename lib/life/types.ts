@@ -85,7 +85,7 @@ export type Checkin = {
   updated_at: string;
 };
 
-export const AGENTS = ["chief", "body"] as const;
+export const AGENTS = ["chief", "body", "business", "finance"] as const;
 export type AgentId = (typeof AGENTS)[number];
 
 export type ChatMessage = {

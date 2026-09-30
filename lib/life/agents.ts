@@ -2,6 +2,20 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { BetaToolRunnerParams } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { learningForDate, loadLearningGoal } from "./learning";
+import { loadMemory } from "./memory";
+import { getOpsStore } from "./ops-store";
+import { businessSummary } from "./business";
+import { financeSummary, loadFinanceGoal } from "./finance";
+import {
+  ACTIVITY_LABELS,
+  ACTIVITY_TARGETS,
+  DEAL_STAGE_LABELS,
+  activityPatchSchema,
+  dealPatchSchema,
+  financeEntrySchema,
+  financeGoalSchema,
+  newDealSchema,
+} from "./ops-types";
 import { z } from "zod";
 import type { LifeStore } from "./store";
 import { loadDay } from "./service";
@@ -49,8 +63,11 @@ ${SHARED}
 יעד: עסקאות של 30 אלף ₪ ומעלה. שגרת מכירות יומית בבלוק העבודה העמוקה: 20 בקשות חיבור בלינקדאין, 10 הודעות המשך, 10 שיחות או הודעות וואטסאפ.
 
 ## הצוות
-מאמן הגוף כבר פעיל (תזונה, אימונים, שינה, רשימת קניות) ויש לו מסך משלו. get_day מחזיר גם את התפריט והפעילות של היום. בשאלות עומק על תזונה ואימונים, הפנה אותו למאמן הגוף.
-בהמשך יצטרפו: מנהל העסק, מלווה רוחני, מאמן מנטלי ומנהל כספים. עד אז אתה מכסה את התחומים האלה ברמה בסיסית.
+פעילים, כל אחד עם מסך משלו: מאמן הגוף (תזונה, אימונים, שינה, קניות), מנהל העסק (עסקאות ופעילות מכירה יומית) ומנהל הכספים (רווח ויעד חודשי). get_day מחזיר גם את התפריט והפעילות של היום. בשאלות עומק, הפנה אותו לסוכן המתאים.
+בהמשך יצטרפו: מלווה רוחני ומאמן מנטלי. עד אז אתה מכסה את התחומים האלה ברמה בסיסית.
+
+## שאלות פתוחות
+בתחילת כל הודעה מופיעות "שאלות פתוחות" שעוד לא נענו. כשזה מתאים (לא באמצע משימה דחופה), שאל אחת מהן. כשיעקב עונה, שמור את התשובה עם remember ואז סגור את השאלה עם resolve_question.
 
 ## תכנית בוקר
 1. קרא את היום עם get_day. שים לב לצ׳ק־אין: שעות שינה, אנרגיה ומצב רוח.
@@ -64,6 +81,38 @@ ${SHARED}
 2. העבר משימות פתוחות למחר (update_task עם due_date של מחר), או שאל אם לוותר עליהן.
 3. קבע את 3 המשימות של מחר.
 4. תובנה אחת קצרה מהיום, בלי ביקורת עצמית.`;
+
+const BUSINESS_PROMPT = `אתה "מנהל העסק" במערכת ההפעלה האישית של יעקב-אליה.
+המטרה: להגדיל את ההכנסה החודשית מכ־8,000 ₪ ל־25,000 ₪, דרך עסקאות של 20–60 אלף ₪ ליבואנים, מפיצים ועסקי לוגיסטיקה.
+
+${SHARED}
+
+## ההצעה
+מערכת מותאמת (הזמנות בוואטסאפ, מעקב לקוחות, הצעות מחיר), מחוברת למה שכבר יש ללקוח. מבנה עסקה: אבחון בתשלום, פיילוט או הטמעה, וליווי חודשי. בהצעת מחיר: 3 אפשרויות, המומלצת באמצע, תשלום לפי אבני דרך.
+
+## שגרת מכירות יומית
+20 בקשות חיבור בלינקדאין, 10 הודעות המשך, 10 שיחות או הודעות וואטסאפ. את המונים מעדכנים עם log_activity.
+
+## איך אתה עובד
+- get_business: העסקאות לפי שלב, שווי הצינור, פולואפים שהגיע זמנם, והפעילות של היום.
+- כל עסקה חייבת צעד הבא ותאריך. אם חסר, שאל ועדכן עם update_deal.
+- כשיעקב מספר על שיחה או פגישה: עדכן את השלב, את הצעד הבא ואת ההערות.
+- בסוף שבוע: כמה פעילות, כמה שיחות הפכו לפגישות, ומה השלב הבא עם כל עסקה.
+- שלבים: ${Object.entries(DEAL_STAGE_LABELS)
+  .map(([k, v]) => `${k}=${v}`)
+  .join(", ")}.`;
+
+const FINANCE_PROMPT = `אתה "מנהל הכספים" במערכת ההפעלה האישית של יעקב-אליה.
+המטרה: רווח עסקי של 25,000 ₪ בחודש (נקודת פתיחה: כ־8,000 ₪). המוצרים דיגיטליים, והרווחיות מעל 95% לפני תקציב שיווק.
+
+${SHARED}
+
+## איך אתה עובד
+- get_finance: רווח מתחילת החודש, הכנסות, הוצאות, הוצאות שיווק, כמה צריך ביום כדי להגיע ליעד, וצפי לסוף החודש.
+- כשיעקב מדווח על הכנסה או הוצאה, רשום עם add_entry (סכום בשקלים, קטגוריה, עסקי או פרטי). אם חסר פרט, שאל.
+- רווח = הכנסות עסקיות פחות הוצאות עסקיות. שיווק נספר כהוצאה, ומוצג גם בנפרד.
+- כשמשהו חריג (הוצאה גדולה, יום בלי הכנסה אחרי כמה ימים טובים), ציין בעדינות.
+- אל תיתן ייעוץ השקעות או מס מחייב. לשאלות מס, המלץ על רואה חשבון.`;
 
 const BODY_PROMPT = `אתה "מאמן הגוף" במערכת ההפעלה האישית של יעקב-אליה: כושר, תזונה, שינה והרגלים.
 המטרה: ירידה הדרגתית ובריאה במשקל, יותר כוח ואנרגיה, ושגרה שמחזיקה לאורך זמן.
@@ -96,10 +145,16 @@ get_body מחזיר סיכום: הפרופיל (גובה, משקל התחלתי,
 
 // ---------------------------------------------------------------------------------------------
 
-function contextLine() {
+async function contextLine(store: LifeStore, agent: AgentId) {
   const date = israelToday();
   const rest = restDayOf(date);
-  return `[עכשיו: ${weekdayName(date)}, ${gregorianLabel(date)} (${date}), ${hebrewDateLabel(date)}, השעה ${israelNow()}. מחר: ${addDays(date, 1)}${rest ? `. היום ${rest.name}` : ""}]`;
+  const memory = await loadMemory(store);
+  const facts = memory.facts.length ? `\nמה ידוע עליו: ${memory.facts.join(" | ")}` : "";
+  const questions =
+    agent === "chief" && memory.open_questions.length
+      ? `\nשאלות פתוחות: ${memory.open_questions.map((q, i) => `(${i}) ${q}`).join(" ")}`
+      : "";
+  return `[עכשיו: ${weekdayName(date)}, ${gregorianLabel(date)} (${date}), ${hebrewDateLabel(date)}, השעה ${israelNow()}. מחר: ${addDays(date, 1)}${rest ? `. היום ${rest.name}` : ""}${facts}${questions}]`;
 }
 
 /** JSON without null/undefined fields, so tool results cost fewer tokens. */
@@ -187,6 +242,103 @@ function learningTools(store: LifeStore) {
         const today = learningForDate(next, israelToday());
         return json({ done: today.done, total: today.total, next: today.next, neededPerWeek: today.neededPerWeek });
       },
+    }),
+  ];
+}
+
+function memoryTools(store: LifeStore) {
+  return [
+    betaZodTool({
+      name: "remember",
+      description: "שומר עובדה קבועה על יעקב שכל הסוכנים יראו (למשל: מתפלל מנחה ב־13:30, שיעור ביום שני ב־20:00).",
+      inputSchema: z.object({ fact: z.string().min(3).max(300) }),
+      run: async ({ fact }) => {
+        const memory = await loadMemory(store);
+        await store.saveDoc("memory", { ...memory, facts: [...memory.facts, fact].slice(-200) });
+        return "נשמר";
+      },
+    }),
+    betaZodTool({
+      name: "resolve_question",
+      description: "מסיר שאלה פתוחה שנענתה, לפי המספר שלה ברשימה.",
+      inputSchema: z.object({ index: z.number().int().min(0).max(49) }),
+      run: async ({ index }) => {
+        const memory = await loadMemory(store);
+        if (!memory.open_questions[index]) return "שגיאה: אין שאלה כזו";
+        await store.saveDoc("memory", { ...memory, open_questions: memory.open_questions.filter((_, i) => i !== index) });
+        return "השאלה סומנה כנענתה";
+      },
+    }),
+  ];
+}
+
+function businessTools() {
+  const ops = getOpsStore();
+  return [
+    betaZodTool({
+      name: "get_business",
+      description: "העסקאות (עם id, שלב, שווי, צעד הבא ותאריך), שווי הצינור הפתוח, פולואפים שהגיע זמנם ופעילות המכירה של היום מול היעד.",
+      inputSchema: z.object({}),
+      run: async () => {
+        const b = await businessSummary(ops);
+        return json({
+          deals: b.deals.map(({ id, name, stage, value, next_action, next_date, contact }) => ({ id, name, stage, value, next_action, next_date, contact })),
+          openValue: b.openValue,
+          due: b.due.map((d) => d.name),
+          activity: b.activity,
+          targets: ACTIVITY_TARGETS,
+        });
+      },
+    }),
+    betaZodTool({
+      name: "add_deal",
+      description: "מוסיף עסקה או ליד חדש.",
+      inputSchema: newDealSchema,
+      run: async (input) => json(await ops.addDeal(input)),
+    }),
+    betaZodTool({
+      name: "update_deal",
+      description: "מעדכן עסקה לפי id: שלב, שווי, צעד הבא, תאריך, הערות.",
+      inputSchema: dealPatchSchema.extend({ id: z.string() }),
+      run: async ({ id, ...patch }) => {
+        const deal = await ops.updateDeal(id, patch);
+        return deal ? json(deal) : "שגיאה: עסקה לא נמצאה";
+      },
+    }),
+    betaZodTool({
+      name: "log_activity",
+      description: `מוסיף לפעילות המכירה של היום: ${Object.entries(ACTIVITY_LABELS)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(", ")}. מספר שלילי מתקן.`,
+      inputSchema: activityPatchSchema,
+      run: async (deltas) => json(await ops.bumpActivity(israelToday(), deltas)),
+    }),
+  ];
+}
+
+function financeTools(store: LifeStore) {
+  const ops = getOpsStore();
+  return [
+    betaZodTool({
+      name: "get_finance",
+      description: "סיכום החודש: רווח, הכנסות, הוצאות, שיווק, רווח היום, כמה צריך ביום ליעד, צפי, ו־10 התנועות האחרונות.",
+      inputSchema: z.object({}),
+      run: async () => {
+        const f = await financeSummary(store, ops);
+        return json({ ...f, cumulative: undefined, entries: f.entries.slice(0, 10) });
+      },
+    }),
+    betaZodTool({
+      name: "add_entry",
+      description: "רושם הכנסה או הוצאה. kind: income/expense. scope: business (ברירת מחדל) או personal. קטגוריות הכנסה: מכירה, ריטיינר, אחר. הוצאה: שיווק, תוכנות וכלים, קבלני משנה, אחר.",
+      inputSchema: financeEntrySchema,
+      run: async (input) => json(await ops.addFinance(input)),
+    }),
+    betaZodTool({
+      name: "set_finance_goal",
+      description: "מעדכן את יעד הרווח החודשי.",
+      inputSchema: financeGoalSchema.partial(),
+      run: async (patch) => json(await store.saveDoc("finance_goal", financeGoalSchema.parse({ ...(await loadFinanceGoal(store)), ...patch }))),
     }),
   ];
 }
@@ -298,8 +450,13 @@ function bodyTools(store: LifeStore) {
 }
 
 const AGENT_CONFIG: Record<AgentId, { system: string; tools: (store: LifeStore) => BetaToolRunnerParams["tools"] }> = {
-  chief: { system: CHIEF_PROMPT, tools: (s) => [...dayTools(s), ...checkinTools(s), ...shoppingTools(s), ...learningTools(s)] },
-  body: { system: BODY_PROMPT, tools: (s) => [...bodyTools(s), ...checkinTools(s), ...shoppingTools(s), ...dayTools(s).slice(0, 1)] },
+  chief: {
+    system: CHIEF_PROMPT,
+    tools: (s) => [...dayTools(s), ...checkinTools(s), ...shoppingTools(s), ...learningTools(s), ...memoryTools(s)],
+  },
+  body: { system: BODY_PROMPT, tools: (s) => [...bodyTools(s), ...checkinTools(s), ...shoppingTools(s), ...dayTools(s).slice(0, 1), ...memoryTools(s).slice(0, 1)] },
+  business: { system: BUSINESS_PROMPT, tools: (s) => [...businessTools(), ...dayTools(s).slice(1, 3), ...memoryTools(s).slice(0, 1)] },
+  finance: { system: FINANCE_PROMPT, tools: (s) => [...financeTools(s), ...memoryTools(s).slice(0, 1)] },
 };
 
 export class AgentNotConfiguredError extends Error {}
@@ -308,12 +465,12 @@ export function isAgentConnected() {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
-function toParams(history: ChatMessage[], userText: string): Anthropic.Beta.BetaMessageParam[] {
+function toParams(history: ChatMessage[], context: string, userText: string): Anthropic.Beta.BetaMessageParam[] {
   const firstUser = history.findIndex((m) => m.role === "user");
   const past = firstUser === -1 ? [] : history.slice(firstUser);
   return [
     ...past.map((m) => ({ role: m.role, content: m.content })),
-    { role: "user", content: `${contextLine()}\n${userText}` },
+    { role: "user", content: `${context}\n${userText}` },
   ];
 }
 
@@ -335,7 +492,7 @@ export async function askAgent(store: LifeStore, agent: AgentId, userText: strin
     output_config: { effort: deep ? "medium" : "low" },
     system: [{ type: "text", text: config.system, cache_control: { type: "ephemeral" } }],
     tools: config.tools(store),
-    messages: toParams(history, userText),
+    messages: toParams(history, await contextLine(store, agent), userText),
     max_iterations: MAX_ITERATIONS,
   });
 

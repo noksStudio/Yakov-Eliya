@@ -7,6 +7,8 @@ import type { Area, Checkin, DayView, Task, TimelineItem } from "@/lib/life/type
 import { AREA_LABELS, AREAS } from "@/lib/life/types";
 import { israelNow, toMinutes } from "@/lib/life/time";
 import { lifeApi } from "./api";
+import type { Metric } from "@/lib/life/metrics";
+import { MetricCard } from "./MetricsView";
 import { AREA_STYLE } from "./areas";
 import { Bidi } from "./Bidi";
 
@@ -18,6 +20,7 @@ export function TodayView() {
   const [demo, setDemo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState<string | null>(null);
+  const [metrics, setMetrics] = useState<Metric[] | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -25,6 +28,9 @@ export function TodayView() {
       setDay(data.day);
       setDemo(data.demo);
       setError(null);
+      lifeApi<{ metrics: Metric[] }>("/metrics")
+        .then((m) => setMetrics(m.metrics))
+        .catch(() => setMetrics(null));
     } catch (e) {
       setError((e as Error).message);
     }
@@ -80,6 +86,7 @@ export function TodayView() {
 
       <NextUp timeline={day.timeline} now={now} />
       <ChiefShortcuts />
+      {metrics && <TodayMetrics metrics={metrics} />}
       <BodyToday day={day} now={now} onSave={saveCheckin} />
       <Learning day={day} onChange={reload} onError={setError} />
       <MorningCheckin checkin={day.checkin} onSave={saveCheckin} />
@@ -318,6 +325,24 @@ function Learning({ day, onChange, onError }: { day: DayView; onChange: () => vo
         </>
       )}
     </Card>
+  );
+}
+
+/** Money and sales at a glance, plus what still needs an update today. */
+function TodayMetrics({ metrics }: { metrics: Metric[] }) {
+  const due = metrics.filter((m) => m.status === "due");
+  const headline = metrics.filter((m) => m.key === "profit" || m.key === "sales");
+  return (
+    <div className="flex flex-col gap-2">
+      {headline.map((m) => (
+        <MetricCard key={m.key} metric={m} />
+      ))}
+      {due.length > 0 && (
+        <Link href="/life/metrics" className="rounded-xl border border-sky-400/25 bg-sky-400/10 px-3 py-2 text-xs text-sky-100">
+          לעדכון היום: {due.map((m) => m.label).join(" · ")}
+        </Link>
+      )}
+    </div>
   );
 }
 
