@@ -23,6 +23,8 @@ import { z } from "zod";
 import type { LifeStore } from "./store";
 import { loadDay } from "./service";
 import { anchorConflict } from "./day";
+import { calendarRange, weekStart } from "./calendar";
+import { RecurringConflictError, WEEKDAY_LABELS, addRecurring, loadRecurring, newRecurringSchema, removeRecurring } from "./recurring";
 import { bmi, bodyForDate, loadBodyPlan, weightSeries } from "./body";
 import { bodyProfileSchema, mealPlanSchema, shoppingSeedSchema, workoutPlanSchema } from "./body-types";
 import { checkinPatchSchema, dateSchema, newEventSchema, newTaskSchema, taskPatchSchema } from "./schemas";
@@ -70,6 +72,9 @@ ${SHARED}
 
 ## שאלות פתוחות
 בתחילת כל הודעה מופיעות "שאלות פתוחות" שעוד לא נענו. כשזה מתאים (לא באמצע משימה דחופה), שאל אחת מהן. כשיעקב עונה, שמור את התשובה עם remember ואז סגור את השאלה עם resolve_question.
+
+## לו״ז שבועי
+get_week מראה את השבוע. כשיעקב מספר על משהו שחוזר כל שבוע (שיעור, חוג, פגישה קבועה), שמור אותו עם add_recurring ולא כאירוע חד־פעמי. בתכנון שבוע, פזר את המשימות הגדולות על פני הימים ושמור על ימים עם אימון קלים יותר.
 
 ## תכנית בוקר
 1. קרא את היום עם get_day. שים לב לצ׳ק־אין: שעות שינה, אנרגיה ומצב רוח.
@@ -253,6 +258,44 @@ function dayTools(store: LifeStore) {
       description: "מוחק בלוק זמן מהלו״ז לפי id.",
       inputSchema: z.object({ id: z.string() }),
       run: async ({ id }) => ((await store.deleteEvent(id)) ? "נמחק" : "שגיאה: אירוע לא נמצא"),
+    }),
+    betaZodTool({
+      name: "get_week",
+      description:
+        "קורא שבוע (ראשון עד שבת) בלי העוגנים הקבועים: אירועים, התחייבויות קבועות, אימונים, לימוד, משימות עם תאריך ופולואפים, וגם רשימת ההתחייבויות הקבועות. ברירת מחדל: השבוע הנוכחי.",
+      inputSchema: z.object({ date: dateSchema.optional().describe("יום כלשהו בשבוע המבוקש") }),
+      run: async ({ date }) => {
+        const from = weekStart(date ?? israelToday());
+        const [cal, recurring] = await Promise.all([calendarRange(store, getOpsStore(), from, addDays(from, 6)), loadRecurring(store)]);
+        return json({
+          days: cal.days.map((d) => ({
+            date: d.date,
+            rest: d.rest?.name,
+            items: d.items.map(({ kind, time, end, title, id, done }) => ({ kind, time, end, title, id, done: done || undefined })),
+          })),
+          summary: cal.summary,
+          recurring: recurring.map((r) => ({ id: r.id, day: WEEKDAY_LABELS[r.weekday], start: r.start_time, end: r.end_time, title: r.title })),
+        });
+      },
+    }),
+    betaZodTool({
+      name: "add_recurring",
+      description: "מוסיף התחייבות קבועה שחוזרת כל שבוע (weekday: 0 ראשון עד 5 שישי). נדחה אם חופף לעוגן.",
+      inputSchema: newRecurringSchema,
+      run: async (input) => {
+        try {
+          return json(await addRecurring(store, input));
+        } catch (error) {
+          if (error instanceof RecurringConflictError) return `שגיאה: ${error.message}`;
+          throw error;
+        }
+      },
+    }),
+    betaZodTool({
+      name: "remove_recurring",
+      description: "מוחק התחייבות קבועה לפי id.",
+      inputSchema: z.object({ id: z.string() }),
+      run: async ({ id }) => ((await removeRecurring(store, id)) ? "נמחק" : "שגיאה: לא נמצא"),
     }),
   ];
 }

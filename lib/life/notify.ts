@@ -84,7 +84,9 @@ export async function morningMessage(store: LifeStore, ops: OpsStore, day: DayVi
   if (top.length) {
     lines.push("", "<b>המשימות החשובות</b>", ...top.map((t, i) => `${i + 1}. ${escapeHtml(t.title)}`));
   }
-  const plan: string[] = [];
+  const plan: string[] = day.timeline
+    .filter((item) => item.kind === "event" && item.start)
+    .map((item) => `📅 ${item.start} ${escapeHtml(item.title)}`);
   if (day.body.activity) plan.push(`🏋️ ${escapeHtml(day.body.activity.title)} ב־${day.body.activity.time}`);
   if (day.learning.session) plan.push(`📖 ${escapeHtml(day.learning.title)}: ${escapeHtml(day.learning.next ?? "")} ב־${day.learning.session.start}`);
   plan.push(`🎯 עבודה עמוקה מ־${day.settings.deep_work_start} עד ${day.settings.deep_work_end}`);

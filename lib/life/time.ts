@@ -95,6 +95,12 @@ export function hebrewDateLabel(date: string): string {
   return `${hebrewNumeral(day)} ${HEBREW_MONTHS[month] ?? month} ${hebrewNumeral(year % 1000)}`;
 }
 
+/** The Hebrew day as a numeral and the month name, for calendar cells. */
+export function hebrewDayMonth(date: string): { day: string; month: string; dayNumber: number } {
+  const { day, month } = hebrewParts(date);
+  return { day: hebrewNumeral(day), month: HEBREW_MONTHS[month] ?? month, dayNumber: day };
+}
+
 // Yom Tov days as kept in Israel (one day each, Rosh Hashana two).
 const YOM_TOV: { month: string; day: number; name: string }[] = [
   { month: "Tishri", day: 1, name: "ראש השנה" },

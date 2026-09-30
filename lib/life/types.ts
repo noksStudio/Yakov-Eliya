@@ -109,6 +109,8 @@ export type TimelineItem = {
   anchor?: AnchorKind;
   /** Event or task id, when the item can be removed/completed. */
   id?: string;
+  /** A weekly fixed commitment (managed from the week view, not removable per day). */
+  recurring?: boolean;
   done?: boolean;
 };
 

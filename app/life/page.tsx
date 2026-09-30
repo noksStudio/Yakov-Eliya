@@ -1,5 +1,10 @@
-import { TodayView } from "@/components/life/TodayView";
+import { Suspense } from "react";
+import { ScheduleHome } from "@/components/life/ScheduleHome";
 
 export default function LifeTodayPage() {
-  return <TodayView />;
+  return (
+    <Suspense>
+      <ScheduleHome />
+    </Suspense>
+  );
 }

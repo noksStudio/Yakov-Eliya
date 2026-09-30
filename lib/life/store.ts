@@ -28,7 +28,8 @@ export type DocKey =
   | "memory"
   | "telegram"
   | "notify_prefs"
-  | "notify_log";
+  | "notify_log"
+  | "recurring";
 
 export interface LifeStore {
   getSettings(): Promise<Settings>;
@@ -39,6 +40,8 @@ export interface LifeStore {
   updateTask(id: string, patch: TaskPatch): Promise<Task | null>;
   deleteTask(id: string): Promise<boolean>;
   listEvents(date: string): Promise<LifeEvent[]>;
+  /** Events from `from` to `to` inclusive, by date and start time. */
+  listEventsRange(from: string, to: string): Promise<LifeEvent[]>;
   addEvent(input: NewEvent): Promise<LifeEvent>;
   deleteEvent(id: string): Promise<boolean>;
   getCheckin(date: string): Promise<Checkin | null>;
@@ -152,6 +155,11 @@ function supabaseStore(): LifeStore {
     },
     async listEvents(date) {
       return check(await db.from("life_events").select("*").eq("date", date).order("start_time")) as LifeEvent[];
+    },
+    async listEventsRange(from, to) {
+      return check(
+        await db.from("life_events").select("*").gte("date", from).lte("date", to).order("date").order("start_time"),
+      ) as LifeEvent[];
     },
     async addEvent(input) {
       const row = { end_time: null, area: "general", source: "user", ...input };
@@ -282,6 +290,12 @@ function memoryStore(): LifeStore {
     },
     async listEvents(date) {
       return mem.events.filter((e) => e.date === date).map((e) => ({ ...e }));
+    },
+    async listEventsRange(from, to) {
+      return mem.events
+        .filter((e) => e.date >= from && e.date <= to)
+        .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time))
+        .map((e) => ({ ...e }));
     },
     async addEvent(input) {
       const event: LifeEvent = {

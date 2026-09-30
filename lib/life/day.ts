@@ -1,6 +1,7 @@
 import type { Checkin, DayView, LifeEvent, Settings, Task, TimelineItem } from "./types";
 import { activityEnd, type BodyToday } from "./body";
 import type { LearningToday } from "./learning";
+import type { Recurring } from "./recurring";
 import { fromMinutes, gregorianLabel, hebrewDateLabel, israelToday, restDayOf, toMinutes, weekdayName } from "./time";
 
 /**
@@ -81,6 +82,8 @@ export function buildDay(
   checkin: Checkin | null,
   body: BodyToday,
   learning: LearningToday,
+  /** Weekly commitments already filtered to this date (see recurringFor). */
+  recurring: Recurring[] = [],
 ): DayView {
   const activity: TimelineItem[] = body.activity
     ? [
@@ -112,6 +115,15 @@ export function buildDay(
     ...dayTemplate(settings),
     ...activity,
     ...study,
+    ...recurring.map<TimelineItem>((r) => ({
+      key: `rec-${r.id}`,
+      start: r.start_time,
+      end: r.end_time,
+      title: r.title,
+      area: r.area,
+      kind: "event",
+      recurring: true,
+    })),
     ...events.map<TimelineItem>((e) => ({
       key: `event-${e.id}`,
       id: e.id,
