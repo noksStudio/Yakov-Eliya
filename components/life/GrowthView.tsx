@@ -324,7 +324,7 @@ function LessonsTab({ data, onAct }: { data: GrowthSummary; onAct: (fn: () => Pr
                 <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${AREA_STYLE[l.area].dot}`} />
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold">{l.rule}</span>
-                  {l.story && <span className="mt-0.5 block text-xs text-muted">{l.story}</span>}
+                  {l.story && <span className="mt-0.5 block whitespace-pre-line text-xs leading-relaxed text-muted">{l.story}</span>}
                   <span className="mt-1 block text-[11px] text-muted">
                     {l.source === "others" ? `מ${l.source_name ?? "אחרים"}` : "טעות שלי"} · חוזר ב־<bdi dir="ltr">{shortDate(l.next_review)}</bdi>
                     {l.reviews > 0 && ` · נראה ${l.reviews} פעמים`}
@@ -354,7 +354,7 @@ function LessonOfDay({ lesson, onAct }: { lesson: Lesson; onAct: (fn: () => Prom
         <Lightbulb className="h-3.5 w-3.5" /> הלקח של היום
       </p>
       <p className="mt-1 text-lg font-bold leading-snug">{lesson.rule}</p>
-      {lesson.story && <p className="mt-1 text-sm text-muted">{lesson.story}</p>}
+      {lesson.story && <p className="mt-1 whitespace-pre-line text-sm text-muted">{lesson.story}</p>}
       <button
         type="button"
         onClick={() => onAct(() => lifeApi(`/growth/lessons/${lesson.id}`, { method: "PATCH", body: { again: true } }))}
