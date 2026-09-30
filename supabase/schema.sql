@@ -40,3 +40,7 @@ alter table leads add column if not exists follow_up_date date;
 alter table leads add column if not exists source text not null default 'site';
 alter table leads add column if not exists deal_id uuid;
 create index if not exists leads_follow_up_idx on leads (status, follow_up_date);
+
+-- Leads from connected systems (Bossi): their id there, so updates land on the same lead.
+alter table leads add column if not exists external_id text;
+create unique index if not exists leads_external_idx on leads (source, external_id) where external_id is not null;

@@ -18,8 +18,11 @@ export type Lead = {
   follow_up_date?: string | null;
   /** The deal opened from this lead, once there was money on the table. */
   deal_id?: string | null;
-  /** "site" (the website chat/form) or "manual" (added in the app or Telegram). */
+  /** "site" (the website chat/form), "manual" (added in the app or Telegram), or a connected
+   * system's name ("bossi"). */
   source?: string | null;
+  /** The lead's id in that connected system, so its updates land on the same lead. */
+  external_id?: string | null;
 };
 
 export type ChatMessage = {

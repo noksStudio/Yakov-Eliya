@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { BadgeDollarSign, ChevronDown, Loader2, MessageCircle, Phone, Plus } from "lucide-react";
 import { addDays, israelToday } from "@/lib/life/time";
-import { isOpenLead, leadStatusLabel, telUrl, whatsappUrl, type Lead } from "@/lib/life/lead-types";
+import { isOpenLead, leadStatusLabel, sourceLabel, telUrl, whatsappUrl, type Lead } from "@/lib/life/lead-types";
 import { lifeApi } from "./api";
 
 const shortDate = (d: string) => `${Number(d.slice(8, 10))}.${Number(d.slice(5, 7))}`;
@@ -140,7 +140,7 @@ function LeadCard({ lead, today, onChange, onDeal, onError }: { lead: Lead; toda
             {" · "}
             {lead.status === "contacted" ? "יצרתי קשר" : lead.status === "qualified" ? "מתאים" : "חדש"}
             {" · "}
-            {lead.source === "manual" ? "הוספתי" : "מהאתר"} {ago(lead.created_at)}
+            {sourceLabel(lead.source)} {ago(lead.created_at)}
           </span>
           {lead.pain && <span className="mt-1 line-clamp-2 block text-xs text-foreground/80">״{lead.pain}״</span>}
         </button>

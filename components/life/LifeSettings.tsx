@@ -7,6 +7,7 @@ import type { Settings } from "@/lib/life/types";
 import { lifeApi } from "./api";
 import { BackupSettings } from "./BackupSettings";
 import { CalendarSubscribe } from "./CalendarSubscribe";
+import { IntegrationsSettings } from "./IntegrationsSettings";
 import { clearOfflineData } from "./offline-cache";
 import { TelegramSettings } from "./TelegramSettings";
 
@@ -211,6 +212,7 @@ export function LifeSettings() {
 
       <TelegramSettings demo={demo} />
       <CalendarSubscribe />
+      <IntegrationsSettings />
       <BackupSettings />
 
       {!needsSetup && setupCard}

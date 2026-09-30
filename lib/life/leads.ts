@@ -15,7 +15,9 @@ export * from "./lead-types";
 
 /** A new lead as stored: what he types, plus what the website chat knows about the visitor. */
 export type NewLeadRow = NewLead & {
-  source: "site" | "manual";
+  /** "site", "manual", or a connected system's name. */
+  source: string;
+  external_id?: string | null;
   pain?: string | null;
   track_slug?: string | null;
   conversation_id?: string | null;
@@ -26,6 +28,8 @@ export interface LeadsStore {
   get(id: string): Promise<Lead | null>;
   add(input: NewLeadRow): Promise<Lead>;
   update(id: string, patch: LeadPatch & { deal_id?: string | null }): Promise<Lead | null>;
+  /** A lead from a connected system, by its id there. */
+  findExternal(source: string, externalId: string): Promise<Lead | null>;
 }
 
 // Columns added after the table was first created (supabase/schema.sql). Until he re-runs that
@@ -55,6 +59,11 @@ function supabaseLeads(): LeadsStore {
       }
       if (result.error) throw new Error(result.error.message);
       return result.data as Lead;
+    },
+    async findExternal(source, externalId) {
+      const { data, error } = await db.from("leads").select("*").eq("source", source).eq("external_id", externalId).maybeSingle();
+      if (error) throw new Error(missingColumn(error.message) ? "צריך להריץ שוב את קוד טבלאות האתר (הגדרות ← חיבור המערכת)" : error.message);
+      return data as Lead | null;
     },
     async update(id, patch) {
       const { data, error } = await db.from("leads").update(patch).eq("id", id).select("*").maybeSingle();
@@ -103,9 +112,14 @@ function memoryLeads(): LeadsStore {
         follow_up_date: input.follow_up_date ?? null,
         deal_id: null,
         source: input.source,
+        external_id: input.external_id ?? null,
       };
       mem.push(lead);
       return { ...lead };
+    },
+    async findExternal(source, externalId) {
+      const lead = mem.find((l) => l.source === source && l.external_id === externalId);
+      return lead ? { ...lead } : null;
     },
     async update(id, patch) {
       const lead = mem.find((l) => l.id === id);

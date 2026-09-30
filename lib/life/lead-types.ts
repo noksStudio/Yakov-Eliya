@@ -61,6 +61,13 @@ export const telUrl = (phone: string | null | undefined) => {
   return intl ? `tel:+${intl}` : null;
 };
 
+/** Where a lead came from, for display: "מהאתר", "הוספתי", "מ־Bossi". */
+export function sourceLabel(source: string | null | undefined) {
+  if (!source || source === "site") return "מהאתר";
+  if (source === "manual") return "הוספתי";
+  return `מ־${source.charAt(0).toUpperCase()}${source.slice(1)}`;
+}
+
 /** A deal name from a lead: "משה · יבואן כלי בית". */
 export const leadTitle = (lead: Pick<Lead, "name" | "business_type">) =>
   [lead.name || "ליד", lead.business_type].filter(Boolean).join(" · ").slice(0, 80);
