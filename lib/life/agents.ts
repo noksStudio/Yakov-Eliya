@@ -25,6 +25,18 @@ import { loadDay } from "./service";
 import { anchorConflict } from "./day";
 import { calendarRange, weekStart } from "./calendar";
 import { getIdeasStore, newIdeaSchema } from "./ideas";
+import {
+  addGift,
+  addSpecialDate,
+  coupleProfileSchema,
+  coupleSummary,
+  giftPatchSchema,
+  newGiftSchema,
+  newSpecialDateSchema,
+  occasionLabel,
+  saveCoupleProfile,
+  updateGift,
+} from "./couple";
 import { RecurringConflictError, WEEKDAY_LABELS, addRecurring, loadRecurring, newRecurringSchema, removeRecurring } from "./recurring";
 import { bmi, bodyForDate, loadBodyPlan, weightSeries } from "./body";
 import { bodyProfileSchema, mealPlanSchema, shoppingSeedSchema, workoutPlanSchema } from "./body-types";
@@ -69,7 +81,7 @@ ${SHARED}
 יעד: עסקאות של 30 אלף ₪ ומעלה. שגרת מכירות יומית בבלוק העבודה העמוקה: 20 בקשות חיבור בלינקדאין, 10 הודעות המשך, 10 שיחות או הודעות וואטסאפ.
 
 ## הצוות
-פעילים, כל אחד עם מסך משלו: מאמן הגוף (תזונה, אימונים, שינה, קניות), מנהל העסק (עסקאות ופעילות מכירה יומית), מנהל הכספים (רווח ויעד חודשי), המלווה הרוחני (תפילות, התבודדות ולימוד) והמאמן המנטלי (מצב רוח, אנרגיה, דחיינות ורפלקציה). get_day מחזיר גם את התפריט והפעילות של היום. בשאלות עומק, הפנה אותו לסוכן המתאים.
+פעילים, כל אחד עם מסך משלו: מאמן הגוף (תזונה, אימונים, שינה, קניות), מנהל העסק (עסקאות ופעילות מכירה יומית), מנהל הכספים (רווח ויעד חודשי), המלווה הרוחני (תפילות, התבודדות ולימוד), המאמן המנטלי (מצב רוח, אנרגיה, דחיינות ורפלקציה) והיועץ הזוגי (זוגיות, מתנות ותאריכים חשובים). get_day מחזיר גם את התפריט והפעילות של היום. בשאלות עומק, הפנה אותו לסוכן המתאים.
 
 ## שאלות פתוחות
 בתחילת כל הודעה מופיעות "שאלות פתוחות" שעוד לא נענו. כשזה מתאים (לא באמצע משימה דחופה), שאל אחת מהן. כשיעקב עונה, שמור את התשובה עם remember ואז סגור את השאלה עם resolve_question.
@@ -158,6 +170,23 @@ ${SHARED}
 - שאל שאלה אחת טובה במקום להרצות. הצע תרגיל קצר אחד בכל פעם.
 - save_reflection שומר רפלקציה קצרה כשיעקב משתף ורוצה לשמור.
 - אתה לא מטפל ולא מאבחן. אם עולים סימני מצוקה ממשית (ייאוש מתמשך, מחשבות לפגוע בעצמו), הגב בחום, אמור בבירור שחשוב לדבר עם איש מקצוע, והזכר את ער״ן בטלפון 1201 (סיוע נפשי ראשוני, 24/7).`;
+
+const COUPLE_PROMPT = `אתה "היועץ הזוגי" במערכת ההפעלה האישית של יעקב-אליה.
+המטרה: זוגיות חמה, קרובה ויציבה עם אשתו, מתוך שלום בית ואהבה, גם כשהעסק והיעדים תובעניים.
+
+${SHARED}
+
+## איך אתה עובד
+- get_couple: מה שידוע על אשתו (שם, יום הולדת, יום נישואין, מה היא אוהבת ומה לא, מידות, תקציב למתנות, מה גורם לה להרגיש אהובה), רשימת המתנות והתאריכים הקרובים.
+- אם חסר פרט חשוב (שם, יום הולדת, יום נישואין, מה היא אוהבת), שאל עליו אחד בכל פעם, בטבעיות, ושמור עם save_couple_profile.
+- כל מה שיעקב מספר עליה (משהו שאהבה, משהו שהזכירה שהיא רוצה, מידה) שמור מיד בפרופיל או כרעיון מתנה עם add_gift_idea. כך בעוד חודשיים יהיה רעיון מוכן.
+- מחוות קטנות וקבועות חשובות יותר ממתנה גדולה פעם בשנה: מילה טובה, הודעה באמצע היום, עזרה בבית, זמן איכות בלי טלפון.
+- דייט קבוע: הצע ערב זוגי קבוע בשבוע (add_recurring) ורעיון מתחלף לכל פעם. לא בשבת ובחג, אבל סעודת שבת רגועה ביחד היא זמן זוגי מצוין.
+- מתנה: שאל לאיזו הזדמנות ומה התקציב אם לא ידוע, ואז הצע 3 רעיונות שמתאימים למה שהיא אוהבת: אחד פשוט, אחד מושקע, ואחד חוויה. מה שיעקב בוחר נשמר עם add_gift_idea, ואם צריך לקנות, צור משימה עם תאריך (add_task).
+- יום הולדת או יום נישואין: כמו כל אירוע, שאל קודם עד 3 שאלות (מה היא הייתה שמחה לעשות, מתנה, הפתעה או ארוחה, צריך בייביסיטר?), ורק אחרי זה צור אירוע ומשימות הכנה עם event_id ותאריכים אחורה מהיום עצמו.
+- בוויכוח או במתח: הקשב, עזור לו לראות את הצד שלה, והצע משפט פתיחה רך לשיחה. בלי להאשים אף צד.
+- אתה לא מטפל זוגי. אם עולה משבר מתמשך, עזור בעדינות לשקול פנייה לייעוץ זוגי מקצועי.
+- פרטיות: מה שנאמר כאן נשאר בין יעקב לבינך. אל תכתוב פרטים אישיים עליה בזיכרון המשותף (remember).`;
 
 const BODY_PROMPT = `אתה "מאמן הגוף" במערכת ההפעלה האישית של יעקב-אליה: כושר, תזונה, שינה והרגלים.
 המטרה: ירידה הדרגתית ובריאה במשקל, יותר כוח ואנרגיה, ושגרה שמחזיקה לאורך זמן.
@@ -309,6 +338,59 @@ function dayTools(store: LifeStore) {
       description: "מוחק התחייבות קבועה לפי id.",
       inputSchema: z.object({ id: z.string() }),
       run: async ({ id }) => ((await removeRecurring(store, id)) ? "נמחק" : "שגיאה: לא נמצא"),
+    }),
+  ];
+}
+
+/** Selects tools by name, so agents can share a subset without depending on array order. */
+function pick<T extends { name: string }>(tools: T[], names: string[]) {
+  return tools.filter((t) => names.includes(t.name));
+}
+
+function coupleTools(store: LifeStore) {
+  return [
+    betaZodTool({
+      name: "get_couple",
+      description: "הפרופיל של אשתו, רשימת רעיונות המתנה והתאריכים החשובים הקרובים (עם כמה ימים נשארו).",
+      inputSchema: z.object({}),
+      run: async () => {
+        const summary = await coupleSummary(store);
+        const missing = (["partner_name", "birthday", "anniversary"] as const).filter((k) => !summary.profile[k]);
+        return json({
+          profile: summary.profile,
+          missing: [...missing, ...(summary.profile.likes.length ? [] : ["likes"])],
+          gifts: summary.gifts.map(({ id, title, occasion, price, status }) => ({ id, title, occasion, price, status })),
+          upcoming: summary.upcoming.slice(0, 6).map((o) => ({ title: occasionLabel(o), date: o.date, daysLeft: o.daysLeft })),
+          dates: summary.dates,
+        });
+      },
+    }),
+    betaZodTool({
+      name: "save_couple_profile",
+      description: "מעדכן פרטים בפרופיל של אשתו. likes/dislikes מחליפים את הרשימה כולה, אז שלח את הרשימה המלאה (הקיימת ועוד החדש).",
+      inputSchema: coupleProfileSchema.partial(),
+      run: async (patch) => json(await saveCoupleProfile(store, patch)),
+    }),
+    betaZodTool({
+      name: "add_gift_idea",
+      description: "שומר רעיון למתנה (כותרת, הזדמנות, מחיר משוער, קישור).",
+      inputSchema: newGiftSchema,
+      run: async (input) => json(await addGift(store, input)),
+    }),
+    betaZodTool({
+      name: "update_gift",
+      description: "מעדכן מתנה לפי id, למשל status: bought (נקנתה) או given (ניתנה).",
+      inputSchema: giftPatchSchema.extend({ id: z.string() }),
+      run: async ({ id, ...patch }) => {
+        const gift = await updateGift(store, id, patch);
+        return gift ? json(gift) : "שגיאה: לא נמצא";
+      },
+    }),
+    betaZodTool({
+      name: "add_special_date",
+      description: "מוסיף תאריך חשוב (למשל יום ההולדת של חמותו, הפגישה הראשונה). yearly: חוזר כל שנה.",
+      inputSchema: newSpecialDateSchema,
+      run: async (input) => json(await addSpecialDate(store, input)),
     }),
   ];
 }
@@ -597,6 +679,10 @@ const AGENT_CONFIG: Record<AgentId, { system: string; tools: (store: LifeStore) 
     tools: (s) => [...spiritTools(s), ...checkinTools(s).slice(1), ...learningTools(s), ...memoryTools(s).slice(0, 1)],
   },
   mind: { system: MIND_PROMPT, tools: (s) => [...mindTools(s), ...checkinTools(s), ...memoryTools(s).slice(0, 1)] },
+  couple: {
+    system: COUPLE_PROMPT,
+    tools: (s) => [...coupleTools(s), ...pick(dayTools(s), ["add_task", "update_task", "add_event", "get_week", "add_recurring"])],
+  },
 };
 
 export class AgentNotConfiguredError extends Error {}

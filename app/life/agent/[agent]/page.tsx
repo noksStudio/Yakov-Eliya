@@ -10,6 +10,7 @@ const TITLES: Record<AgentId, string> = {
   finance: "מנהל הכספים",
   spirit: "המלווה הרוחני",
   mind: "המאמן המנטלי",
+  couple: "היועץ הזוגי",
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ agent: string }> }) {

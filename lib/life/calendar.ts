@@ -5,6 +5,7 @@ import { activityEnd, bodyForDate, loadBodyPlan } from "./body";
 import { learningForDate, loadLearningGoal } from "./learning";
 import { OPEN_STAGES } from "./ops-types";
 import { loadRecurring, recurringFor } from "./recurring";
+import { loadCouple, occasionLabel, upcomingOccasions } from "./couple";
 import { addDays, fromMinutes, hebrewDayMonth, israelToday, restDayOf } from "./time";
 
 // The week and month views: only what changes from day to day (events, weekly commitments,
@@ -12,7 +13,7 @@ import { addDays, fromMinutes, hebrewDayMonth, israelToday, restDayOf } from "./
 
 export const MAX_RANGE_DAYS = 42;
 
-export type CalItemKind = "event" | "recurring" | "workout" | "learning" | "task" | "followup";
+export type CalItemKind = "event" | "recurring" | "workout" | "learning" | "task" | "followup" | "occasion";
 
 export type CalItem = {
   key: string;
@@ -67,7 +68,7 @@ function byTime(a: CalItem, b: CalItem) {
 }
 
 export async function calendarRange(store: LifeStore, ops: OpsStore, from: string, to: string, today = israelToday()) {
-  const [events, recurring, tasks, plan, goal, deals, checkins, finance] = await Promise.all([
+  const [events, recurring, tasks, plan, goal, deals, checkins, finance, couple] = await Promise.all([
     store.listEventsRange(from, to),
     loadRecurring(store),
     store.listTasks(),
@@ -76,7 +77,9 @@ export async function calendarRange(store: LifeStore, ops: OpsStore, from: strin
     ops.listDeals(),
     store.listCheckins(from, to),
     ops.listFinance(from, to),
+    loadCouple(store),
   ]);
+  const occasions = upcomingOccasions(couple, from, daysBetween(from, to));
   const prepTasks = await store.listEventTasks(events.map((e) => e.id));
   const checkinByDate = new Map(checkins.map((c) => [c.date, c]));
   const openDeals = deals.filter((d) => OPEN_STAGES.includes(d.stage) && d.next_date);
@@ -140,6 +143,9 @@ export async function calendarRange(store: LifeStore, ops: OpsStore, from: strin
         note: d.next_action ?? undefined,
         area: "business",
       });
+    }
+    for (const o of occasions.filter((occ) => occ.date === date)) {
+      items.push({ key: `occasion-${o.key}-${date}`, kind: "occasion", time: null, end: null, title: occasionLabel(o), area: "couple" });
     }
     items.sort(byTime);
 

@@ -2,6 +2,7 @@ import type { LifeStore } from "./store";
 import type { OpsStore } from "./ops-store";
 import type { DayView } from "./types";
 import { businessSummary } from "./business";
+import { loadCouple, occasionLabel, upcomingOccasions } from "./couple";
 import { financeSummary } from "./finance";
 import { computeMetrics } from "./metrics";
 import { loadDay } from "./service";
@@ -93,6 +94,16 @@ export async function morningMessage(store: LifeStore, ops: OpsStore, day: DayVi
   lines.push("", ...plan);
   if (business.due.length) {
     lines.push("", "<b>פולואפים להיום</b>", ...business.due.slice(0, 4).map((d) => `• ${escapeHtml(d.name)}${d.next_action ? `: ${escapeHtml(d.next_action)}` : ""}`));
+  }
+  // Birthdays and anniversaries: two weeks, a week, three days, the day before and the day itself.
+  const occasions = upcomingOccasions(await loadCouple(store), day.date, 14).filter((o) => [14, 7, 3, 1, 0].includes(o.daysLeft));
+  if (occasions.length) {
+    lines.push(
+      "",
+      ...occasions.map((o) =>
+        o.daysLeft === 0 ? `🎂 היום ${escapeHtml(occasionLabel(o))}!` : `🎁 ${escapeHtml(occasionLabel(o))} ${o.daysLeft === 1 ? "מחר" : `בעוד ${o.daysLeft} ימים`}`,
+      ),
+    );
   }
   if (!day.checkin?.weight) lines.push("", "⚖️ לא לשכוח להישקל: שלח /w ומשקל");
   lines.push("", link(origin, "/life", "לפתוח את היום שלי"));

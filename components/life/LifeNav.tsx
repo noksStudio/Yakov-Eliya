@@ -10,6 +10,7 @@ import {
   CalendarDays,
   Crown,
   Dumbbell,
+  Heart,
   Lightbulb,
   LogOut,
   Menu,
@@ -51,6 +52,7 @@ const DRAWER: { title: string; items: DrawerItem[] }[] = [
       { href: "/life/agent/finance", label: "מנהל הכספים", hint: "רווח ויעד חודשי", icon: Wallet },
       { href: "/life/agent/spirit", label: "המלווה הרוחני", hint: "תפילות, התבודדות ולימוד", icon: MoonStar },
       { href: "/life/agent/mind", label: "המאמן המנטלי", hint: "מצב רוח, אנרגיה ומיקוד", icon: Brain },
+      { href: "/life/agent/couple", label: "היועץ הזוגי", hint: "זוגיות, מתנות ותאריכים", icon: Heart },
     ],
   },
   {
@@ -61,6 +63,7 @@ const DRAWER: { title: string; items: DrawerItem[] }[] = [
       { href: "/life/finance", label: "כספים", hint: "רווח מול יעד", icon: Wallet },
       { href: "/life/spirit", label: "רוח", hint: "תפילות, התבודדות ולימוד", icon: MoonStar },
       { href: "/life/mind", label: "מנטלי", hint: "מגמות, רפלקציה ונשימה", icon: Brain },
+      { href: "/life/couple", label: "זוגיות", hint: "תאריכים, מתנות והעדפות", icon: Heart },
       { href: "/life/body", label: "גוף", hint: "תפריט, אימונים ומשקל", icon: Dumbbell },
       { href: "/life/shopping", label: "רשימת קניות", icon: ShoppingCart },
     ],

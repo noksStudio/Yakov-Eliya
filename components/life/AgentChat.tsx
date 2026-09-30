@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Brain, Briefcase, Crown, Dumbbell, Loader2, MoonStar, Send, Wallet } from "lucide-react";
+import { Brain, Briefcase, Crown, Dumbbell, Heart, Loader2, MoonStar, Send, Wallet } from "lucide-react";
 import type { AgentId, ChatMessage } from "@/lib/life/types";
 import { lifeApi } from "./api";
 
@@ -67,6 +67,19 @@ const AGENT_UI: Record<
     },
     suggestions: ["אני דוחה משהו ולא מצליח להתחיל.", "למה האנרגיה שלי נמוכה השבוע?", "היה לי יום קשה."],
     empty: "ספר לי מה עובר עליך, או מה תקוע. נעשה צעד אחד קטן.",
+  },
+  couple: {
+    name: "היועץ הזוגי",
+    subtitle: "זוגיות, מתנות ותאריכים חשובים",
+    icon: Heart,
+    presets: {
+      gift: "תעזור לי לבחור מתנה לאשתי.",
+      date: "תציע לי רעיון לדייט השבוע ותכניס ללו״ז.",
+      birthday: "יום ההולדת של אשתי מתקרב. בוא נתכנן.",
+      today: "מה אני יכול לעשות היום כדי לשמח את אשתי?",
+    },
+    suggestions: ["מה אני יכול לעשות היום כדי לשמח את אשתי?", "תעזור לי לבחור מתנה לאשתי.", "תציע לי רעיון לדייט השבוע ותכניס ללו״ז."],
+    empty: "ספר לי על אשתך, על מה שקורה ביניכם, או בקש רעיון למתנה או לדייט.",
   },
 };
 

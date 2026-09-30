@@ -1,7 +1,7 @@
 import type { BodyToday } from "./body";
 import type { LearningToday } from "./learning";
 
-export const AREAS = ["business", "body", "spirit", "mind", "finance", "home", "general"] as const;
+export const AREAS = ["business", "body", "spirit", "mind", "couple", "finance", "home", "general"] as const;
 export type Area = (typeof AREAS)[number];
 
 export const AREA_LABELS: Record<Area, string> = {
@@ -9,6 +9,7 @@ export const AREA_LABELS: Record<Area, string> = {
   body: "גוף",
   spirit: "רוח",
   mind: "מנטלי",
+  couple: "זוגיות",
   finance: "כספים",
   home: "בית",
   general: "כללי",
@@ -87,7 +88,7 @@ export type Checkin = {
   updated_at: string;
 };
 
-export const AGENTS = ["chief", "body", "business", "finance", "spirit", "mind"] as const;
+export const AGENTS = ["chief", "body", "business", "finance", "spirit", "mind", "couple"] as const;
 export type AgentId = (typeof AGENTS)[number];
 
 export type ChatMessage = {

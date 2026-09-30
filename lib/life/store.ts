@@ -30,7 +30,8 @@ export type DocKey =
   | "telegram"
   | "notify_prefs"
   | "notify_log"
-  | "recurring";
+  | "recurring"
+  | "couple";
 
 export interface LifeStore {
   getSettings(): Promise<Settings>;

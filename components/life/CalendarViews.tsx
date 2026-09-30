@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Dumbbell,
+  Gift,
   ListChecks,
   Loader2,
   Plus,
@@ -36,6 +37,7 @@ const KIND_ICON: Record<CalItemKind, typeof CalendarDays> = {
   learning: BookOpen,
   task: ListChecks,
   followup: Briefcase,
+  occasion: Gift,
 };
 
 // Local copy of the week maths (lib/life/calendar pulls in server-only stores).

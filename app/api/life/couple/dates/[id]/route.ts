@@ -1,0 +1,7 @@
+import { removeSpecialDate } from "@/lib/life/couple";
+import { notFound, withStore } from "@/lib/life/service";
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return withStore(async (store) => ((await removeSpecialDate(store, id)) ? { ok: true } : notFound()));
+}
