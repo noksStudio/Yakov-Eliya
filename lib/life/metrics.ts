@@ -5,7 +5,7 @@ import { loadBodyPlan } from "./body";
 import { businessSummary } from "./business";
 import { financeSummary } from "./finance";
 import { learningForDate, loadLearningGoal } from "./learning";
-import { addDays, israelToday, restDayOf } from "./time";
+import { addDays, cholHamoedOf, israelToday, restDayOf } from "./time";
 
 // One place for every goal: each metric reports where it stands against its target, whether it
 // is due for an update today, a streak where that means something, and a short series for charts.
@@ -53,14 +53,16 @@ function weekStart(date: string) {
 
 export async function computeMetrics(store: LifeStore, ops: OpsStore, today = israelToday()): Promise<Metric[]> {
   const from = addDays(today, -29);
-  const [checkins, plan, goal, finance, business, activity] = await Promise.all([
+  const [checkins, plan, goal, finance, business, activity, settings] = await Promise.all([
     store.listCheckins(from, today),
     loadBodyPlan(store),
     loadLearningGoal(store),
     financeSummary(store, ops, today),
     businessSummary(ops, today),
     ops.listActivity(addDays(today, -6), today),
+    store.getSettings(),
   ]);
+  const dayOff = settings.chol_hamoed_off && Boolean(cholHamoedOf(today));
   const byDate = new Map(checkins.map((c) => [c.date, c]));
   const todayCheckin = byDate.get(today);
   const isRest = Boolean(restDayOf(today));
@@ -106,7 +108,7 @@ export async function computeMetrics(store: LifeStore, ops: OpsStore, today = is
     label: "פעילות מכירה היום",
     value: `${business.activityDone}`,
     target: `${business.activityTarget}`,
-    status: isRest ? "neutral" : business.activityDone >= business.activityTarget ? "good" : "due",
+    status: isRest || dayOff ? "neutral" : business.activityDone >= business.activityTarget ? "good" : "due",
     note: `${weekOutreach} ב־7 הימים האחרונים · ${business.openCount} עסקאות פתוחות (${fmt(business.openValue)} ₪)`,
     series: activity.map((a) => ({ date: a.date, value: a.connections + a.followups + a.calls })),
     href: "/life/business",

@@ -113,6 +113,14 @@ const YOM_TOV: { month: string; day: number; name: string }[] = [
   { month: "Sivan", day: 6, name: "שבועות" },
 ];
 
+/** Chol HaMoed as kept in Israel: Sukkot 16–21 Tishri (with Hoshana Raba), Pesach 16–20 Nisan. */
+export function cholHamoedOf(date: string): string | null {
+  const { day, month } = hebrewParts(date);
+  if (month === "Tishri" && day >= 16 && day <= 21) return day === 21 ? "הושענא רבה" : "חול המועד סוכות";
+  if (month === "Nisan" && day >= 16 && day <= 20) return "חול המועד פסח";
+  return null;
+}
+
 export function restDayOf(date: string): RestDay | null {
   const { day, month } = hebrewParts(date);
   const yomTov = YOM_TOV.find((y) => y.month === month && y.day === day);

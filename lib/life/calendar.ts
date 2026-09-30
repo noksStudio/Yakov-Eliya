@@ -6,7 +6,7 @@ import { learningForDate, loadLearningGoal } from "./learning";
 import { OPEN_STAGES } from "./ops-types";
 import { loadRecurring, recurringFor } from "./recurring";
 import { loadCouple, occasionLabel, upcomingOccasions } from "./couple";
-import { addDays, fromMinutes, hebrewDayMonth, israelToday, restDayOf } from "./time";
+import { addDays, cholHamoedOf, fromMinutes, hebrewDayMonth, israelToday, restDayOf } from "./time";
 
 // The week and month views: only what changes from day to day (events, weekly commitments,
 // workouts, learning, dated tasks and deal follow-ups). The fixed anchors live in the day view.
@@ -39,6 +39,8 @@ export type CalDay = {
   /** True on the first day of a Hebrew month, so cells can print the month name there. */
   hebrewMonthStart: boolean;
   rest: RestDay | null;
+  /** Chol HaMoed when it is a day off work. */
+  dayOff: string | null;
   items: CalItem[];
 };
 
@@ -68,7 +70,7 @@ function byTime(a: CalItem, b: CalItem) {
 }
 
 export async function calendarRange(store: LifeStore, ops: OpsStore, from: string, to: string, today = israelToday()) {
-  const [events, recurring, tasks, plan, goal, deals, checkins, finance, couple] = await Promise.all([
+  const [events, recurring, tasks, plan, goal, deals, checkins, finance, couple, settings] = await Promise.all([
     store.listEventsRange(from, to),
     loadRecurring(store),
     store.listTasks(),
@@ -78,6 +80,7 @@ export async function calendarRange(store: LifeStore, ops: OpsStore, from: strin
     store.listCheckins(from, to),
     ops.listFinance(from, to),
     loadCouple(store),
+    store.getSettings(),
   ]);
   const occasions = upcomingOccasions(couple, from, daysBetween(from, to));
   const prepTasks = await store.listEventTasks(events.map((e) => e.id));
@@ -88,6 +91,7 @@ export async function calendarRange(store: LifeStore, ops: OpsStore, from: strin
   const days: CalDay[] = [];
   for (let date = from; date <= to; date = addDays(date, 1)) {
     const rest = restDayOf(date);
+    const dayOff = settings.chol_hamoed_off && !rest ? cholHamoedOf(date) : null;
     const checkin = checkinByDate.get(date);
     const items: CalItem[] = [];
 
@@ -166,6 +170,7 @@ export async function calendarRange(store: LifeStore, ops: OpsStore, from: strin
       hebrewMonth: hebrew.month,
       hebrewMonthStart: hebrew.dayNumber === 1,
       rest,
+      dayOff,
       items,
     });
   }

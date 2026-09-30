@@ -152,6 +152,30 @@ export function LifeSettings() {
             className="h-5 w-5 accent-[#d4a24e]"
           />
         </label>
+        <label className="mt-3 flex items-center justify-between gap-3 border-t border-border-soft pt-3 text-sm">
+          <span>
+            <span className="block font-bold">חופש בחול המועד</span>
+            <span className="text-xs text-muted">בלי בלוק עבודה, יעדי מכירות ותזכורות עסקיות בחול המועד סוכות ופסח</span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.chol_hamoed_off}
+            onChange={(e) => set("chol_hamoed_off", e.target.checked)}
+            className="h-5 w-5 accent-[#d4a24e]"
+          />
+        </label>
+        <label className="mt-3 flex items-center justify-between gap-3 border-t border-border-soft pt-3 text-sm">
+          <span>
+            <span className="block font-bold">תחילת השגרה</span>
+            <span className="text-xs text-muted">לפני התאריך הזה אין תזכורות</span>
+          </span>
+          <input
+            type="date"
+            value={settings.start_date ?? ""}
+            onChange={(e) => set("start_date", e.target.value || null)}
+            className="font-latin w-[9.5rem] rounded-lg bg-white/5 px-2 py-2 text-center text-sm outline-none"
+          />
+        </label>
       </section>
 
       {error && <p className="rounded-xl bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}

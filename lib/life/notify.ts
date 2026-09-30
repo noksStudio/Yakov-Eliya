@@ -70,6 +70,7 @@ export function quietReason(date: string, nowMinutes: number) {
 
 export function dueSlots(day: DayView, prefs: NotifyPrefs, sent: string[], nowMinutes: number) {
   return slotsFor(day).filter((slot) => {
+    if (day.dayOff && slot.rule === "deep") return false;
     const at = toMinutes(slot.at);
     return prefs[slot.rule] && !sent.includes(slot.id) && nowMinutes >= at && nowMinutes < at + WINDOW_MINUTES;
   });
@@ -81,7 +82,9 @@ const link = (origin: string, path: string, label: string) => `<a href="${origin
 export async function morningMessage(store: LifeStore, ops: OpsStore, day: DayView, origin: string) {
   const business = await businessSummary(ops, day.date);
   const lines = [`☀️ <b>בוקר טוב!</b> ${day.weekday}, ${day.hebrewDate}`];
-  const top = day.openTasks.slice(0, 3);
+  if (day.dayOff) lines.push(`🌿 ${day.dayOff}: חופש מעבודה. מועדים לשמחה!`);
+  // On a day off, work tasks wait for the next working day.
+  const top = day.openTasks.filter((t) => !(day.dayOff && t.area === "business")).slice(0, 3);
   if (top.length) {
     lines.push("", "<b>המשימות החשובות</b>", ...top.map((t, i) => `${i + 1}. ${escapeHtml(t.title)}`));
   }
@@ -90,9 +93,9 @@ export async function morningMessage(store: LifeStore, ops: OpsStore, day: DayVi
     .map((item) => `📅 ${item.start} ${escapeHtml(item.title)}`);
   if (day.body.activity) plan.push(`🏋️ ${escapeHtml(day.body.activity.title)} ב־${day.body.activity.time}`);
   if (day.learning.session) plan.push(`📖 ${escapeHtml(day.learning.title)}: ${escapeHtml(day.learning.next ?? "")} ב־${day.learning.session.start}`);
-  plan.push(`🎯 עבודה עמוקה מ־${day.settings.deep_work_start} עד ${day.settings.deep_work_end}`);
-  lines.push("", ...plan);
-  if (business.due.length) {
+  if (!day.dayOff) plan.push(`🎯 עבודה עמוקה מ־${day.settings.deep_work_start} עד ${day.settings.deep_work_end}`);
+  if (plan.length) lines.push("", ...plan);
+  if (!day.dayOff && business.due.length) {
     lines.push("", "<b>פולואפים להיום</b>", ...business.due.slice(0, 4).map((d) => `• ${escapeHtml(d.name)}${d.next_action ? `: ${escapeHtml(d.next_action)}` : ""}`));
   }
   // Birthdays and anniversaries: two weeks, a week, three days, the day before and the day itself;
@@ -146,8 +149,9 @@ async function messageFor(slot: Slot, store: LifeStore, ops: OpsStore, day: DayV
         "🌙 <b>סגירת יום</b>",
         `תפילות: ${prayed}/3 · התבודדות ב־${s.hitbodedut_time}`,
         `אימון: ${day.body.activity ? (c?.workout ? "בוצע ✓" : "עוד לא סומן") : "יום מנוחה"}`,
-        `מכירות: ${b.activityDone}/${b.activityTarget}`,
-        `רווח היום: ${ils(f.todayProfit)} · החודש ${ils(f.profit)} מתוך ${ils(f.goal.monthly_goal)}`,
+        ...(day.dayOff
+          ? []
+          : [`מכירות: ${b.activityDone}/${b.activityTarget}`, `רווח היום: ${ils(f.todayProfit)} · החודש ${ils(f.profit)} מתוך ${ils(f.goal.monthly_goal)}`]),
         `משימות שנסגרו היום: ${day.doneToday.length}`,
         "",
         link(origin, "/life", "לסגור את היום ולתכנן מחר"),
@@ -197,6 +201,11 @@ export async function runNotifications(store: LifeStore, ops: OpsStore, origin: 
 
   const quiet = quietReason(date, nowMinutes);
   if (quiet) return { ...base, skipped: quiet };
+
+  const settings = await store.getSettings();
+  if (settings.start_date && date < settings.start_date) {
+    return { ...base, skipped: `השגרה מתחילה ב־${settings.start_date.split("-").reverse().join(".")}` };
+  }
 
   const telegram = await loadTelegram(store);
   if (!opts.dry && !telegram.chat_id) return { ...base, skipped: "הבוט עוד לא מחובר לצ׳אט" };

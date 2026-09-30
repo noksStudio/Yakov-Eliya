@@ -83,8 +83,20 @@ export function TodayView() {
         </p>
       )}
       {error && <p className="rounded-xl bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
+      {day.startsOn && (
+        <p className="rounded-xl border border-gold/30 bg-gold/10 px-3 py-2 text-sm text-gold-2">
+          השגרה מתחילה ב{weekdayOf(day.startsOn)}, <bdi dir="ltr">{day.startsOn.split("-").reverse().slice(0, 2).map(Number).join(".")}</bdi>. עד אז אין
+          תזכורות, ואפשר להסתכל ולהתכונן.
+        </p>
+      )}
+      {day.dayOff && (
+        <p className="rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-200">
+          {day.dayOff}: חופש מעבודה. מועדים לשמחה!
+        </p>
+      )}
 
-      <NextUp timeline={day.timeline} now={now} />
+      {/* On a day off, work items stay in the timeline but are never "next up". */}
+      <NextUp timeline={day.dayOff ? day.timeline.filter((i) => i.area !== "business") : day.timeline} now={now} />
       <ChiefShortcuts />
       {metrics && <TodayMetrics metrics={metrics} />}
       <BodyToday day={day} now={now} onSave={saveCheckin} />
@@ -95,6 +107,10 @@ export function TodayView() {
       <EveningCheckin checkin={day.checkin} onSave={saveCheckin} />
     </div>
   );
+}
+
+function weekdayOf(date: string) {
+  return new Intl.DateTimeFormat("he-IL", { weekday: "long", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
 }
 
 function emptyCheckin(date: string): Checkin {

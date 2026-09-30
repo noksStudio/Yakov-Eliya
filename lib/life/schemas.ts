@@ -59,5 +59,7 @@ export const settingsPatchSchema = z
     screens_off_time: timeSchema,
     sleep_time: timeSchema,
     shabbat_silence: z.boolean(),
+    chol_hamoed_off: z.boolean(),
+    start_date: dateSchema.nullable(),
   })
   .partial();

@@ -143,6 +143,8 @@ create table if not exists life_ideas (
 
 -- Safe to re-run on a database created from an earlier version of this file.
 alter table life_checkins add column if not exists workout boolean not null default false;
+alter table life_settings add column if not exists chol_hamoed_off boolean not null default true;
+alter table life_settings add column if not exists start_date text default '2026-10-04';
 alter table life_messages add column if not exists agent text not null default 'chief';
 -- Prep tasks for an event (clothes, gift, invitations) point at it.
 alter table life_tasks add column if not exists event_id uuid references life_events (id) on delete set null;

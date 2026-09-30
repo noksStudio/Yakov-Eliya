@@ -2,7 +2,7 @@ import type { Checkin, DayView, LifeEvent, Settings, Task, TimelineItem } from "
 import { activityEnd, type BodyToday } from "./body";
 import type { LearningToday } from "./learning";
 import type { Recurring } from "./recurring";
-import { fromMinutes, gregorianLabel, hebrewDateLabel, israelToday, restDayOf, toMinutes, weekdayName } from "./time";
+import { cholHamoedOf, fromMinutes, gregorianLabel, hebrewDateLabel, israelToday, restDayOf, toMinutes, weekdayName } from "./time";
 
 /**
  * The fixed shape of a day: anchors (sleep, prayers, hitbodedut) that nothing may move, plus the
@@ -111,8 +111,10 @@ export function buildDay(
         },
       ]
     : [];
+  const dayOff = settings.chol_hamoed_off && !restDayOf(date) ? cholHamoedOf(date) : null;
   const timeline = [
-    ...dayTemplate(settings),
+    // A day off keeps the anchors and routines but drops the work block.
+    ...dayTemplate(settings).filter((item) => !(dayOff && item.key === "deep")),
     ...activity,
     ...study,
     ...recurring.map<TimelineItem>((r) => ({
@@ -158,6 +160,8 @@ export function buildDay(
     gregorian: gregorianLabel(date),
     hebrewDate: hebrewDateLabel(date),
     restDay: settings.shabbat_silence ? restDayOf(date) : null,
+    dayOff,
+    startsOn: settings.start_date && date < settings.start_date ? settings.start_date : null,
     timeline,
     openTasks,
     doneToday,

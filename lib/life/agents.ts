@@ -41,7 +41,7 @@ import { RecurringConflictError, WEEKDAY_LABELS, addRecurring, loadRecurring, ne
 import { bmi, bodyForDate, loadBodyPlan, weightSeries } from "./body";
 import { bodyProfileSchema, mealPlanSchema, shoppingSeedSchema, workoutPlanSchema } from "./body-types";
 import { checkinPatchSchema, dateSchema, newEventSchema, newTaskSchema, taskPatchSchema } from "./schemas";
-import { addDays, gregorianLabel, hebrewDateLabel, israelNow, israelToday, restDayOf, weekdayName } from "./time";
+import { addDays, cholHamoedOf, gregorianLabel, hebrewDateLabel, israelNow, israelToday, restDayOf, weekdayName } from "./time";
 import type { AgentId, ChatMessage } from "./types";
 
 const MODEL = "claude-opus-5-5";
@@ -222,13 +222,16 @@ get_body מחזיר סיכום: הפרופיל (גובה, משקל התחלתי,
 async function contextLine(store: LifeStore, agent: AgentId) {
   const date = israelToday();
   const rest = restDayOf(date);
-  const memory = await loadMemory(store);
+  const [memory, settings] = await Promise.all([loadMemory(store), store.getSettings()]);
+  const holiday = settings.chol_hamoed_off && !rest ? cholHamoedOf(date) : null;
+  const dayOff = holiday ? `. היום ${holiday}: יעקב לא עובד, בלי משימות עבודה ובלי יעדי מכירות` : "";
+  const starts = settings.start_date && date < settings.start_date ? `. השגרה המלאה מתחילה ב־${settings.start_date}` : "";
   const facts = memory.facts.length ? `\nמה ידוע עליו: ${memory.facts.join(" | ")}` : "";
   const questions =
     agent === "chief" && memory.open_questions.length
       ? `\nשאלות פתוחות: ${memory.open_questions.map((q, i) => `(${i}) ${q}`).join(" ")}`
       : "";
-  return `[עכשיו: ${weekdayName(date)}, ${gregorianLabel(date)} (${date}), ${hebrewDateLabel(date)}, השעה ${israelNow()}. מחר: ${addDays(date, 1)}${rest ? `. היום ${rest.name}` : ""}${facts}${questions}]`;
+  return `[עכשיו: ${weekdayName(date)}, ${gregorianLabel(date)} (${date}), ${hebrewDateLabel(date)}, השעה ${israelNow()}. מחר: ${addDays(date, 1)}${rest ? `. היום ${rest.name}` : ""}${dayOff}${starts}${facts}${questions}]`;
 }
 
 /** JSON without null/undefined fields, so tool results cost fewer tokens. */

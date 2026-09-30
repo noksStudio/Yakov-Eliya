@@ -28,6 +28,10 @@ export type Settings = {
   screens_off_time: string;
   sleep_time: string;
   shabbat_silence: boolean;
+  /** No work routine (deep work, sales targets, business nudges) on Chol HaMoed. */
+  chol_hamoed_off: boolean;
+  /** The day the routine starts; before it there are no nudges. */
+  start_date: string | null;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -43,6 +47,8 @@ export const DEFAULT_SETTINGS: Settings = {
   screens_off_time: "22:15",
   sleep_time: "22:45",
   shabbat_silence: true,
+  chol_hamoed_off: true,
+  start_date: "2026-10-04",
 };
 
 export type Task = {
@@ -127,6 +133,10 @@ export type DayView = {
   gregorian: string;
   hebrewDate: string;
   restDay: RestDay | null;
+  /** A day off work that is not Shabbat or Yom Tov (Chol HaMoed), when the setting is on. */
+  dayOff: string | null;
+  /** The routine's start date, while it is still ahead. */
+  startsOn: string | null;
   timeline: TimelineItem[];
   openTasks: Task[];
   doneToday: Task[];

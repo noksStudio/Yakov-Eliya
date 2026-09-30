@@ -317,6 +317,7 @@ function DayCard({ day, today, onChange, onError }: { day: CalDay; today: string
         )}
       </header>
       {day.rest && <p className="mt-1 text-sm text-gold-2/80">{day.rest.kind === "shabbat" ? "שבת שלום" : `${day.rest.name} · חג שמח`}</p>}
+      {day.dayOff && <p className="mt-1 text-sm text-emerald-300/90">{day.dayOff} · חופש מעבודה</p>}
       {day.items.length > 0 ? (
         <ItemList items={day.items} onChange={onChange} onError={onError} />
       ) : (
