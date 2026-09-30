@@ -17,6 +17,8 @@ export function ScheduleHome() {
   const router = useRouter();
   const raw = params.get("v");
   const view: View = raw === "week" || raw === "month" ? raw : "day";
+  const dateParam = params.get("date");
+  const focusDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : undefined;
 
   return (
     <div className="flex flex-col gap-4">
@@ -36,7 +38,8 @@ export function ScheduleHome() {
           </button>
         ))}
       </div>
-      {view === "day" ? <TodayView /> : view === "week" ? <WeekView /> : <MonthView />}
+      {/* Keyed by the date so a new ?date= (from search) re-opens the view on it. */}
+      {view === "day" ? <TodayView /> : view === "week" ? <WeekView key={focusDate} focusDate={focusDate} /> : <MonthView key={focusDate} focusDate={focusDate} />}
     </div>
   );
 }

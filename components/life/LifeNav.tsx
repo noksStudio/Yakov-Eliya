@@ -14,6 +14,7 @@ import {
   Lightbulb,
   LogOut,
   Menu,
+  Search,
   MessageCircle,
   MoonStar,
   Settings,
@@ -26,11 +27,11 @@ import {
 
 type Tab = { href: string; label: string; icon: LucideIcon; also?: string[] };
 
-// Right to left: menu · chief · my day (centre) · body · shopping.
+// Right to left: menu · chief · my day (centre) · search · shopping. Body lives in the menu.
 const LEFT_OF_MENU: Tab[] = [
   { href: "/life/chat", label: "המנהל", icon: Crown },
   { href: "/life", label: "היום שלי", icon: CalendarDays },
-  { href: "/life/body", label: "גוף", icon: Dumbbell, also: ["/life/coach"] },
+  { href: "/life/search", label: "חיפוש", icon: Search },
   { href: "/life/shopping", label: "קניות", icon: ShoppingCart },
 ];
 

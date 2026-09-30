@@ -290,14 +290,29 @@ function AddEventForm({ date, onDone, onCancel }: { date: string; onDone: () => 
   );
 }
 
-function DayCard({ day, today, onChange, onError }: { day: CalDay; today: string; onChange: () => void; onError: (m: string) => void }) {
+function DayCard({
+  day,
+  today,
+  focused = false,
+  onChange,
+  onError,
+}: {
+  day: CalDay;
+  today: string;
+  focused?: boolean;
+  onChange: () => void;
+  onError: (m: string) => void;
+}) {
   const [adding, setAdding] = useState(false);
   const isToday = day.date === today;
   const past = day.date < today;
   return (
     <section
+      id={`day-${day.date}`}
       aria-label={`${WEEKDAYS[day.weekday]} ${shortDate(day.date)}`}
-      className={`rounded-2xl border p-3 ${isToday ? "border-gold/50 bg-gold/[0.06]" : "border-border-soft bg-surface"} ${past ? "opacity-75" : ""}`}
+      className={`scroll-mt-24 rounded-2xl border p-3 ${isToday ? "border-gold/50 bg-gold/[0.06]" : "border-border-soft bg-surface"} ${
+        past && !focused ? "opacity-75" : ""
+      } ${focused ? "ring-2 ring-gold/60" : ""}`}
     >
       <header className="flex items-center justify-between gap-2">
         <h2 className="flex min-w-0 items-baseline gap-2">
@@ -345,9 +360,10 @@ function hebrewSpan(from: string, to: string) {
   return a.month === b.month ? `${a.day} עד ${b.day} ${b.month}` : `${a.day} ${a.month} עד ${b.day} ${b.month}`;
 }
 
-export function WeekView() {
+/** `focusDate` (from ?date=, e.g. a search result) opens that week and scrolls to the day. */
+export function WeekView({ focusDate }: { focusDate?: string }) {
   const [today] = useState(() => israelToday());
-  const [start, setStart] = useState(() => weekStartOf(today));
+  const [start, setStart] = useState(() => weekStartOf(focusDate ?? today));
   const end = addDays(start, 6);
   const { data, stale, error, setError, loading, reload } = useCalendar(start, end);
   const next = () => setStart(addDays(start, 7));
@@ -355,6 +371,11 @@ export function WeekView() {
   const swipe = useSwipe(next, prev);
   const sameMonth = start.slice(0, 7) === end.slice(0, 7);
   const shown = data ?? stale;
+
+  useEffect(() => {
+    if (!focusDate || !data) return;
+    document.getElementById(`day-${focusDate}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [focusDate, data]);
 
   return (
     <div className="flex flex-col gap-3" {...swipe}>
@@ -372,7 +393,7 @@ export function WeekView() {
         <div className={`flex flex-col gap-2 transition-opacity ${data ? "" : "opacity-50"}`}>
           <SummaryStrip summary={shown.summary} />
           {shown.days.map((d) => (
-            <DayCard key={d.date} day={d} today={today} onChange={reload} onError={setError} />
+            <DayCard key={d.date} day={d} today={today} focused={d.date === focusDate} onChange={reload} onError={setError} />
           ))}
         </div>
       ) : (
@@ -385,10 +406,10 @@ export function WeekView() {
   );
 }
 
-export function MonthView() {
+export function MonthView({ focusDate }: { focusDate?: string }) {
   const [today] = useState(() => israelToday());
-  const [month, setMonth] = useState(() => today.slice(0, 7));
-  const [selected, setSelected] = useState(today);
+  const [month, setMonth] = useState(() => (focusDate ?? today).slice(0, 7));
+  const [selected, setSelected] = useState(focusDate ?? today);
   const first = `${month}-01`;
   const last = lastDayOfMonth(month);
   const gridStart = weekStartOf(first);
