@@ -46,14 +46,15 @@ export function AgentChat({ agent }: { agent: AgentId }) {
   const endRef = useRef<HTMLDivElement>(null);
   const presetSent = useRef(false);
 
-  const send = async (text: string) => {
+  // Planning requests (the presets and suggestion chips) get more thinking; free chat stays light.
+  const send = async (text: string, deep = false) => {
     const message = text.trim();
     if (!message || pending) return;
     setPending(message);
     setError(null);
     setInput("");
     try {
-      const data = await lifeApi<{ messages: ChatMessage[] }>("/chat", { method: "POST", body: { message, agent } });
+      const data = await lifeApi<{ messages: ChatMessage[] }>("/chat", { method: "POST", body: { message, agent, deep } });
       setMessages((prev) => [...prev, ...data.messages]);
     } catch (e) {
       setError((e as Error).message);
@@ -79,7 +80,7 @@ export function AgentChat({ agent }: { agent: AgentId }) {
     if (!loaded || !preset || presetSent.current || !connected) return;
     presetSent.current = true;
     window.history.replaceState(null, "", window.location.pathname);
-    void send(preset);
+    void send(preset, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, connected, params]);
 
@@ -133,7 +134,7 @@ export function AgentChat({ agent }: { agent: AgentId }) {
               key={s}
               type="button"
               disabled={Boolean(pending)}
-              onClick={() => send(s)}
+              onClick={() => send(s, true)}
               className="shrink-0 rounded-full border border-border-soft bg-surface px-3 py-1.5 text-xs text-muted hover:text-foreground disabled:opacity-50"
             >
               {s}

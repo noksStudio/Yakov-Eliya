@@ -17,14 +17,18 @@ export async function GET(request: Request) {
   }));
 }
 
-const bodySchema = z.object({ message: z.string().trim().min(1).max(4000), agent: agentSchema });
+const bodySchema = z.object({
+  message: z.string().trim().min(1).max(4000),
+  agent: agentSchema,
+  deep: z.boolean().default(false),
+});
 
 export async function POST(request: Request) {
   const body = await readJson(request);
   return withStore(async (store) => {
-    const { message, agent } = bodySchema.parse(body);
+    const { message, agent, deep } = bodySchema.parse(body);
     try {
-      const reply = await askAgent(store, agent, message);
+      const reply = await askAgent(store, agent, message, deep);
       // Stored only after a successful turn, so a failed call can simply be retried.
       const user = await store.addMessage(agent, "user", message);
       const assistant = await store.addMessage(agent, "assistant", reply);

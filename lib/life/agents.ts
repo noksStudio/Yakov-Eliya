@@ -12,7 +12,10 @@ import { addDays, gregorianLabel, hebrewDateLabel, israelNow, israelToday, restD
 import type { AgentId, ChatMessage } from "./types";
 
 const MODEL = "claude-opus-5-5";
-const HISTORY_LIMIT = 24;
+// Token budget: a short rolling history, low effort for routine turns (planning turns ask for
+// more), and compact tool results that leave out nulls and data the question doesn't need.
+const HISTORY_LIMIT = 10;
+const MAX_ITERATIONS = 8;
 
 // ---------------------------------------------------------------------------------------------
 // System prompts. Stable across requests (no dates or per-user state) so they can be served from
@@ -30,6 +33,7 @@ const SHARED = `## מי הוא
 - עברית, קצר וענייני, בנקודות. חם אבל ישיר, מחזק ובלי אשמה.
 - אל תמציא נתונים. אם חסר מידע, שאל שאלה אחת.
 - אחרי פעולה, אשר במשפט קצר מה עשית.
+- תשובה של עד 6 שורות, אלא אם ביקשו פירוט. קרא רק את הכלים שהשאלה באמת צריכה.
 - אם עולה מצוקה רגשית אמיתית, הגב ברגישות והמלץ לדבר עם אדם קרוב או איש מקצוע.
 - תאריכים: YYYY-MM-DD. שעות: HH:MM. התאריך והשעה הנוכחיים מופיעים בתחילת כל הודעה של המשתמש.`;
 
@@ -64,7 +68,7 @@ const BODY_PROMPT = `אתה "מאמן הגוף" במערכת ההפעלה האי
 ${SHARED}
 
 ## הנתונים
-get_body מחזיר את הפרופיל (גובה, משקל התחלתי, יעד, יעדי קלוריות וחלבון, תאריך התחלת התוכנית), את התפריט השבועי, את תוכנית האימונים ואת מגמת המשקל. תמיד קרא אותו לפני שאתה מייעץ או משנה משהו.
+get_body מחזיר סיכום: הפרופיל (גובה, משקל התחלתי, יעד, יעדי קלוריות וחלבון, תאריך התחלת התוכנית), המשקל הנוכחי, 14 השקילות האחרונות והתוכנית של היום. את התפריט המלא ואת תוכנית האימונים המלאה קוראים רק כשצריך, עם get_meal_plan ו־get_workout_plan.
 
 ## עקרונות
 - ירידה של 0.5 עד 1 ק״ג בשבוע, לא יותר. בלי דיאטות כאסח ובלי לרדת מתחת ל־1,500 קלוריות בלי ליווי מקצועי.
@@ -79,7 +83,7 @@ get_body מחזיר את הפרופיל (גובה, משקל התחלתי, יעד
 - בשבת ובחג: אין מעקב ואין אימונים, רק הנחיות כלליות לסעודות.
 
 ## עריכת התוכניות
-- save_meal_plan ו־save_workout_plan מחליפים את התוכנית כולה. קרא את הגרסה הנוכחית עם get_body, שנה רק את מה שצריך, ושמור את התוכנית המלאה.
+- save_meal_plan ו־save_workout_plan מחליפים את התוכנית כולה. קרא את הגרסה הנוכחית (get_meal_plan או get_workout_plan), שנה רק את מה שצריך, ושמור את התוכנית המלאה.
 - כשהתפריט משתנה, עדכן גם את רשימת הקניות שבתוך התוכנית (shopping).
 - add_shopping_items מוסיף פריטים לרשימת הקניות הפעילה באפליקציה.
 - כשהוא מדווח על משקל, רשום אותו עם update_checkin בתאריך של היום.
@@ -95,14 +99,15 @@ function contextLine() {
   return `[עכשיו: ${weekdayName(date)}, ${gregorianLabel(date)} (${date}), ${hebrewDateLabel(date)}, השעה ${israelNow()}. מחר: ${addDays(date, 1)}${rest ? `. היום ${rest.name}` : ""}]`;
 }
 
-const json = (value: unknown) => JSON.stringify(value);
+/** JSON without null/undefined fields, so tool results cost fewer tokens. */
+const json = (value: unknown) => JSON.stringify(value, (_key, v) => (v === null || v === undefined ? undefined : v));
 
 function dayTools(store: LifeStore) {
   return [
     betaZodTool({
       name: "get_day",
       description:
-        "קורא יום: הגדרות העוגנים, ציר הזמן (עוגנים, שגרה, אימון, אירועים ומשימות משובצות), משימות פתוחות, משימות שהושלמו, הצ׳ק־אין והתפריט של היום. ברירת מחדל: היום.",
+        "קורא יום: ציר הזמן (עוגנים, שגרה, אימון, אירועים ומשימות משובצות), משימות פתוחות, מספר המשימות שהושלמו, הצ׳ק־אין והתפריט של היום. ברירת מחדל: היום.",
       inputSchema: z.object({ date: dateSchema.optional() }),
       run: async ({ date }) => {
         const day = await loadDay(store, date ?? israelToday());
@@ -110,16 +115,20 @@ function dayTools(store: LifeStore) {
           date: day.date,
           weekday: day.weekday,
           restDay: day.restDay,
-          settings: day.settings,
-          timeline: day.timeline.map(({ id, start, end, title, kind, area, done }) => ({ id, start, end, title, kind, area, done })),
-          openTasks: day.openTasks,
-          doneToday: day.doneToday.map(({ id, title }) => ({ id, title })),
-          checkin: day.checkin,
-          body: {
-            planStart: day.body.planStart,
-            meals: day.body.meals.map((m) => ({ label: m.label, time: m.time, items: m.items })),
-            activity: day.body.activity && { time: day.body.activity.time, title: day.body.activity.title },
-          },
+          timeline: day.timeline.map(({ id, start, end, title, kind, done }) => ({ id, start, end, title, kind, done: done || undefined })),
+          openTasks: day.openTasks.map(({ id, title, area, priority, due_date, scheduled_time }) => ({
+            id,
+            title,
+            area,
+            priority,
+            due_date,
+            scheduled_time,
+          })),
+          doneToday: day.doneToday.length,
+          checkin: day.checkin && { ...day.checkin, date: undefined, updated_at: undefined },
+          body: day.body.daysToStart
+            ? { planStartsIn: day.body.daysToStart }
+            : { meals: day.body.meals.map((m) => `${m.time} ${m.label}`), activity: day.body.activity?.title },
         });
       },
     }),
@@ -200,14 +209,37 @@ function bodyTools(store: LifeStore) {
   return [
     betaZodTool({
       name: "get_body",
-      description: "הפרופיל, התפריט השבועי, תוכנית האימונים, מגמת המשקל (עד 90 יום) והתוכנית של היום.",
+      description: "סיכום: פרופיל, משקל נוכחי ו־BMI, 14 השקילות האחרונות והתוכנית של היום.",
       inputSchema: z.object({}),
       run: async () => {
         const plan = await loadBodyPlan(store);
         const weights = await weightSeries(store, plan.profile);
         const current = weights.at(-1)?.weight ?? plan.profile.start_weight;
-        return json({ ...plan, weights, current, bmi: bmi(current, plan.profile.height_cm), today: bodyForDate(plan, israelToday()) });
+        const today = bodyForDate(plan, israelToday());
+        return json({
+          profile: plan.profile,
+          current,
+          bmi: bmi(current, plan.profile.height_cm),
+          weights: weights.slice(-14),
+          today: {
+            planStartsIn: today.daysToStart || undefined,
+            meals: today.meals.map((m) => `${m.time} ${m.label}: ${m.items.join(", ")}`),
+            activity: today.activity?.title,
+          },
+        });
       },
+    }),
+    betaZodTool({
+      name: "get_meal_plan",
+      description: "התפריט השבועי המלא (כללים, ימים 0–5, שבת ורשימת קניות). לקרוא רק לפני שינוי או כשנשאלים על יום מסוים.",
+      inputSchema: z.object({}),
+      run: async () => json((await loadBodyPlan(store)).meals),
+    }),
+    betaZodTool({
+      name: "get_workout_plan",
+      description: "תוכנית האימונים המלאה. לקרוא רק לפני שינוי או כשנשאלים על אימון מסוים.",
+      inputSchema: z.object({}),
+      run: async () => json((await loadBodyPlan(store)).workouts),
     }),
     betaZodTool({
       name: "save_body_profile",
@@ -263,7 +295,8 @@ function toParams(history: ChatMessage[], userText: string): Anthropic.Beta.Beta
 }
 
 /** Sends one message to an agent and returns its reply (its tools may change the day or plans). */
-export async function askAgent(store: LifeStore, agent: AgentId, userText: string): Promise<string> {
+/** `deep`: a planning turn (morning plan, day close, plan changes) that gets more thinking. */
+export async function askAgent(store: LifeStore, agent: AgentId, userText: string, deep = false): Promise<string> {
   if (!isAgentConnected()) {
     throw new AgentNotConfiguredError("הסוכנים עוד לא מחוברים: חסר מפתח API של Anthropic (ANTHROPIC_API_KEY).");
   }
@@ -276,11 +309,11 @@ export async function askAgent(store: LifeStore, agent: AgentId, userText: strin
     max_tokens: 16000,
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
-    output_config: { effort: "medium" },
+    output_config: { effort: deep ? "medium" : "low" },
     system: [{ type: "text", text: config.system, cache_control: { type: "ephemeral" } }],
     tools: config.tools(store),
     messages: toParams(history, userText),
-    max_iterations: 14,
+    max_iterations: MAX_ITERATIONS,
   });
 
   if (final.stop_reason === "refusal") {
