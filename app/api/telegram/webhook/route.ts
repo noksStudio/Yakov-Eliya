@@ -3,13 +3,16 @@ import { AgentNotConfiguredError, askAgent } from "@/lib/life/agents";
 import { loadBodyPlan } from "@/lib/life/body";
 import { financeSummary } from "@/lib/life/finance";
 import { getIdeasStore } from "@/lib/life/ideas";
+import { goalsProgress, weekFocus } from "@/lib/life/growth";
+import { getLessonsStore } from "@/lib/life/lessons";
+import { addReminder, parseWhen, removeReminder, upcomingReminders } from "@/lib/life/reminders";
 import { metricsMessage, morningMessage } from "@/lib/life/notify";
 import { EXPENSE_CATEGORIES, financeEntrySchema } from "@/lib/life/ops-types";
 import { getOpsStore } from "@/lib/life/ops-store";
 import { loadDay } from "@/lib/life/service";
 import { getLifeStore, type LifeStore } from "@/lib/life/store";
 import { HELP_TEXT, escapeHtml, loadTelegram, safeEqual, saveTelegram, sendMessage, telegramCall, webhookSecret } from "@/lib/life/telegram";
-import { israelToday } from "@/lib/life/time";
+import { addDays, israelToday } from "@/lib/life/time";
 
 // Telegram webhook. Outside the proxy matcher: Telegram proves itself with the secret token set in
 // setWebhook, and only the one chat bound through the settings deep link is ever served.
@@ -48,7 +51,16 @@ export async function POST(request: Request) {
   const chatId = message.chat.id;
   const text = message.text.trim();
   const [rawCommand, ...rest] = text.split(/\s+/);
-  const command = rawCommand.startsWith("/") ? rawCommand.slice(1).split("@")[0].toLowerCase() : null;
+  let command = rawCommand.startsWith("/") ? rawCommand.slice(1).split("@")[0].toLowerCase() : null;
+  let raw = command ? text.slice(rawCommand.length).trim() : text;
+  // Plain Hebrew works too: "לקח: …", "רעיון: …", "תזכורת: …", "תזכיר לי מחר ב־10:00 …".
+  if (!command) {
+    const prefix = TEXT_PREFIXES.find(([re]) => re.test(text));
+    if (prefix) {
+      command = prefix[1];
+      raw = text.replace(prefix[0], "").trim();
+    }
+  }
 
   // Binding: the deep link from settings opens the bot with "/start <code>".
   if (command === "start" && rest[0] && telegram.link_code && safeEqual(rest[0], telegram.link_code)) {
@@ -64,7 +76,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const reply = command ? await runCommand(store, command, rest, new URL(request.url).origin, text.slice(rawCommand.length).trim()) : null;
+    const reply = command ? await runCommand(store, command, rest, new URL(request.url).origin, raw) : null;
     if (reply) {
       await sendMessage(chatId, reply, true);
       return ok();
@@ -81,6 +93,20 @@ export async function POST(request: Request) {
     await sendMessage(chatId, "משהו השתבש. נסה שוב בעוד רגע.").catch(() => {});
   }
   return ok();
+}
+
+const TEXT_PREFIXES: [RegExp, string][] = [
+  [/^לקח\s*[:\-־]\s*/, "lesson"],
+  [/^רעיון\s*[:\-־]\s*/, "idea"],
+  // (No \b: JavaScript word boundaries do not see Hebrew letters.)
+  [/^(?:תזכורת\s*[:\-־]|תזכירי? לי(?=\s|$))\s*/, "remind"],
+];
+
+function whenLabel(date: string, today: string) {
+  if (date === today) return "היום";
+  if (date === addDays(today, 1)) return "מחר";
+  const weekday = new Intl.DateTimeFormat("he-IL", { weekday: "long", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
+  return `ב${weekday} ${Number(date.slice(8, 10))}.${Number(date.slice(5, 7))}`;
 }
 
 /** `raw`: everything after the command, line breaks kept (for /idea notes). */
@@ -102,6 +128,54 @@ async function runCommand(store: LifeStore, command: string, args: string[], ori
       const [title, ...rest] = text.split("\n");
       const idea = await getIdeasStore().add({ title: title.slice(0, 200), notes: rest.join("\n").trim() });
       return `💡 נשמר ברעיונות: <b>${escapeHtml(idea.title)}</b>\n<a href="${origin}/life/ideas/${idea.id}">לפתוח ולהוסיף פרטים</a>`;
+    }
+    case "lesson": {
+      const [rule, ...story] = raw.split("\n");
+      if (!rule || rule.trim().length < 3) return "כתוב את הלקח אחרי הפקודה, למשל: /lesson לא שולחים הצעת מחיר בלי שיחת אבחון";
+      const lesson = await getLessonsStore().add({ rule: rule.trim(), story: story.join("\n").trim() || null });
+      return `💡 נשמר לקח: <b>${escapeHtml(lesson.rule)}</b>\nיחזור אליך ${whenLabel(lesson.next_review, today)} בבוקר, ואחר כך ברווחים הולכים וגדלים.`;
+    }
+    case "remind": {
+      if (!raw) return "למשל: /remind מחר 10:00 להתקשר לדני\nאו פשוט: ״תזכיר לי בעוד 20 דקות לצאת״";
+      const parsed = parseWhen(raw);
+      if ("error" in parsed) return parsed.error;
+      await addReminder(store, parsed);
+      return `⏰ אזכיר לך ${whenLabel(parsed.date, today)} ב־${parsed.time}: ${escapeHtml(parsed.text)}`;
+    }
+    case "reminders": {
+      const list = await upcomingReminders(store);
+      if (!list.length) return "אין תזכורות פתוחות. להוספה: /remind מחר 10:00 להתקשר לדני";
+      return [
+        "<b>תזכורות פתוחות</b>",
+        ...list.slice(0, 15).map((r, i) => `${i + 1}. ${whenLabel(r.date, today)} ${r.time} · ${escapeHtml(r.text)}`),
+        "",
+        "לביטול: /cancel ומספר, למשל /cancel 1",
+      ].join("\n");
+    }
+    case "cancel": {
+      const list = await upcomingReminders(store);
+      const n = Number(args[0]);
+      const target = Number.isInteger(n) && n >= 1 ? list[n - 1] : undefined;
+      if (!target) return list.length ? "כתוב את מספר התזכורת מ־/reminders, למשל /cancel 1" : "אין תזכורות פתוחות.";
+      await removeReminder(store, target.id);
+      return `בוטלה: ${escapeHtml(target.text)}`;
+    }
+    case "goals": {
+      const goals = await goalsProgress(store, ops, today);
+      const mark = { done: "✅", on_track: "🟢", behind: "🟠", no_data: "⚪️" } as const;
+      const n = (v: number) => (Math.abs(v) >= 1000 ? Math.round(v).toLocaleString("he-IL") : String(Math.round(v * 10) / 10));
+      return [
+        "🎯 <b>חזון 30</b>",
+        ...goals.map((g) => `${mark[g.status]} ${escapeHtml(g.title)}: ${g.current === null ? "—" : n(g.current)} / ${n(g.target)} ${escapeHtml(g.unit)} (${g.pct}%)`),
+        "",
+        `<a href="${origin}/life/growth">למסך הצמיחה</a>`,
+      ].join("\n");
+    }
+    case "focus": {
+      const focus = await weekFocus(store, today);
+      return focus.length
+        ? ["<b>הפוקוס של השבוע</b>", ...focus.map((f) => `• ${escapeHtml(f)}`)].join("\n")
+        : `עוד לא נקבע פוקוס לשבוע. <a href="${origin}/life/growth?tab=review">לסקירה השבועית</a>`;
     }
     case "workout":
       await store.saveCheckin(today, { workout: true });

@@ -34,7 +34,8 @@ export type DocKey =
   | "couple"
   | "seeds"
   | "goals"
-  | "reviews";
+  | "reviews"
+  | "reminders";
 
 export interface LifeStore {
   getSettings(): Promise<Settings>;

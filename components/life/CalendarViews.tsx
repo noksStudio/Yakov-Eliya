@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Bell,
   BookOpen,
   Briefcase,
   CalendarDays,
@@ -38,6 +39,7 @@ const KIND_ICON: Record<CalItemKind, typeof CalendarDays> = {
   task: ListChecks,
   followup: Briefcase,
   occasion: Gift,
+  reminder: Bell,
 };
 
 // Local copy of the week maths (lib/life/calendar pulls in server-only stores).

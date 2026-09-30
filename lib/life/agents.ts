@@ -27,6 +27,7 @@ import { calendarRange, weekStart } from "./calendar";
 import { getIdeasStore, newIdeaSchema } from "./ideas";
 import { goalPatchSchema, growthSummary, newLessonSchema, reviewSchema, saveReview, updateGoal } from "./growth";
 import { getLessonsStore } from "./lessons";
+import { addReminder, quietFor } from "./reminders";
 import {
   addGift,
   addSpecialDate,
@@ -42,7 +43,7 @@ import {
 import { RecurringConflictError, WEEKDAY_LABELS, addRecurring, loadRecurring, newRecurringSchema, removeRecurring } from "./recurring";
 import { bmi, bodyForDate, loadBodyPlan, weightSeries } from "./body";
 import { bodyProfileSchema, mealPlanSchema, shoppingSeedSchema, workoutPlanSchema } from "./body-types";
-import { checkinPatchSchema, dateSchema, newEventSchema, newTaskSchema, taskPatchSchema } from "./schemas";
+import { checkinPatchSchema, dateSchema, newEventSchema, newTaskSchema, taskPatchSchema, timeSchema } from "./schemas";
 import { addDays, cholHamoedOf, gregorianLabel, hebrewDateLabel, israelNow, israelToday, restDayOf, weekdayName } from "./time";
 import type { AgentId, ChatMessage } from "./types";
 
@@ -454,6 +455,17 @@ function growthTools(store: LifeStore) {
       description: "שומר את הסקירה השבועית של השבוע הנוכחי: מה הלך טוב, מה היה קשה, הלקח, ועד 3 פוקוסים לשבוע (מופיעים במסך היום ובהודעת הבוקר).",
       inputSchema: reviewSchema,
       run: async (input) => json(await saveReview(store, input)),
+    }),
+    betaZodTool({
+      name: "add_reminder",
+      description: "קובע תזכורת חד־פעמית שתישלח בטלגרם בשעה שנקבעה (לא בשבת ובחג, ולא בערב שבת או חג מ־14:00).",
+      inputSchema: z.object({ date: dateSchema, time: timeSchema, text: z.string().trim().min(1).max(300) }),
+      run: async (input) => {
+        const quiet = quietFor(input.date, input.time);
+        if (quiet) return `שגיאה: ${quiet}`;
+        const r = await addReminder(store, input);
+        return json({ id: r.id, date: r.date, time: r.time, text: r.text });
+      },
     }),
     betaZodTool({
       name: "update_goal",

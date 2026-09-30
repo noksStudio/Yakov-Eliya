@@ -7,6 +7,7 @@ import { financeSummary } from "./finance";
 import { computeMetrics } from "./metrics";
 import { computeInsights, goalsProgress } from "./growth";
 import { getLessonsStore, markLessonShown, pickLesson } from "./lessons";
+import { dueReminders, loadReminders, markRemindersSent } from "./reminders";
 import { loadDay } from "./service";
 import { escapeHtml, loadTelegram, sendMessage } from "./telegram";
 import { addDays, fromMinutes, israelNow, israelToday, restDayOf, toMinutes } from "./time";
@@ -117,6 +118,8 @@ export async function morningMessage(store: LifeStore, ops: OpsStore, day: DayVi
       ),
     );
   }
+  const reminders = (await loadReminders(store)).filter((r) => !r.sent && r.date === day.date);
+  if (reminders.length) lines.push("", "<b>תזכורות להיום</b>", ...reminders.map((r) => `⏰ ${r.time} ${escapeHtml(r.text)}`));
   if (day.weekFocus.length) lines.push("", "<b>הפוקוס של השבוע</b>", ...day.weekFocus.map((f) => `• ${escapeHtml(f)}`));
   const lesson = await lessonForDay(day);
   if (lesson) lines.push("", `💡 <b>לקח:</b> ${escapeHtml(lesson.rule)}`);
@@ -233,19 +236,35 @@ export async function runNotifications(store: LifeStore, ops: OpsStore, origin: 
   const quiet = quietReason(date, nowMinutes);
   if (quiet) return { ...base, skipped: quiet };
 
+  // Reminders he set himself go out even before the routine starts.
+  const telegramDoc = await loadTelegram(store);
+  const due = dueReminders(await loadReminders(store), date, nowMinutes);
+  if (due.length && (opts.dry || telegramDoc.chat_id)) {
+    for (const r of due) {
+      const text = `⏰ <b>תזכורת:</b> ${escapeHtml(r.text)}`;
+      if (opts.dry) {
+        base.sent.push({ id: `reminder-${r.id}`, at: r.time, text });
+        continue;
+      }
+      await sendMessage(telegramDoc.chat_id!, text, true);
+      base.sent.push({ id: `reminder-${r.id}`, at: r.time });
+    }
+    if (!opts.dry) await markRemindersSent(store, due.map((r) => r.id));
+  }
+
   const settings = await store.getSettings();
   if (settings.start_date && date < settings.start_date) {
     return { ...base, skipped: `השגרה מתחילה ב־${settings.start_date.split("-").reverse().join(".")}` };
   }
 
-  const telegram = await loadTelegram(store);
+  const telegram = telegramDoc;
   if (!opts.dry && !telegram.chat_id) return { ...base, skipped: "הבוט עוד לא מחובר לצ׳אט" };
 
   const [day, prefs, savedLog] = await Promise.all([loadDay(store, date), loadNotifyPrefs(store), store.getDoc<NotifyLog>("notify_log")]);
   const log: NotifyLog = savedLog?.date === date ? savedLog : { date, sent: [] };
-  const due = dueSlots(day, prefs, opts.dry ? [] : log.sent, nowMinutes);
+  const slots = dueSlots(day, prefs, opts.dry ? [] : log.sent, nowMinutes);
 
-  for (const slot of due) {
+  for (const slot of slots) {
     const text = await messageFor(slot, store, ops, day, origin);
     if (opts.dry) {
       base.sent.push({ id: slot.id, at: slot.at, text });

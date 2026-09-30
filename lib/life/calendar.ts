@@ -6,6 +6,7 @@ import { learningForDate, loadLearningGoal } from "./learning";
 import { OPEN_STAGES } from "./ops-types";
 import { loadRecurring, recurringFor } from "./recurring";
 import { loadCouple, occasionLabel, upcomingOccasions } from "./couple";
+import { loadReminders } from "./reminders";
 import { addDays, cholHamoedOf, fromMinutes, hebrewDayMonth, israelToday, restDayOf } from "./time";
 
 // The week and month views: only what changes from day to day (events, weekly commitments,
@@ -13,7 +14,7 @@ import { addDays, cholHamoedOf, fromMinutes, hebrewDayMonth, israelToday, restDa
 
 export const MAX_RANGE_DAYS = 42;
 
-export type CalItemKind = "event" | "recurring" | "workout" | "learning" | "task" | "followup" | "occasion";
+export type CalItemKind = "event" | "recurring" | "workout" | "learning" | "task" | "followup" | "occasion" | "reminder";
 
 export type CalItem = {
   key: string;
@@ -82,6 +83,7 @@ export async function calendarRange(store: LifeStore, ops: OpsStore, from: strin
     loadCouple(store),
     store.getSettings(),
   ]);
+  const reminders = (await loadReminders(store)).filter((r) => r.date >= from && r.date <= to);
   const occasions = upcomingOccasions(couple, from, daysBetween(from, to));
   const prepTasks = await store.listEventTasks(events.map((e) => e.id));
   const checkinByDate = new Map(checkins.map((c) => [c.date, c]));
@@ -147,6 +149,9 @@ export async function calendarRange(store: LifeStore, ops: OpsStore, from: strin
         note: d.next_action ?? undefined,
         area: "business",
       });
+    }
+    for (const r of reminders.filter((rem) => rem.date === date)) {
+      items.push({ key: `reminder-${r.id}`, kind: "reminder", time: r.time, end: null, title: r.text, area: "general", done: r.sent });
     }
     for (const o of occasions.filter((occ) => occ.date === date)) {
       items.push({ key: `occasion-${o.key}-${date}`, kind: "occasion", time: null, end: null, title: occasionLabel(o), area: "couple" });
