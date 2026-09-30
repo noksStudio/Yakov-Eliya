@@ -4,6 +4,7 @@ import type { ShoppingCategory } from "./body-types";
 import { loadBodyPlan } from "./body";
 import { financeSummary } from "./finance";
 import { getIdeasStore } from "./ideas";
+import { firstFollowUp, getLeadsStore, PHONE_RE } from "./leads";
 import { getLessonsStore } from "./lessons";
 import { EXPENSE_CATEGORIES, financeEntrySchema } from "./ops-types";
 import { addReminder, parseWhen } from "./reminders";
@@ -13,15 +14,17 @@ import { addDays, israelToday } from "./time";
 // and by Telegram, so both understand the same phrases:
 //   לקח: …  (#טיול makes it contextual)   רעיון: …   תזכיר לי מחר ב־10:00 …   תזכורת: …
 //   הכנסה 1500 לקוח   הוצאה 300 שיווק   משקל 84.6   עשיתי אימון   קניות: חלב, ביצים
+//   ליד: דני 050-1234567 מסעדה
 // Anything else becomes a task (dated if the line says when), or, in Telegram, goes to the chief.
 
-export type CaptureKind = "lesson" | "idea" | "reminder" | "income" | "expense" | "weight" | "workout" | "shopping" | "task";
+export type CaptureKind = "lesson" | "idea" | "reminder" | "lead" | "income" | "expense" | "weight" | "workout" | "shopping" | "task";
 export type CaptureResult = { kind: CaptureKind; message: string; href: string } | { error: string };
 
 const KIND_LABEL: Record<CaptureKind, string> = {
   lesson: "לקח",
   idea: "רעיון",
   reminder: "תזכורת",
+  lead: "ליד",
   income: "הכנסה",
   expense: "הוצאה",
   weight: "שקילה",
@@ -52,6 +55,25 @@ const AISLES: [RegExp, ShoppingCategory][] = [
 const aisleOf = (item: string): ShoppingCategory => AISLES.find(([re]) => re.test(item))?.[1] ?? "שונות";
 
 const num = (raw: string) => Number(raw.replace(/,/g, ""));
+
+const trimPunct = (s: string) => s.replace(/^[\s,،\-–:]+|[\s,،\-–:]+$/g, "");
+
+/** "דני 050-1234567 מסעדה", "דני, מסעדה", "050-1234567 דני מסעדה": name, phone, what he does. */
+export function parseLead(input: string) {
+  const text = input.trim();
+  const phone = text.match(PHONE_RE)?.[0] ?? null;
+  // Without a phone, a comma separates the name from the rest; with one, the phone does.
+  const [first, second = ""] = phone ? text.split(phone).map(trimPunct) : [text, ""];
+  let name = first;
+  let rest = second;
+  if (!name && rest) [name, rest] = splitFirst(rest);
+  else if (!phone) [name, rest] = splitFirst(name);
+  return { name: name.slice(0, 80), phone, rest: rest.slice(0, 120) };
+}
+function splitFirst(text: string): [string, string] {
+  const [head, ...tail] = text.split(/[,،]/);
+  return [trimPunct(head), trimPunct(tail.join(","))];
+}
 
 type Rule = { re: RegExp; run: (m: RegExpMatchArray, ctx: Ctx) => Promise<CaptureResult> };
 type Ctx = { store: LifeStore; ops: OpsStore; today: string };
@@ -87,6 +109,21 @@ const RULES: Rule[] = [
       if ("error" in parsed) return parsed;
       await addReminder(store, { date: parsed.date, time: parsed.time, text: parsed.text });
       return { kind: "reminder", message: `אזכיר לך ${whenLabel(parsed.date, today)} ב־${parsed.time}: ${parsed.text}`, href: `/life?v=week&date=${parsed.date}` };
+    },
+  },
+  {
+    re: /^ליד\s*[:\-־]\s*([\s\S]+)$/,
+    run: async (m, { store, today }) => {
+      const { name, phone, rest } = parseLead(m[1]);
+      if (!name) return { error: "כתוב שם, למשל: ״ליד: דני 050-1234567 מסעדה״" };
+      const settings = await store.getSettings();
+      const follow = firstFollowUp(new Date(), { cholHamoedOff: settings.chol_hamoed_off });
+      await getLeadsStore().add({ name, phone, business_type: rest || null, follow_up_date: follow, source: "manual" });
+      return {
+        kind: "lead",
+        message: `נוסף ליד: ${[name, rest].filter(Boolean).join(" · ")}${phone ? "" : " (בלי טלפון)"}. לחזור ${whenLabel(follow, today)}.`,
+        href: "/life/business",
+      };
     },
   },
   {

@@ -12,6 +12,7 @@ export type SearchKind =
   | "idea"
   | "lesson"
   | "goal"
+  | "lead"
   | "deal"
   | "gift"
   | "shopping"
@@ -31,6 +32,7 @@ export const KIND_LABELS: Record<SearchKind, string> = {
   idea: "רעיונות",
   lesson: "לקחים",
   goal: "יעדים",
+  lead: "לידים",
   deal: "עסקאות",
   gift: "מתנות",
   shopping: "רשימת קניות",

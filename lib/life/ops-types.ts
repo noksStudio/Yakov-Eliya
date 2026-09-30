@@ -30,10 +30,11 @@ export const financeGoalSchema = z.object({
 export type FinanceGoal = z.infer<typeof financeGoalSchema>;
 export const DEFAULT_FINANCE_GOAL: FinanceGoal = { monthly_goal: 25_000, baseline: 8_000 };
 
-export const DEAL_STAGES = ["lead", "call", "meeting", "diagnosis", "proposal", "won", "lost"] as const;
+// A lead is not a deal: leads live in their own list (lib/life/leads.ts) and become a deal only
+// when there is money on the table.
+export const DEAL_STAGES = ["call", "meeting", "diagnosis", "proposal", "won", "lost"] as const;
 export type DealStage = (typeof DEAL_STAGES)[number];
 export const DEAL_STAGE_LABELS: Record<DealStage, string> = {
-  lead: "ליד",
   call: "שיחת היכרות",
   meeting: "פגישה",
   diagnosis: "אבחון",
@@ -41,18 +42,27 @@ export const DEAL_STAGE_LABELS: Record<DealStage, string> = {
   won: "נסגר",
   lost: "לא רלוונטי",
 };
-export const OPEN_STAGES: DealStage[] = ["lead", "call", "meeting", "diagnosis", "proposal"];
+export const OPEN_STAGES: DealStage[] = ["call", "meeting", "diagnosis", "proposal"];
 
 export const newDealSchema = z.object({
   name: z.string().trim().min(1).max(80),
   contact: z.string().trim().max(80).nullable().optional(),
-  stage: z.enum(DEAL_STAGES).default("lead"),
+  stage: z.enum(DEAL_STAGES).default("call"),
   value: z.number().min(0).max(10_000_000).nullable().optional(),
   next_action: z.string().trim().max(160).nullable().optional(),
   next_date: date.nullable().optional(),
   notes: z.string().trim().max(2000).nullable().optional(),
 });
-export const dealPatchSchema = newDealSchema.partial();
+// Spelled out: Zod's .partial() keeps the stage default, so a patch without a stage would reset it.
+export const dealPatchSchema = z.object({
+  name: z.string().trim().min(1).max(80).optional(),
+  contact: z.string().trim().max(80).nullable().optional(),
+  stage: z.enum(DEAL_STAGES).optional(),
+  value: z.number().min(0).max(10_000_000).nullable().optional(),
+  next_action: z.string().trim().max(160).nullable().optional(),
+  next_date: date.nullable().optional(),
+  notes: z.string().trim().max(2000).nullable().optional(),
+});
 export type NewDeal = z.input<typeof newDealSchema>;
 export type DealPatch = z.infer<typeof dealPatchSchema>;
 export type Deal = {

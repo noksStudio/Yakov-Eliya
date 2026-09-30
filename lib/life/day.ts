@@ -166,6 +166,7 @@ export function buildDay(
     startsOn: settings.start_date && date < settings.start_date ? settings.start_date : null,
     weekFocus,
     contextLessons,
+    dueLeads: [],
     timeline,
     openTasks,
     doneToday,

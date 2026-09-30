@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Bell,
+  BellRing,
   Briefcase,
   Cake,
   CalendarClock,
@@ -37,6 +38,7 @@ const KIND_ICON: Record<SearchKind, typeof Search> = {
   idea: Lightbulb,
   lesson: GraduationCap,
   goal: Target,
+  lead: BellRing,
   deal: Briefcase,
   gift: Gift,
   shopping: ShoppingCart,

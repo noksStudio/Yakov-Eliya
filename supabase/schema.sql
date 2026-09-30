@@ -33,3 +33,10 @@ create table if not exists leads (
 
 create index if not exists leads_created_at_idx on leads (created_at desc);
 create index if not exists conversations_updated_at_idx on conversations (updated_at desc);
+
+-- Leads in the personal system (/life): when to get back to them, where they came from, and the
+-- deal opened once there was money on the table. Safe to run again.
+alter table leads add column if not exists follow_up_date date;
+alter table leads add column if not exists source text not null default 'site';
+alter table leads add column if not exists deal_id uuid;
+create index if not exists leads_follow_up_idx on leads (status, follow_up_date);

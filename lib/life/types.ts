@@ -124,6 +124,8 @@ export type TimelineItem = {
   done?: boolean;
 };
 
+export type DueLead = { id: string; name: string; business_type: string | null; phone: string | null; due: string };
+
 export type RestDay = { kind: "shabbat" | "yomtov"; name: string };
 
 export type DayView = {
@@ -142,6 +144,8 @@ export type DayView = {
   weekFocus: string[];
   /** Lessons whose triggers match today's or tomorrow's schedule (the trip list before a trip). */
   contextLessons: ContextLesson[];
+  /** Leads to get back to today (overdue included); empty on a day off. */
+  dueLeads: DueLead[];
   timeline: TimelineItem[];
   openTasks: Task[];
   doneToday: Task[];

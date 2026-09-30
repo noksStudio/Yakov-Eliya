@@ -51,7 +51,7 @@ function toDeal(input: NewDeal): Omit<Deal, "id" | "created_at" | "updated_at"> 
   return {
     name: input.name,
     contact: input.contact ?? null,
-    stage: input.stage ?? "lead",
+    stage: input.stage ?? "call",
     value: input.value ?? null,
     next_action: input.next_action ?? null,
     next_date: input.next_date ?? null,

@@ -164,6 +164,8 @@ alter table life_lessons add column if not exists triggers text[] not null defau
 alter table life_messages add column if not exists agent text not null default 'chief';
 -- Prep tasks for an event (clothes, gift, invitations) point at it.
 alter table life_tasks add column if not exists event_id uuid references life_events (id) on delete set null;
+-- A lead is not a deal: leads live in the leads table, and deals start at the intro call.
+alter table life_deals alter column stage set default 'call';
 
 create index if not exists life_tasks_open_idx on life_tasks (done, due_date);
 create index if not exists life_events_date_idx on life_events (date, start_time);

@@ -16,6 +16,7 @@ import {
   type DealStage,
 } from "@/lib/life/ops-types";
 import { lifeApi } from "./api";
+import { LeadsSection } from "./LeadsSection";
 
 const ils = (n: number) => `${Math.round(n).toLocaleString("he-IL")} ₪`;
 const shortDate = (d: string) => `${Number(d.slice(8, 10))}.${Number(d.slice(5, 7))}`;
@@ -50,7 +51,7 @@ export function BusinessView() {
       <header className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black">עסק</h1>
-          <p className="text-sm text-muted">מכירות, עסקאות ופולואפים</p>
+          <p className="text-sm text-muted">מכירות, לידים, עסקאות ופולואפים</p>
         </div>
         <Link
           href="/life/agent/business"
@@ -92,6 +93,8 @@ export function BusinessView() {
         </section>
       )}
 
+      <LeadsSection onDeal={load} onError={setError} />
+
       <section className="flex flex-col gap-3">
         <h2 className="text-[15px] font-bold">עסקאות פתוחות</h2>
         {OPEN_STAGES.map((stage) => {
@@ -111,7 +114,7 @@ export function BusinessView() {
             </div>
           );
         })}
-        {data.openCount === 0 && <p className="text-sm text-muted">אין עסקאות פתוחות. הוסף ליד ראשון.</p>}
+        {data.openCount === 0 && <p className="text-sm text-muted">אין עסקאות פתוחות. עסקה נפתחת מליד כשיש כסף על השולחן.</p>}
       </section>
 
       <AddDeal onAdded={load} onError={setError} />
@@ -349,7 +352,7 @@ function AddDeal({ onAdded, onError }: { onAdded: () => void; onError: (m: strin
     try {
       await lifeApi("/deals", {
         method: "POST",
-        body: { name, value: value ? Number(value) : null, next_action: next || null, stage: "lead" },
+        body: { name, value: value ? Number(value) : null, next_action: next || null, stage: "call" },
       });
       setName("");
       setValue("");
@@ -362,7 +365,7 @@ function AddDeal({ onAdded, onError }: { onAdded: () => void; onError: (m: strin
 
   return (
     <form onSubmit={submit} className="grid gap-2 rounded-2xl border border-border-soft bg-surface p-4">
-      <h2 className="text-[15px] font-bold">ליד חדש</h2>
+      <h2 className="text-[15px] font-bold">עסקה חדשה</h2>
       <div className="flex gap-2">
         <input
           value={name}

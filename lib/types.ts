@@ -14,6 +14,12 @@ export type Lead = {
   status: LeadStatus;
   notes: string | null;
   conversation_id: string | null;
+  /** When to get back to him (set on arrival, moved when he postpones). Older rows may lack it. */
+  follow_up_date?: string | null;
+  /** The deal opened from this lead, once there was money on the table. */
+  deal_id?: string | null;
+  /** "site" (the website chat/form) or "manual" (added in the app or Telegram). */
+  source?: string | null;
 };
 
 export type ChatMessage = {

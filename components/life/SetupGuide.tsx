@@ -195,10 +195,10 @@ export function SetupGuide() {
         </div>
       </Step>
 
-      <Step n={6} title="לידים מהאתר (לא חובה)" ok={allOk(status.site)} summary="שמירת פניות מהאתר ומייל על כל ליד חדש." optional>
+      <Step n={6} title="לידים מהאתר (לא חובה)" ok={allOk(status.site)} summary="שמירת פניות מהאתר, רשימת הלידים במסך העסק, ומייל על כל ליד חדש." optional>
         <Rows rows={[...tableRows(status.site), ...envRows(["RESEND_API_KEY", "LEAD_NOTIFICATION_EMAIL"])]} />
         <Howto>
-          <li>מעתיקים את קוד טבלאות האתר ומריצים ב־SQL Editor.</li>
+          <li>מעתיקים את קוד טבלאות האתר ומריצים ב־SQL Editor. בטוח להריץ שוב גם אחרי עדכונים.</li>
           <li>
             למייל על כל ליד: מפתח מ־<Ext href="https://resend.com/api-keys">Resend</Ext> ב־RESEND_API_KEY, והכתובת שלך ב־LEAD_NOTIFICATION_EMAIL.
           </li>

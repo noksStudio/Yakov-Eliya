@@ -98,6 +98,7 @@ const CAPTURE_ICON: Record<CaptureKind, string> = {
   lesson: "💡",
   idea: "💡",
   reminder: "⏰",
+  lead: "🔔",
   income: "💰",
   expense: "🧾",
   weight: "⚖️",

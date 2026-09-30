@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Check, Dumbbell, Footprints, Loader2, MoonStar, Plus, Sunrise, Trash2, Undo2, X } from "lucide-react";
+import { BookOpen, Check, Dumbbell, Footprints, Loader2, MessageCircle, MoonStar, Phone, Plus, Sunrise, Trash2, Undo2, X } from "lucide-react";
 import type { Area, Checkin, DayView, Task, TimelineItem } from "@/lib/life/types";
 import { AREA_LABELS, AREAS } from "@/lib/life/types";
 import { israelNow, toMinutes } from "@/lib/life/time";
+import { telUrl, whatsappUrl } from "@/lib/life/lead-types";
 import { lifeApi } from "./api";
 import type { Metric } from "@/lib/life/metrics";
 import { MetricCard } from "./MetricsView";
@@ -121,6 +122,7 @@ export function TodayView() {
           {!morningDone(day.checkin) && <MorningCheckin checkin={day.checkin} onSave={saveCheckin} />}
           <ContextLessons day={day} />
           <TopTasks day={day} onChange={reload} onError={setError} />
+          <DueLeads day={day} />
           {nextUp}
           <WeekFocus day={day} />
           <BodyToday day={day} now={now} onSave={saveCheckin} />
@@ -132,6 +134,7 @@ export function TodayView() {
           {nextUp}
           <ContextLessons day={day} />
           <TopTasks day={day} onChange={reload} onError={setError} />
+          <DueLeads day={day} />
           {!morningDone(day.checkin) && <MorningCheckin checkin={day.checkin} onSave={saveCheckin} />}
           <BodyToday day={day} now={now} onSave={saveCheckin} />
           <Learning day={day} onChange={reload} onError={setError} />
@@ -155,6 +158,49 @@ export function TodayView() {
         {shown === "evening" && <MorningCheckin checkin={day.checkin} onSave={saveCheckin} />}
       </MoreToday>
     </div>
+  );
+}
+
+/** Leads to get back to today: call or WhatsApp straight from here. */
+function DueLeads({ day }: { day: DayView }) {
+  if (!day.dueLeads.length) return null;
+  return (
+    <section className="rounded-2xl border border-amber-400/30 bg-amber-400/[0.07] p-4" aria-labelledby="due-leads">
+      <div className="mb-2 flex items-center justify-between">
+        <h2 id="due-leads" className="text-[15px] font-bold">
+          🔔 לחזור ללידים
+        </h2>
+        <Link href="/life/business" className="text-xs text-muted underline">
+          כל הלידים
+        </Link>
+      </div>
+      <ul className="grid gap-2">
+        {day.dueLeads.slice(0, 4).map((l) => {
+          const tel = telUrl(l.phone);
+          const wa = whatsappUrl(l.phone);
+          return (
+            <li key={l.id} className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 text-sm">
+                <span className="font-semibold">{l.name}</span>
+                {l.business_type && <span className="text-muted"> · {l.business_type}</span>}
+                {l.due < day.date && <span className="ms-1 text-xs text-amber-300">באיחור</span>}
+              </span>
+              {tel && (
+                <a href={tel} aria-label={`חיוג ל${l.name}`} className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10">
+                  <Phone className="h-4 w-4" />
+                </a>
+              )}
+              {wa && (
+                <a href={wa} target="_blank" rel="noreferrer" aria-label={`וואטסאפ ל${l.name}`} className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#25D366]/20 text-[#7ee2a4]">
+                  <MessageCircle className="h-4 w-4" />
+                </a>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {day.dueLeads.length > 4 && <p className="mt-2 text-xs text-muted">ועוד {day.dueLeads.length - 4} במסך העסק</p>}
+    </section>
   );
 }
 

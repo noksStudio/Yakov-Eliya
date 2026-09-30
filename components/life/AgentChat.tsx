@@ -144,7 +144,7 @@ export function AgentChat({ agent }: { agent: AgentId }) {
   }, [messages, pending]);
 
   return (
-    <div className="flex min-h-[calc(100svh-7rem)] flex-col">
+    <div className="flex min-h-[calc(100svh-10.25rem-env(safe-area-inset-bottom))] flex-col">
       <header className="flex items-center gap-3 pb-3">
         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#f8d995,#c98f3e)] text-[#1d1407]">
           <Icon className="h-5 w-5" />

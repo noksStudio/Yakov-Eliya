@@ -4,6 +4,7 @@ import type { Area, RestDay } from "./types";
 import { activityEnd, bodyForDate, loadBodyPlan } from "./body";
 import { learningForDate, loadLearningGoal } from "./learning";
 import { OPEN_STAGES } from "./ops-types";
+import { dueDate, getLeadsStore, isOpenLead } from "./leads";
 import { loadRecurring, recurringFor } from "./recurring";
 import { loadCouple, occasionLabel, upcomingOccasions } from "./couple";
 import { loadReminders } from "./reminders";
@@ -71,7 +72,7 @@ function byTime(a: CalItem, b: CalItem) {
 }
 
 export async function calendarRange(store: LifeStore, ops: OpsStore, from: string, to: string, today = israelToday()) {
-  const [events, recurring, tasks, plan, goal, deals, checkins, finance, couple, settings] = await Promise.all([
+  const [events, recurring, tasks, plan, goal, deals, checkins, finance, couple, settings, leads] = await Promise.all([
     store.listEventsRange(from, to),
     loadRecurring(store),
     store.listTasks(),
@@ -82,7 +83,12 @@ export async function calendarRange(store: LifeStore, ops: OpsStore, from: strin
     ops.listFinance(from, to),
     loadCouple(store),
     store.getSettings(),
+    // Until the site SQL is run the leads table may be missing; the calendar still works.
+    getLeadsStore()
+      .list()
+      .catch(() => []),
   ]);
+  const openLeads = leads.filter(isOpenLead);
   const reminders = (await loadReminders(store)).filter((r) => r.date >= from && r.date <= to);
   const occasions = upcomingOccasions(couple, from, daysBetween(from, to));
   const prepTasks = await store.listEventTasks(events.map((e) => e.id));
@@ -147,6 +153,17 @@ export async function calendarRange(store: LifeStore, ops: OpsStore, from: strin
         end: null,
         title: `פולואפ: ${d.name}`,
         note: d.next_action ?? undefined,
+        area: "business",
+      });
+    }
+    for (const l of openLeads.filter((lead) => dueDate(lead) === date)) {
+      items.push({
+        key: `lead-${l.id}`,
+        kind: "followup",
+        time: null,
+        end: null,
+        title: `ליד: ${l.name ?? ""}`,
+        note: [l.business_type, l.phone].filter(Boolean).join(" · ") || undefined,
         area: "business",
       });
     }

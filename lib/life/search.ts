@@ -3,6 +3,7 @@ import type { OpsStore } from "./ops-store";
 import { loadCouple, occasionLabel, upcomingOccasions } from "./couple";
 import { loadGoals, loadReviews } from "./growth";
 import { getIdeasStore, IDEA_STATUS_LABELS } from "./ideas";
+import { getLeadsStore, leadStatusLabel } from "./leads";
 import { getLessonsStore } from "./lessons";
 import { DEAL_STAGE_LABELS } from "./ops-types";
 import { loadRecurring, WEEKDAY_LABELS } from "./recurring";
@@ -52,7 +53,7 @@ export async function searchAll(store: LifeStore, ops: OpsStore, query: string, 
   const q = query.trim();
   if (normalize(q).length < 2 && !/^\d/.test(q)) return [];
 
-  const [tasks, events, recurring, reminders, couple, ideas, lessons, goals, deals, shopping, finance, reviews] = await Promise.all([
+  const [tasks, events, recurring, reminders, couple, ideas, lessons, goals, deals, shopping, finance, reviews, leads] = await Promise.all([
     store.listTasks(),
     store.listEventsRange(addDays(today, -60), addDays(today, 365)),
     loadRecurring(store),
@@ -65,6 +66,9 @@ export async function searchAll(store: LifeStore, ops: OpsStore, query: string, 
     store.listShopping(),
     ops.listFinance(addDays(today, -120), today),
     loadReviews(store),
+    getLeadsStore()
+      .list()
+      .catch(() => []),
   ]);
 
   const results: SearchResult[] = [...searchPages(q), ...dateResults(q, today)];
@@ -111,6 +115,9 @@ export async function searchAll(store: LifeStore, ops: OpsStore, query: string, 
   }
   for (const g of goals) {
     add("goal", g.id, g.title, "יעד חזון 30", `יעד ${g.target.toLocaleString("he-IL")} ${g.unit} עד ${shortDate(g.deadline)}`, "/life/growth");
+  }
+  for (const l of leads) {
+    add("lead", l.id, l.name ?? "ליד", `ליד ${l.business_type ?? ""} ${l.phone ?? ""} ${l.pain ?? ""} ${l.notes ?? ""}`, [leadStatusLabel(l), l.business_type].filter(Boolean).join(" · "), "/life/business");
   }
   for (const d of deals) {
     add("deal", d.id, d.name, `עסקה ${d.contact ?? ""} ${d.notes ?? ""} ${d.next_action ?? ""}`, `${DEAL_STAGE_LABELS[d.stage]}${d.value ? ` · ${d.value.toLocaleString("he-IL")} ₪` : ""}`, "/life/business");

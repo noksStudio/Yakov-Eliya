@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { dueDate, dueLeads, getLeadsStore } from "./leads";
 import { ZodError } from "zod";
 import { buildDay } from "./day";
 import { bodyForDate, loadBodyPlan } from "./body";
@@ -21,7 +22,7 @@ export async function loadDay(store: LifeStore, date: string) {
     weekFocus(store, date),
     contextLessons(store, date),
   ]);
-  return buildDay(
+  const day = buildDay(
     date,
     settings,
     events,
@@ -33,6 +34,14 @@ export async function loadDay(store: LifeStore, date: string) {
     focus,
     lessons,
   );
+  // Work waits on a day off; a missing leads table (site SQL not run yet) just means none.
+  if (!day.dayOff && !day.restDay) {
+    const leads = await getLeadsStore()
+      .list()
+      .catch(() => []);
+    day.dueLeads = dueLeads(leads, date).map((l) => ({ id: l.id, name: l.name ?? "ליד", business_type: l.business_type, phone: l.phone, due: dueDate(l) }));
+  }
+  return day;
 }
 
 /** Runs a life API handler with the store, mapping failures to Hebrew JSON errors. */

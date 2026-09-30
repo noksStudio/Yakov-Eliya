@@ -49,7 +49,7 @@ const LIFE_TABLES: Record<string, string> = {
   life_ideas: "id",
   life_lessons: "id,triggers",
 };
-const SITE_TABLES: Record<string, string> = { leads: "id", conversations: "id" };
+const SITE_TABLES: Record<string, string> = { leads: "id,follow_up_date,source,deal_id", conversations: "id" };
 
 type Db = ReturnType<typeof getSupabaseAdmin>;
 

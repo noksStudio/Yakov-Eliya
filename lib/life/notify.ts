@@ -137,6 +137,16 @@ export async function morningMessage(store: LifeStore, ops: OpsStore, day: DayVi
   if (day.learning.session) plan.push(`📖 ${escapeHtml(day.learning.title)}: ${escapeHtml(day.learning.next ?? "")} ב־${day.learning.session.start}`);
   if (!day.dayOff) plan.push(`🎯 עבודה עמוקה מ־${day.settings.deep_work_start} עד ${day.settings.deep_work_end}`);
   if (plan.length) lines.push("", ...plan);
+  if (day.dueLeads.length) {
+    lines.push(
+      "",
+      "<b>לידים לחזור אליהם</b>",
+      ...day.dueLeads
+        .slice(0, 5)
+        .map((l) => `🔔 ${escapeHtml(l.name)}${l.business_type ? ` · ${escapeHtml(l.business_type)}` : ""}${l.phone ? ` · ${escapeHtml(l.phone)}` : ""}${l.due < day.date ? " (באיחור)" : ""}`),
+      ...(day.dueLeads.length > 5 ? [`ועוד ${day.dueLeads.length - 5}…`] : []),
+    );
+  }
   if (!day.dayOff && business.due.length) {
     lines.push("", "<b>פולואפים להיום</b>", ...business.due.slice(0, 4).map((d) => `• ${escapeHtml(d.name)}${d.next_action ? `: ${escapeHtml(d.next_action)}` : ""}`));
   }

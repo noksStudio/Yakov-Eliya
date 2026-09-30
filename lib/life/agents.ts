@@ -20,11 +20,12 @@ import {
   newDealSchema,
 } from "./ops-types";
 import { z } from "zod";
-import type { LifeStore } from "./store";
+import { getLifeStore, type LifeStore } from "./store";
 import { loadDay } from "./service";
 import { anchorConflict } from "./day";
 import { calendarRange, weekStart } from "./calendar";
 import { getIdeasStore, newIdeaSchema } from "./ideas";
+import { dueDate, firstFollowUp, getLeadsStore, isOpenLead, leadPatchSchema, leadToDeal, newLeadSchema, toDealSchema } from "./leads";
 import { goalPatchSchema, growthSummary, newLessonSchema, reviewSchema, saveReview, updateGoal } from "./growth";
 import { getLessonsStore } from "./lessons";
 import { addReminder, quietFor } from "./reminders";
@@ -141,6 +142,8 @@ ${SHARED}
 
 ## איך אתה עובד
 - get_business: העסקאות לפי שלב, שווי הצינור, פולואפים שהגיע זמנם, והפעילות של היום.
+- ליד הוא לא עסקה: מי שפנה (מהאתר או בהמלצה) ועוד אין שם כסף. get_leads מציג אותם, add_lead מוסיף, update_lead מעדכן סטטוס או דוחה את מועד החזרה. רק כשיעקב אומר שיש כאן כסף, lead_to_deal פותח עסקה.
+- לליד חדש חוזרים מהר: באותו יום אם נכנס לפני 16:00. אם יש לידים שהגיע זמנם, תזכיר אותם ראשונים.
 - כל עסקה חייבת צעד הבא ותאריך. אם חסר, שאל ועדכן עם update_deal.
 - כשיעקב מספר על שיחה או פגישה: עדכן את השלב, את הצעד הבא ואת ההערות.
 - בסוף שבוע: כמה פעילות, כמה שיחות הפכו לפגישות, ומה השלב הבא עם כל עסקה.
@@ -559,9 +562,47 @@ function businessTools() {
     }),
     betaZodTool({
       name: "add_deal",
-      description: "מוסיף עסקה או ליד חדש.",
+      description: "מוסיף עסקה: רק כשיש על השולחן כסף אמיתי (מתחילה בשיחת היכרות). פנייה בלי כסף עדיין היא ליד: add_lead.",
       inputSchema: newDealSchema,
       run: async (input) => json(await ops.addDeal(input)),
+    }),
+    betaZodTool({
+      name: "get_leads",
+      description: "הלידים הפתוחים (מהאתר ומה שהוסיף ידנית): id, שם, תחום, טלפון, הקושי, סטטוס ומתי לחזור אליהם. ליד הוא עוד לא עסקה.",
+      inputSchema: z.object({}),
+      run: async () => {
+        const leads = (await getLeadsStore().list()).filter(isOpenLead);
+        return json(leads.map((l) => ({ id: l.id, name: l.name, business_type: l.business_type, phone: l.phone, pain: l.pain, status: l.status, notes: l.notes, source: l.source, due: dueDate(l) })));
+      },
+    }),
+    betaZodTool({
+      name: "add_lead",
+      description: "מוסיף ליד (מישהו שפנה או שהומלץ). בלי follow_up_date: היום אם לפני 16:00, אחרת יום העבודה הבא.",
+      inputSchema: newLeadSchema,
+      run: async (input) => {
+        const settings = await getLifeStore().getSettings();
+        return json(
+          await getLeadsStore().add({ ...input, follow_up_date: input.follow_up_date ?? firstFollowUp(new Date(), { cholHamoedOff: settings.chol_hamoed_off }), source: "manual" }),
+        );
+      },
+    }),
+    betaZodTool({
+      name: "update_lead",
+      description: "מעדכן ליד לפי id: status (new, contacted, lost, customer), follow_up_date כדי לדחות, הערות.",
+      inputSchema: leadPatchSchema.extend({ id: z.string() }),
+      run: async ({ id, ...patch }) => {
+        const lead = await getLeadsStore().update(id, patch);
+        return lead ? json(lead) : "שגיאה: ליד לא נמצא";
+      },
+    }),
+    betaZodTool({
+      name: "lead_to_deal",
+      description: "פותח עסקה מליד, רק אחרי שהוא אמר שיש כאן כסף. אפשר לציין שווי משוער וצעד הבא.",
+      inputSchema: toDealSchema.extend({ id: z.string() }),
+      run: async ({ id, ...input }) => {
+        const result = await leadToDeal(ops, getLeadsStore(), id, input);
+        return result ? json(result.deal) : "שגיאה: ליד לא נמצא";
+      },
     }),
     betaZodTool({
       name: "update_deal",

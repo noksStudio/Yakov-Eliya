@@ -81,14 +81,22 @@ function chunks(text: string) {
   return out;
 }
 
-/** `html`: our own templates use HTML formatting; agent replies go as plain text. */
-export async function sendMessage(chatId: number, text: string, html = false) {
-  for (const part of chunks(text)) {
+export type LinkButton = { text: string; url: string };
+
+/**
+ * `html`: our own templates use HTML formatting; agent replies go as plain text.
+ * `buttons`: rows of link buttons under the message (on its last part). Telegram only allows
+ * http(s) links there, so a phone number is written in the text, where it is tappable.
+ */
+export async function sendMessage(chatId: number, text: string, html = false, buttons?: LinkButton[][]) {
+  const parts = chunks(text);
+  for (const [i, part] of parts.entries()) {
     await telegramCall("sendMessage", {
       chat_id: chatId,
       text: part,
       ...(html ? { parse_mode: "HTML" } : {}),
       link_preview_options: { is_disabled: true },
+      ...(buttons?.length && i === parts.length - 1 ? { reply_markup: { inline_keyboard: buttons } } : {}),
     });
   }
 }
@@ -184,6 +192,7 @@ export const ALL_TEXT = [
   "״לקח: …״ · שמירת לקח",
   "״רעיון: …״ · שמירת רעיון",
   "״תזכיר לי מחר ב־10:00 …״ · תזכורת",
+  "״ליד: דני 050-1234567 מסעדה״ · ליד חדש",
   "״הכנסה 1500״ · ״משקל 84.6״ · ״קניות: חלב, ביצים״",
   "כל טקסט אחר · המנהל הראשי עונה, מתכנן ומעדכן משימות ולו״ז",
 ].join("\n");
