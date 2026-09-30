@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, Dumbbell, Footprints, Loader2, MoonStar, Plus, Sunrise, Trash2, X } from "lucide-react";
+import { BookOpen, Check, Dumbbell, Footprints, Loader2, MoonStar, Plus, Sunrise, Trash2, Undo2, X } from "lucide-react";
 import type { Area, Checkin, DayView, Task, TimelineItem } from "@/lib/life/types";
 import { AREA_LABELS, AREAS } from "@/lib/life/types";
 import { israelNow, toMinutes } from "@/lib/life/time";
@@ -81,6 +81,7 @@ export function TodayView() {
       <NextUp timeline={day.timeline} now={now} />
       <ChiefShortcuts />
       <BodyToday day={day} now={now} onSave={saveCheckin} />
+      <Learning day={day} onChange={reload} onError={setError} />
       <MorningCheckin checkin={day.checkin} onSave={saveCheckin} />
       <Timeline day={day} now={now} onChange={reload} onError={setError} />
       <Tasks day={day} onChange={reload} onError={setError} />
@@ -248,6 +249,74 @@ function BodyToday({ day, now, onSave }: { day: DayView; now: string; onSave: (p
       <p className="mt-2 text-xs text-muted">
         <Bidi text={`יעד: ~${body.calories.toLocaleString("he-IL")} קלוריות · ${body.protein} גרם חלבון · 2.5–3 ליטר מים`} />
       </p>
+    </Card>
+  );
+}
+
+function Learning({ day, onChange, onError }: { day: DayView; onChange: () => void; onError: (m: string) => void }) {
+  const l = day.learning;
+  const [busy, setBusy] = useState(false);
+  const move = async (delta: number) => {
+    setBusy(true);
+    try {
+      await lifeApi("/learning", { method: "PUT", body: { delta } });
+      onChange();
+    } catch (e) {
+      onError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const pct = Math.round((l.done / l.total) * 100);
+  const onPace = l.neededPerWeek <= l.plannedPerWeek;
+  return (
+    <Card
+      title={`לימוד: ${l.title}`}
+      icon={<BookOpen className="h-4 w-4 text-gold-2" />}
+      action={
+        <span className="text-xs text-muted">
+          {l.done}/{l.total} עמודים
+        </span>
+      }
+    >
+      <div className="h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuenow={l.done} aria-valuemin={0} aria-valuemax={l.total} aria-label="התקדמות בלימוד">
+        <div className="h-full rounded-full bg-gold transition-[width] duration-500" style={{ width: `${pct}%` }} />
+      </div>
+      {l.finished ? (
+        <p className="mt-3 text-sm font-bold text-gold-2">סיימת את המסכת! הדרן עלך 🎉</p>
+      ) : (
+        <>
+          <p className="mt-3 text-sm">
+            הבא: <span className="font-bold">{l.next}</span>
+          </p>
+          <p className={`mt-0.5 text-xs ${onPace ? "text-muted" : "text-amber-300"}`}>
+            {onPace
+              ? `בקצב: ${l.plannedPerWeek} עמודים בשבוע מספיקים לסיום עד יום ההולדת (עוד ${l.daysLeft} ימים).`
+              : `כדי לסיים בזמן צריך ${l.neededPerWeek} עמודים בשבוע (עוד ${l.daysLeft} ימים).`}
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => move(1)}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gold py-2.5 text-sm font-bold text-[#1d1407] disabled:opacity-60"
+            >
+              <Check className="h-4 w-4" strokeWidth={3} /> סיימתי עמוד
+            </button>
+            {l.done > 0 && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => move(-1)}
+                aria-label="בטל עמוד אחרון"
+                className="rounded-xl bg-white/5 px-3 text-muted hover:text-foreground disabled:opacity-60"
+              >
+                <Undo2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </Card>
   );
 }

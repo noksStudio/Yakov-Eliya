@@ -1,5 +1,6 @@
 import type { Checkin, DayView, LifeEvent, Settings, Task, TimelineItem } from "./types";
 import { activityEnd, type BodyToday } from "./body";
+import type { LearningToday } from "./learning";
 import { fromMinutes, gregorianLabel, hebrewDateLabel, israelToday, restDayOf, toMinutes, weekdayName } from "./time";
 
 /**
@@ -79,6 +80,7 @@ export function buildDay(
   tasks: Task[],
   checkin: Checkin | null,
   body: BodyToday,
+  learning: LearningToday,
 ): DayView {
   const activity: TimelineItem[] = body.activity
     ? [
@@ -93,9 +95,23 @@ export function buildDay(
         },
       ]
     : [];
+  const study: TimelineItem[] = learning.session
+    ? [
+        {
+          key: "learning",
+          start: learning.session.start,
+          end: learning.session.end,
+          title: `לימוד: ${learning.title}`,
+          note: learning.next ?? undefined,
+          area: "spirit",
+          kind: "routine",
+        },
+      ]
+    : [];
   const timeline = [
     ...dayTemplate(settings),
     ...activity,
+    ...study,
     ...events.map<TimelineItem>((e) => ({
       key: `event-${e.id}`,
       id: e.id,
@@ -136,6 +152,7 @@ export function buildDay(
     checkin,
     settings,
     body,
+    learning,
   };
 }
 

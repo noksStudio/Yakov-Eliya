@@ -1,4 +1,5 @@
 import type { BodyToday } from "./body";
+import type { LearningToday } from "./learning";
 
 export const AREAS = ["business", "body", "spirit", "mind", "finance", "home", "general"] as const;
 export type Area = (typeof AREAS)[number];
@@ -115,6 +116,7 @@ export type RestDay = { kind: "shabbat" | "yomtov"; name: string };
 
 export type DayView = {
   body: BodyToday;
+  learning: LearningToday;
   date: string;
   weekday: string;
   gregorian: string;

@@ -19,7 +19,7 @@ export type NewEvent = Pick<LifeEvent, "date" | "start_time" | "title"> & {
 };
 export type CheckinPatch = Partial<Omit<Checkin, "date" | "updated_at">>;
 export type ShoppingPatch = Partial<Pick<ShoppingItem, "title" | "qty" | "category" | "checked">>;
-export type DocKey = "body_profile" | "meal_plan" | "workout_plan";
+export type DocKey = "body_profile" | "meal_plan" | "workout_plan" | "learning_goal";
 
 export interface LifeStore {
   getSettings(): Promise<Settings>;

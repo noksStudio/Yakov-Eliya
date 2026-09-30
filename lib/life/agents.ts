@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { BetaToolRunnerParams } from "@anthropic-ai/sdk/resources/beta/messages/messages";
+import { learningForDate, loadLearningGoal } from "./learning";
 import { z } from "zod";
 import type { LifeStore } from "./store";
 import { loadDay } from "./service";
@@ -24,6 +25,8 @@ const MAX_ITERATIONS = 8;
 const SHARED = `## מי הוא
 - יעקב-אליה, בעל עסק (Noks Studio): הטמעת AI, אוטומציות, מערכות CRM ואתרים לעסקים. נישה: יבואנים, מפיצים ולוגיסטיקה.
 - שומר תורה ומצוות: 3 תפילות ביום ושעת התבודדות בלילה. אוכל כשר.
+- יום הולדת: 10 במרץ (יהיה בן 30 ב־2027).
+- יעד לימוד: לסיים את מסכת מגילה עד יום ההולדת. 3 מפגשים בשבוע (ראשון, שלישי, חמישי ב־08:30), עמוד אחד בכל מפגש.
 
 ## העוגנים (לא זזים לעולם)
 קימה, שחרית, מנחה, ערבית, התבודדות ושינה. השעות המדויקות בהגדרות שמחזיר get_day.
@@ -126,6 +129,9 @@ function dayTools(store: LifeStore) {
           })),
           doneToday: day.doneToday.length,
           checkin: day.checkin && { ...day.checkin, date: undefined, updated_at: undefined },
+          learning: day.learning.finished
+            ? "המסכת הושלמה"
+            : { next: day.learning.next, done: day.learning.done, total: day.learning.total, neededPerWeek: day.learning.neededPerWeek },
           body: day.body.daysToStart
             ? { planStartsIn: day.body.daysToStart }
             : { meals: day.body.meals.map((m) => `${m.time} ${m.label}`), activity: day.body.activity?.title },
@@ -164,6 +170,23 @@ function dayTools(store: LifeStore) {
       description: "מוחק בלוק זמן מהלו״ז לפי id.",
       inputSchema: z.object({ id: z.string() }),
       run: async ({ id }) => ((await store.deleteEvent(id)) ? "נמחק" : "שגיאה: אירוע לא נמצא"),
+    }),
+  ];
+}
+
+function learningTools(store: LifeStore) {
+  return [
+    betaZodTool({
+      name: "update_learning",
+      description: "מעדכן את מונה הלימוד במסכת: delta = כמה עמודים נוספו (למשל 1 אחרי מפגש, או -1 לביטול).",
+      inputSchema: z.object({ delta: z.number().int().min(-10).max(10) }),
+      run: async ({ delta }) => {
+        const goal = await loadLearningGoal(store);
+        const next = { ...goal, done: Math.min(goal.total, Math.max(0, goal.done + delta)) };
+        await store.saveDoc("learning_goal", next);
+        const today = learningForDate(next, israelToday());
+        return json({ done: today.done, total: today.total, next: today.next, neededPerWeek: today.neededPerWeek });
+      },
     }),
   ];
 }
@@ -275,7 +298,7 @@ function bodyTools(store: LifeStore) {
 }
 
 const AGENT_CONFIG: Record<AgentId, { system: string; tools: (store: LifeStore) => BetaToolRunnerParams["tools"] }> = {
-  chief: { system: CHIEF_PROMPT, tools: (s) => [...dayTools(s), ...checkinTools(s), ...shoppingTools(s)] },
+  chief: { system: CHIEF_PROMPT, tools: (s) => [...dayTools(s), ...checkinTools(s), ...shoppingTools(s), ...learningTools(s)] },
   body: { system: BODY_PROMPT, tools: (s) => [...bodyTools(s), ...checkinTools(s), ...shoppingTools(s), ...dayTools(s).slice(0, 1)] },
 };
 

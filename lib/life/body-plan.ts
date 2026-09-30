@@ -12,7 +12,7 @@ export const DEFAULT_BODY_PROFILE: BodyProfile = {
   start_weight: 85,
   start_date: "2026-09-30",
   goal_weight: 78,
-  age: null,
+  age: 29, // turns 30 on 10.3.2027
   plan_start: "2026-10-04",
   calories: 1950,
   protein: 140,
@@ -171,45 +171,48 @@ export const DEFAULT_MEAL_PLAN: MealPlan = {
   ],
 };
 
+// Gym membership three times a week (full body A/B/A, then B/A/B the following week), plus
+// walks and an easy run-walk outside. Runs start as intervals to spare the joints at 85 kg.
 export const DEFAULT_WORKOUT_PLAN: WorkoutPlan = {
   workouts: [
     {
       key: "A",
-      title: "אימון A: גוף מלא",
-      minutes: 40,
-      warmup: "5 דקות: הליכה במקום, סיבובי ידיים, כפיפות ירך.",
+      title: "חדר כושר A: גוף מלא",
+      minutes: 50,
+      warmup: "7 דקות הליכה מהירה בשיפוע או אופניים, ואז סט קל של התרגיל הראשון.",
       exercises: [
-        { name: "סקוואט לכיסא", sets: "3 × 10–12", note: "יושבים קלות ועולים. ברכיים בכיוון האצבעות." },
-        { name: "שכיבות סמיכה על שולחן או קיר", sets: "3 × 8–12", note: "גוף ישר כמו קרש." },
-        { name: "חתירה עם גומייה או משקולת", sets: "3 × 12", note: "מושכים את המרפק לאחור, כתפיים למטה." },
-        { name: "גשר ישבן", sets: "3 × 15", note: "עוצרים שנייה למעלה." },
-        { name: "פלאנק", sets: "3 × 20–30 שניות" },
+        { name: "לחיצת רגליים (Leg press)", sets: "3 × 10–12", note: "ברכיים בכיוון האצבעות, לא נועלים ברכיים למעלה." },
+        { name: "לחיצת חזה במכונה או עם משקולות", sets: "3 × 8–10" },
+        { name: "פולי עליון (Lat pulldown)", sets: "3 × 10–12", note: "מושכים לחזה העליון, בלי להתנדנד." },
+        { name: "דדליפט רומני עם משקולות", sets: "3 × 10", note: "גב ישר, הישבן אחורה." },
+        { name: "פלאנק", sets: "3 × 30–40 שניות" },
       ],
-      finisher: "10 דקות הליכה מהירה.",
+      finisher: "10 דקות הליכה בשיפוע על ההליכון.",
     },
     {
       key: "B",
-      title: "אימון B: גוף מלא",
-      minutes: 40,
-      warmup: "5 דקות: הליכה במקום, סיבובי כתפיים, מתיחות קלות.",
+      title: "חדר כושר B: גוף מלא",
+      minutes: 50,
+      warmup: "7 דקות אליפטיקל או אופניים, ואז סט קל של התרגיל הראשון.",
       exercises: [
-        { name: "מכרעים לאחור", sets: "3 × 8 לכל רגל", note: "אפשר להחזיק בכיסא לאיזון." },
-        { name: "לחיצת כתפיים עם משקולות או בקבוקי מים", sets: "3 × 10" },
-        { name: "דדליפט רומני עם משקולות", sets: "3 × 12", note: "גב ישר, הישבן אחורה." },
-        { name: "פלאנק צד", sets: "3 × 20 שניות לכל צד" },
-        { name: "ציפור־כלב (Bird dog)", sets: "3 × 10 לכל צד" },
+        { name: "סקוואט גביע עם משקולת", sets: "3 × 10", note: "עמידה ברוחב כתפיים, חזה למעלה." },
+        { name: "חתירה בכבלים בישיבה", sets: "3 × 10–12" },
+        { name: "לחיצת כתפיים במכונה או עם משקולות", sets: "3 × 10" },
+        { name: "כפיפת ברכיים במכונה (Leg curl)", sets: "3 × 12" },
+        { name: "כפיפות בטן בכבל או Dead bug", sets: "3 × 12" },
       ],
-      finisher: "10 דקות הליכה מהירה.",
+      finisher: "10 דקות הליכה בשיפוע על ההליכון.",
     },
   ],
   schedule: [
     { day: 0, time: "17:30", workout: "A" },
-    { day: 1, time: "17:30", workout: null, activity: "הליכה מהירה", minutes: 30 },
+    { day: 1, time: "17:30", workout: null, activity: "הליכה מהירה בחוץ", minutes: 40 },
     { day: 2, time: "17:30", workout: "B" },
-    { day: 3, time: "17:30", workout: null, activity: "הליכה מהירה", minutes: 30 },
+    { day: 3, time: "17:30", workout: null, activity: "ריצה קלה בהפסקות: דקה ריצה, 2 דקות הליכה × 8", minutes: 30 },
     { day: 4, time: "17:30", workout: "A" },
-    { day: 5, time: "10:00", workout: null, activity: "הליכה קלה ומתיחות", minutes: 20 },
+    { day: 5, time: "10:00", workout: null, activity: "הליכה קלה ומתיחות", minutes: 30 },
   ],
-  steps: "7,000 צעדים ביום בשבועיים הראשונים, 8,500 בשבועות 3–4, ומשם 10,000.",
-  progression: "כשמגיעים לחזרות המקסימליות בכל הסטים בטכניקה טובה, מוסיפים 2 חזרות או משקל קל. בכל שבוע שני הסדר מתחלף: B, A, B.",
+  steps: "8,000 צעדים ביום בשבועיים הראשונים, 9,000 בשבועות 3–4, ומשם 10,000.",
+  progression:
+    "כשכל הסטים מגיעים לחזרות המקסימליות בטכניקה טובה, מוסיפים 2.5 ק״ג (או 1–2 ק״ג בכתפיים). בכל שבוע שני הסדר מתחלף: B, A, B. בריצה: כל שבועיים מוסיפים 30 שניות ריצה לכל הפסקה.",
 };
