@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Check, Loader2, LogOut } from "lucide-react";
 import type { Settings } from "@/lib/life/types";
 import { lifeApi } from "./api";
+import { TelegramSettings } from "./TelegramSettings";
 
 type TimeKey = { [K in keyof Settings]: Settings[K] extends string | null ? K : never }[keyof Settings];
 
@@ -163,6 +164,8 @@ export function LifeSettings() {
         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : null}
         {saved ? "נשמר" : "שמירה"}
       </button>
+
+      <TelegramSettings demo={demo} />
 
       <section className="rounded-2xl border border-border-soft bg-surface p-4 text-sm">
         <h2 className="mb-2 text-[15px] font-bold">חיבורים</h2>
