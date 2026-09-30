@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { CalendarDays, LogOut, MessageSquare, Megaphone, Sprout, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { clearOfflineData } from "@/components/life/offline-cache";
 
 const marketingLinks = [
   { href: "/admin/marketing/organic", label: "אורגני", icon: Sprout },
@@ -16,6 +17,8 @@ export function AdminNav() {
   const router = useRouter();
 
   async function logout() {
+    // Same login as the personal area: its offline copy goes too.
+    await clearOfflineData();
     await fetch("/api/admin/logout", { method: "POST" });
     router.push("/admin/login");
     router.refresh();

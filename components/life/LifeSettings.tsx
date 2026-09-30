@@ -6,6 +6,7 @@ import { Check, ChevronLeft, Loader2, LogOut } from "lucide-react";
 import type { Settings } from "@/lib/life/types";
 import { lifeApi } from "./api";
 import { CalendarSubscribe } from "./CalendarSubscribe";
+import { clearOfflineData } from "./offline-cache";
 import { TelegramSettings } from "./TelegramSettings";
 
 type TimeKey = { [K in keyof Settings]: Settings[K] extends string | null ? K : never }[keyof Settings];
@@ -89,6 +90,7 @@ export function LifeSettings() {
   };
 
   const logout = async () => {
+    await clearOfflineData();
     await fetch("/api/admin/logout", { method: "POST" });
     window.location.replace("/admin/login?next=/life");
   };

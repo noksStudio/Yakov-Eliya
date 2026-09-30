@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { LifeNav } from "@/components/life/LifeNav";
+import { OfflineSupport } from "@/components/life/OfflineSupport";
 import { QuickCapture } from "@/components/life/QuickCapture";
 
 export const metadata: Metadata = {
@@ -18,7 +19,10 @@ export const viewport: Viewport = {
 export default function LifeLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-[100svh] bg-background pb-[calc(9rem+env(safe-area-inset-bottom))] text-foreground">
-      <main className="mx-auto max-w-md px-4 pt-[max(1.25rem,env(safe-area-inset-top))]">{children}</main>
+      <main className="mx-auto max-w-md px-4 pt-[max(1.25rem,env(safe-area-inset-top))]">
+        <OfflineSupport />
+        {children}
+      </main>
       <QuickCapture />
       <LifeNav />
     </div>

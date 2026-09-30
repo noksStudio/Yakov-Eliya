@@ -24,6 +24,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { clearOfflineData } from "./offline-cache";
 
 type Tab = { href: string; label: string; icon: LucideIcon; also?: string[] };
 
@@ -77,6 +78,9 @@ const DRAWER: { title: string; items: DrawerItem[] }[] = [
   },
 ];
 
+/** Every screen in the menu: saved on the phone so they open without a connection. */
+export const LIFE_PAGES = [...new Set([...LEFT_OF_MENU.map((t) => t.href), ...DRAWER.flatMap((s) => s.items.map((i) => i.href))])];
+
 export function LifeNav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -106,6 +110,7 @@ export function LifeNav() {
   }, [open]);
 
   const logout = async () => {
+    await clearOfflineData();
     await fetch("/api/admin/logout", { method: "POST" });
     window.location.replace("/admin/login?next=/life");
   };
