@@ -35,7 +35,8 @@ export type DocKey =
   | "seeds"
   | "goals"
   | "reviews"
-  | "reminders";
+  | "reminders"
+  | "cron_seen";
 
 export interface LifeStore {
   getSettings(): Promise<Settings>;

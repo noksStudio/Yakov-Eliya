@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Loader2, LogOut } from "lucide-react";
+import Link from "next/link";
+import { Check, ChevronLeft, Loader2, LogOut } from "lucide-react";
 import type { Settings } from "@/lib/life/types";
 import { lifeApi } from "./api";
 import { TelegramSettings } from "./TelegramSettings";
@@ -91,9 +92,24 @@ export function LifeSettings() {
     window.location.replace("/admin/login?next=/life");
   };
 
+  // While something is missing the connection guide comes first; once connected it moves to the end.
+  const needsSetup = demo || connected === false;
+  const setupCard = (
+    <Link href="/life/settings/setup" className="flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface p-4 text-sm">
+      <span className="min-w-0">
+        <span className="mb-1 block text-[15px] font-bold">חיבור המערכת</span>
+        <Status ok={!demo} label="מסד נתונים" hint={demo ? "מצב הדגמה: Supabase לא מחובר, הנתונים לא נשמרים" : undefined} />
+        <Status ok={Boolean(connected)} label="הסוכנים (Claude)" hint={connected === false ? "חסר ANTHROPIC_API_KEY" : undefined} />
+        <span className="mt-1 block text-xs text-gold-2">מדריך צעד־אחר־צעד ובדיקת כל החיבורים</span>
+      </span>
+      <ChevronLeft className="h-5 w-5 shrink-0 text-muted" aria-hidden />
+    </Link>
+  );
+
   return (
     <form onSubmit={save} className="flex flex-col gap-4">
       <h1 className="text-2xl font-black">הגדרות</h1>
+      {needsSetup && setupCard}
 
       {GROUPS.map((group) => (
         <section key={group.title} className="rounded-2xl border border-border-soft bg-surface p-4">
@@ -191,11 +207,7 @@ export function LifeSettings() {
 
       <TelegramSettings demo={demo} />
 
-      <section className="rounded-2xl border border-border-soft bg-surface p-4 text-sm">
-        <h2 className="mb-2 text-[15px] font-bold">חיבורים</h2>
-        <Status ok={!demo} label="מסד נתונים" hint={demo ? "מצב הדגמה: Supabase לא מחובר, הנתונים לא נשמרים" : undefined} />
-        <Status ok={Boolean(connected)} label="המנהל הראשי (Claude)" hint={connected === false ? "חסר ANTHROPIC_API_KEY" : undefined} />
-      </section>
+      {!needsSetup && setupCard}
 
       <button type="button" onClick={logout} className="flex items-center justify-center gap-2 py-2 text-sm text-muted">
         <LogOut className="h-4 w-4" /> התנתקות
@@ -206,12 +218,12 @@ export function LifeSettings() {
 
 function Status({ ok, label, hint }: { ok: boolean; label: string; hint?: string }) {
   return (
-    <p className="flex items-start gap-2 py-1">
+    <span className="flex items-start gap-2 py-1">
       <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ok ? "bg-emerald-400" : "bg-amber-400"}`} />
       <span>
         {label}
         {hint && <span className="block text-xs text-muted">{hint}</span>}
       </span>
-    </p>
+    </span>
   );
 }

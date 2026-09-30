@@ -6,6 +6,7 @@ import type { LifeStore } from "@/lib/life/store";
 import {
   BOT_COMMANDS,
   TelegramError,
+  cronSql,
   cronToken,
   isTelegramConfigured,
   loadTelegram,
@@ -19,7 +20,6 @@ import {
 
 async function status(store: LifeStore, origin: string) {
   const [telegram, prefs, token] = await Promise.all([loadTelegram(store), loadNotifyPrefs(store), cronToken()]);
-  const cronUrl = `${origin}/api/cron/notify`;
   return {
     configured: isTelegramConfigured(),
     linked: telegram.chat_id !== null,
@@ -28,16 +28,7 @@ async function status(store: LifeStore, origin: string) {
     deep_link: telegram.bot_username && telegram.link_code ? `https://t.me/${telegram.bot_username}?start=${telegram.link_code}` : null,
     rules: NOTIFY_RULES,
     prefs,
-    cron_sql: [
-      "create extension if not exists pg_cron;",
-      "create extension if not exists pg_net;",
-      "select cron.schedule('life-notify', '*/5 * * * *', $$",
-      "  select net.http_get(",
-      `    url := '${cronUrl}',`,
-      `    headers := jsonb_build_object('Authorization', 'Bearer ${token}')`,
-      "  );",
-      "$$);",
-    ].join("\n"),
+    cron_sql: cronSql(origin, token),
   };
 }
 

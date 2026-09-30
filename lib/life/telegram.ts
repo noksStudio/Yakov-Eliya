@@ -19,6 +19,20 @@ export type TelegramDoc = {
 
 const EMPTY: TelegramDoc = { chat_id: null, bot_username: null, link_code: null, linked_at: null, last_update_id: null };
 
+/** Supabase pg_cron job that pings the notification route every 5 minutes. */
+export function cronSql(origin: string, token: string) {
+  return [
+    "create extension if not exists pg_cron;",
+    "create extension if not exists pg_net;",
+    "select cron.schedule('life-notify', '*/5 * * * *', $$",
+    "  select net.http_get(",
+    `    url := '${origin}/api/cron/notify',`,
+    `    headers := jsonb_build_object('Authorization', 'Bearer ${token}')`,
+    "  );",
+    "$$);",
+  ].join("\n");
+}
+
 export function isTelegramConfigured() {
   return Boolean(process.env.TELEGRAM_BOT_TOKEN);
 }

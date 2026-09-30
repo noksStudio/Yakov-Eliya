@@ -32,7 +32,10 @@ async function handle(request: Request) {
   }
 
   try {
-    return NextResponse.json(await runNotifications(getLifeStore(), getOpsStore(), url.origin, { dry, now }));
+    const store = getLifeStore();
+    // Heartbeat for the connection screen: shows the scheduled job is really running.
+    if (!dry) await store.saveDoc("cron_seen", { at: new Date().toISOString() });
+    return NextResponse.json(await runNotifications(store, getOpsStore(), url.origin, { dry, now }));
   } catch (error) {
     console.error("[life/notify]", error);
     return NextResponse.json({ error: "notify failed" }, { status: 500 });

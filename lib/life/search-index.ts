@@ -108,6 +108,7 @@ export const PAGES: Page[] = [
   { title: "תאריכים במשפחה", subtitle: "ימי הולדת ואירועים גדולים", href: "/life/couple", keywords: "יום הולדת ימי הולדת משפחה ילדים אילן תאריכים" },
   { title: "מדדים", subtitle: "כל היעדים במקום אחד", href: "/life/metrics", keywords: "מדדים מדד סטטיסטיקה גרף" },
   { title: "הגדרות", subtitle: "שעות, שבת וחול המועד", href: "/life/settings", keywords: "הגדרות שעות קימה שינה תפילות זמנים חול המועד שבת" },
+  { title: "חיבור המערכת", subtitle: "Supabase, מפתח API, טלגרם והתראות", href: "/life/settings/setup", keywords: "חיבור חיבורים התקנה מפתח api סופאבייס supabase vercel משתני סביבה הגדרה מסד נתונים cron" },
   { title: "התראות בטלגרם", subtitle: "חיבור הבוט ובחירת התראות", href: "/life/settings", keywords: "טלגרם התראות בוט תזכורות" },
 ];
 

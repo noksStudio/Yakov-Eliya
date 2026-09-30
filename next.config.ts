@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The connection screen offers the SQL files for copying.
+  outputFileTracingIncludes: { "/api/life/setup": ["./supabase/*.sql"] },
   images: {
     formats: ["image/avif", "image/webp"],
     // Optimized copies can't be invalidated, so a changed image must ship under a new file name.
