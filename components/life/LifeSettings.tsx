@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Check, ChevronLeft, Loader2, LogOut } from "lucide-react";
 import type { Settings } from "@/lib/life/types";
 import { lifeApi } from "./api";
+import { BackupSettings } from "./BackupSettings";
 import { CalendarSubscribe } from "./CalendarSubscribe";
 import { clearOfflineData } from "./offline-cache";
 import { TelegramSettings } from "./TelegramSettings";
@@ -210,6 +211,7 @@ export function LifeSettings() {
 
       <TelegramSettings demo={demo} />
       <CalendarSubscribe />
+      <BackupSettings />
 
       {!needsSetup && setupCard}
 

@@ -101,6 +101,20 @@ export async function sendMessage(chatId: number, text: string, html = false, bu
   }
 }
 
+/** Sends a file (a backup), silently: no notification sound for it. */
+export async function sendDocument(chatId: number, filename: string, content: string, caption: string) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) throw new TelegramError("חסר TELEGRAM_BOT_TOKEN");
+  const form = new FormData();
+  form.set("chat_id", String(chatId));
+  form.set("caption", caption.slice(0, 1024));
+  form.set("disable_notification", "true");
+  form.set("document", new Blob([content], { type: "application/json" }), filename);
+  const res = await fetch(`${API}/bot${token}/sendDocument`, { method: "POST", body: form, cache: "no-store" });
+  const data = (await res.json().catch(() => ({}))) as { ok?: boolean; description?: string };
+  if (!data.ok) throw new TelegramError(data.description ?? `Telegram sendDocument נכשל (${res.status})`);
+}
+
 export function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

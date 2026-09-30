@@ -1,6 +1,7 @@
 import type { LifeStore } from "./store";
 import type { OpsStore } from "./ops-store";
 import type { DayView } from "./types";
+import { backupDue, markBackupFailed, sendBackup } from "./backup";
 import { businessSummary } from "./business";
 import { loadCouple, occasionLabel, reminderDays, upcomingOccasions } from "./couple";
 import { financeSummary } from "./finance";
@@ -9,6 +10,7 @@ import { computeInsights, goalsProgress } from "./growth";
 import { getLessonsStore, markLessonShown, pickLesson } from "./lessons";
 import { dueReminders, loadReminders, markRemindersSent } from "./reminders";
 import { applySeeds } from "./seeds";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { loadDay } from "./service";
 import { escapeHtml, loadTelegram, sendMessage } from "./telegram";
 import { addDays, fromMinutes, israelNow, israelToday, restDayOf, toMinutes } from "./time";
@@ -333,6 +335,21 @@ export async function runNotifications(store: LifeStore, ops: OpsStore, origin: 
         if (lesson) await markLessonShown(lesson, date);
       }
       base.sent.push(...parts.flatMap((p) => p.ids));
+    }
+  }
+  // The weekly backup file, after the morning message on the first working day of the week.
+  // Not a nudge: it goes out even when muted or before the routine starts, silently.
+  const morningAt = toMinutes(settings.wake_time) + 5;
+  if (canSend && isSupabaseConfigured() && nowMinutes >= morningAt && (await backupDue(store, date, nowDate))) {
+    if (opts.dry) base.sent.push({ id: "backup", at: now });
+    else {
+      try {
+        await sendBackup(store, telegram.chat_id!, date);
+        base.sent.push({ id: "backup", at: now });
+      } catch (error) {
+        console.error("[life/notify] backup", error);
+        await markBackupFailed(store);
+      }
     }
   }
   return skipped ? { ...base, skipped } : base;
