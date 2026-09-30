@@ -1,20 +1,23 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
-import { MAX_RANGE_DAYS, calendarRange, daysBetween } from "@/lib/life/calendar";
-import { getOpsStore } from "@/lib/life/ops-store";
-import { dateSchema } from "@/lib/life/schemas";
-import { withStore } from "@/lib/life/service";
+import { calendarToken, ICS_KINDS, rotateCalendarToken } from "@/lib/life/ics";
+import { readJson, withStore } from "@/lib/life/service";
 
-const rangeSchema = z.object({ from: dateSchema, to: dateSchema });
+// Settings side of the calendar subscription (behind the admin login via proxy.ts).
+
+const feed = (origin: string, token: string) => `${origin}/api/calendar/${token}.ics`;
 
 export async function GET(request: Request) {
-  const params = Object.fromEntries(new URL(request.url).searchParams);
+  const origin = new URL(request.url).origin;
+  return withStore(async (store) => ({ calendar: { feed: feed(origin, await calendarToken(store)), kinds: ICS_KINDS } }));
+}
+
+const actionSchema = z.object({ action: z.literal("rotate") });
+
+export async function POST(request: Request) {
+  const origin = new URL(request.url).origin;
+  const body = await readJson(request);
   return withStore(async (store) => {
-    const { from, to } = rangeSchema.parse(params);
-    const span = daysBetween(from, to);
-    if (span < 0 || span >= MAX_RANGE_DAYS) {
-      return NextResponse.json({ error: `טווח של עד ${MAX_RANGE_DAYS} ימים` }, { status: 400 });
-    }
-    return { calendar: await calendarRange(store, getOpsStore(), from, to) };
+    actionSchema.parse(body);
+    return { calendar: { feed: feed(origin, await rotateCalendarToken(store)), kinds: ICS_KINDS } };
   });
 }

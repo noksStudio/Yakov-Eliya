@@ -109,6 +109,7 @@ export const PAGES: Page[] = [
   { title: "מדדים", subtitle: "כל היעדים במקום אחד", href: "/life/metrics", keywords: "מדדים מדד סטטיסטיקה גרף" },
   { title: "הגדרות", subtitle: "שעות, שבת וחול המועד", href: "/life/settings", keywords: "הגדרות שעות קימה שינה תפילות זמנים חול המועד שבת" },
   { title: "חיבור המערכת", subtitle: "Supabase, מפתח API, טלגרם והתראות", href: "/life/settings/setup", keywords: "חיבור חיבורים התקנה מפתח api סופאבייס supabase vercel משתני סביבה הגדרה מסד נתונים cron" },
+  { title: "יומן באייפון", subtitle: "הלו״ז ביומן של הטלפון", href: "/life/settings#calendar-title", keywords: "יומן אייפון iphone גוגל google calendar ics לוח שנה סנכרון מנוי" },
   { title: "התראות בטלגרם", subtitle: "חיבור הבוט ובחירת התראות", href: "/life/settings", keywords: "טלגרם התראות בוט תזכורות" },
 ];
 

@@ -97,7 +97,7 @@ export function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-async function derive(label: string) {
+export async function derive(label: string) {
   const secret = process.env.ADMIN_SESSION_SECRET;
   if (!secret) throw new Error("Missing ADMIN_SESSION_SECRET environment variable");
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
