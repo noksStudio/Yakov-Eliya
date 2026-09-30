@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Briefcase, Crown, Dumbbell, Loader2, Send, Wallet } from "lucide-react";
+import { Brain, Briefcase, Crown, Dumbbell, Loader2, MoonStar, Send, Wallet } from "lucide-react";
 import type { AgentId, ChatMessage } from "@/lib/life/types";
 import { lifeApi } from "./api";
 
@@ -46,6 +46,27 @@ const AGENT_UI: Record<
     presets: {},
     suggestions: ["איך אני עומד מול היעד החודשי?", "נכנסה הכנסה, תרשום.", "כמה הוצאתי על שיווק החודש?"],
     empty: "ספר לי על הכנסה או הוצאה, או שאל איך אתה עומד מול היעד.",
+  },
+  spirit: {
+    name: "המלווה הרוחני",
+    subtitle: "תפילות, התבודדות ולימוד",
+    icon: MoonStar,
+    presets: {
+      hitbodedut: "קשה לי להתחיל את ההתבודדות היום. תעזור לי לפתוח?",
+    },
+    suggestions: ["איך הייתה הקביעות שלי השבוע?", "סיימתי עמוד במגילה.", "תן לי נושא להתבודדות הלילה."],
+    empty: "ספר לי איך היו התפילות, או בקש עזרה לפתוח את ההתבודדות.",
+  },
+  mind: {
+    name: "המאמן המנטלי",
+    subtitle: "מצב רוח, אנרגיה ומיקוד",
+    icon: Brain,
+    presets: {
+      stuck: "אני דוחה משהו ולא מצליח להתחיל.",
+      hard: "היה לי יום קשה.",
+    },
+    suggestions: ["אני דוחה משהו ולא מצליח להתחיל.", "למה האנרגיה שלי נמוכה השבוע?", "היה לי יום קשה."],
+    empty: "ספר לי מה עובר עליך, או מה תקוע. נעשה צעד אחד קטן.",
   },
 };
 

@@ -29,7 +29,7 @@ const fmt = (n: number) => Math.round(n).toLocaleString("he-IL");
 const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
 /** Consecutive days (up to today) meeting `ok`, skipping Shabbat/Yom Tov. Today counts only once met. */
-function streak(byDate: Map<string, Checkin>, today: string, ok: (c: Checkin) => boolean) {
+export function streak(byDate: Map<string, Checkin>, today: string, ok: (c: Checkin) => boolean) {
   let count = 0;
   let date = today;
   if (!byDate.get(today) || !ok(byDate.get(today)!)) date = addDays(today, -1);
@@ -138,7 +138,7 @@ export async function computeMetrics(store: LifeStore, ops: OpsStore, today = is
     status: isRest ? "neutral" : prayed === 3 ? "good" : "due",
     streak: streak(byDate, today, (c) => c.shacharit && c.mincha && c.arvit),
     note: "רצף ימים עם שלוש תפילות",
-    href: "/life",
+    href: "/life/spirit",
     owner: "המלווה הרוחני",
   });
 
@@ -150,7 +150,7 @@ export async function computeMetrics(store: LifeStore, ops: OpsStore, today = is
     status: isRest ? "neutral" : todayCheckin?.hitbodedut ? "good" : "neutral",
     streak: streak(byDate, today, (c) => c.hitbodedut),
     note: "רצף ימים",
-    href: "/life",
+    href: "/life/spirit",
     owner: "המלווה הרוחני",
   });
 
@@ -163,7 +163,7 @@ export async function computeMetrics(store: LifeStore, ops: OpsStore, today = is
     target: `עד ${learning.deadline.split("-").reverse().join(".")}`,
     status: learning.finished || learning.neededPerWeek <= learning.plannedPerWeek ? "good" : "behind",
     note: learning.finished ? "המסכת הושלמה" : `הבא: ${learning.next} · צריך ${learning.neededPerWeek} עמודים בשבוע`,
-    href: "/life",
+    href: "/life/spirit",
     owner: "המלווה הרוחני",
   });
 

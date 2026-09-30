@@ -119,6 +119,17 @@ create table if not exists life_activity (
   meetings int not null default 0
 );
 
+-- Personal writing: the hitbodedut journal (always private, never sent to an agent) and daily
+-- reflections (readable by the mental coach unless marked private).
+create table if not exists life_journal (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  date date not null,
+  kind text not null check (kind in ('hitbodedut', 'reflection')),
+  text text not null,
+  private boolean not null default false
+);
+
 -- Safe to re-run on a database created from an earlier version of this file.
 alter table life_checkins add column if not exists workout boolean not null default false;
 alter table life_messages add column if not exists agent text not null default 'chief';
@@ -128,6 +139,7 @@ create index if not exists life_events_date_idx on life_events (date, start_time
 create index if not exists life_messages_created_idx on life_messages (agent, created_at desc);
 create index if not exists life_finance_date_idx on life_finance (date);
 create index if not exists life_deals_stage_idx on life_deals (stage, next_date);
+create index if not exists life_journal_kind_idx on life_journal (kind, created_at desc);
 
 alter table life_settings enable row level security;
 alter table life_tasks enable row level security;
@@ -139,3 +151,4 @@ alter table life_shopping enable row level security;
 alter table life_finance enable row level security;
 alter table life_deals enable row level security;
 alter table life_activity enable row level security;
+alter table life_journal enable row level security;

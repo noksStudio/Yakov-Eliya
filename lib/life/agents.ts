@@ -3,6 +3,9 @@ import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { BetaToolRunnerParams } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { learningForDate, loadLearningGoal } from "./learning";
 import { loadMemory } from "./memory";
+import { spiritSummary } from "./spirit";
+import { mindSummary } from "./mind";
+import { getJournalStore } from "./journal";
 import { getOpsStore } from "./ops-store";
 import { businessSummary } from "./business";
 import { financeSummary, loadFinanceGoal } from "./finance";
@@ -63,8 +66,7 @@ ${SHARED}
 יעד: עסקאות של 30 אלף ₪ ומעלה. שגרת מכירות יומית בבלוק העבודה העמוקה: 20 בקשות חיבור בלינקדאין, 10 הודעות המשך, 10 שיחות או הודעות וואטסאפ.
 
 ## הצוות
-פעילים, כל אחד עם מסך משלו: מאמן הגוף (תזונה, אימונים, שינה, קניות), מנהל העסק (עסקאות ופעילות מכירה יומית) ומנהל הכספים (רווח ויעד חודשי). get_day מחזיר גם את התפריט והפעילות של היום. בשאלות עומק, הפנה אותו לסוכן המתאים.
-בהמשך יצטרפו: מלווה רוחני ומאמן מנטלי. עד אז אתה מכסה את התחומים האלה ברמה בסיסית.
+פעילים, כל אחד עם מסך משלו: מאמן הגוף (תזונה, אימונים, שינה, קניות), מנהל העסק (עסקאות ופעילות מכירה יומית), מנהל הכספים (רווח ויעד חודשי), המלווה הרוחני (תפילות, התבודדות ולימוד) והמאמן המנטלי (מצב רוח, אנרגיה, דחיינות ורפלקציה). get_day מחזיר גם את התפריט והפעילות של היום. בשאלות עומק, הפנה אותו לסוכן המתאים.
 
 ## שאלות פתוחות
 בתחילת כל הודעה מופיעות "שאלות פתוחות" שעוד לא נענו. כשזה מתאים (לא באמצע משימה דחופה), שאל אחת מהן. כשיעקב עונה, שמור את התשובה עם remember ואז סגור את השאלה עם resolve_question.
@@ -113,6 +115,32 @@ ${SHARED}
 - רווח = הכנסות עסקיות פחות הוצאות עסקיות. שיווק נספר כהוצאה, ומוצג גם בנפרד.
 - כשמשהו חריג (הוצאה גדולה, יום בלי הכנסה אחרי כמה ימים טובים), ציין בעדינות.
 - אל תיתן ייעוץ השקעות או מס מחייב. לשאלות מס, המלץ על רואה חשבון.`;
+
+const SPIRIT_PROMPT = `אתה "המלווה הרוחני" במערכת ההפעלה האישית של יעקב-אליה.
+המטרה: קביעות ושמחה בעבודת ה׳: שלוש תפילות ביום, שעת התבודדות בלילה, ולימוד מסכת מגילה עד יום ההולדת.
+
+${SHARED}
+
+## איך אתה עובד
+- get_spirit: שבעת הימים האחרונים (שחרית, מנחה, ערבית, התבודדות), רצפים, וההתקדמות בלימוד.
+- כשיעקב מספר שהתפלל או התבודד, רשום עם update_checkin. אחרי מפגש לימוד, עדכן עם update_learning.
+- מחזק קביעות בלי אשמה. יום שהתפספס הוא לא כישלון: חוזרים מחר, ואם אפשר משלימים היום.
+- התבודדות: שיחה אישית עם השם במילים שלך, בשפה שלך, על כל מה שעל הלב. אפשר להציע נושאים או פתיחה כשקשה להתחיל, אבל לא מכתיבים.
+- יומן ההתבודדות פרטי לגמרי. אין לך גישה אליו ואל תבקש לראות אותו.
+- אתה לא פוסק הלכה. בשאלות הלכה, הפנה לרב.
+- בשבת ובחג אין מעקב.`;
+
+const MIND_PROMPT = `אתה "המאמן המנטלי" במערכת ההפעלה האישית של יעקב-אליה.
+המטרה: אנרגיה, מיקוד ויציבות רגשית לאורך זמן, כבסיס לביצועי שיא.
+
+${SHARED}
+
+## איך אתה עובד
+- get_mind: מגמות מצב רוח, אנרגיה, דירוג יום ושינה (ממוצע השבוע מול השבוע הקודם), ו־5 הרפלקציות האחרונות שלא סומנו כפרטיות.
+- כלים עיקריים: לזהות דפוס (למשל: שינה קצרה, ואז מצב רוח נמוך), לפרק משימה שנדחית לצעד של 10 דקות, להחליף מחשבה מכבידה בניסוח מאוזן, ולשים לב למה שהלך טוב.
+- שאל שאלה אחת טובה במקום להרצות. הצע תרגיל קצר אחד בכל פעם.
+- save_reflection שומר רפלקציה קצרה כשיעקב משתף ורוצה לשמור.
+- אתה לא מטפל ולא מאבחן. אם עולים סימני מצוקה ממשית (ייאוש מתמשך, מחשבות לפגוע בעצמו), הגב בחום, אמור בבירור שחשוב לדבר עם איש מקצוע, והזכר את ער״ן בטלפון 1201 (סיוע נפשי ראשוני, 24/7).`;
 
 const BODY_PROMPT = `אתה "מאמן הגוף" במערכת ההפעלה האישית של יעקב-אליה: כושר, תזונה, שינה והרגלים.
 המטרה: ירידה הדרגתית ובריאה במשקל, יותר כוח ואנרגיה, ושגרה שמחזיקה לאורך זמן.
@@ -343,6 +371,43 @@ function financeTools(store: LifeStore) {
   ];
 }
 
+function spiritTools(store: LifeStore) {
+  return [
+    betaZodTool({
+      name: "get_spirit",
+      description: "שבעת הימים האחרונים (תפילות והתבודדות), רצפים, מספר התפילות השבוע וההתקדמות בלימוד. בלי יומן ההתבודדות, שהוא פרטי.",
+      inputSchema: z.object({}),
+      run: async () => json(await spiritSummary(store)),
+    }),
+  ];
+}
+
+function mindTools(store: LifeStore) {
+  const journal = getJournalStore();
+  return [
+    betaZodTool({
+      name: "get_mind",
+      description: "מגמות מצב רוח ואנרגיה (30 יום), ממוצעי השבוע מול השבוע הקודם, ו־5 הרפלקציות האחרונות שאינן פרטיות.",
+      inputSchema: z.object({}),
+      run: async () => {
+        const summary = await mindSummary(store);
+        // Private reflections (and the hitbodedut journal, a different kind) never reach the model.
+        const reflections = (await journal.list("reflection", 15)).filter((e) => !e.private).slice(0, 5);
+        return json({ ...summary, reflections: reflections.map((r) => ({ date: r.date, text: r.text })) });
+      },
+    }),
+    betaZodTool({
+      name: "save_reflection",
+      description: "שומר רפלקציה קצרה ביומן הרפלקציות (לא פרטי).",
+      inputSchema: z.object({ text: z.string().min(1).max(2000) }),
+      run: async ({ text }) => {
+        await journal.add({ date: israelToday(), kind: "reflection", text, private: false });
+        return "נשמר";
+      },
+    }),
+  ];
+}
+
 function checkinTools(store: LifeStore) {
   return [
     betaZodTool({
@@ -457,6 +522,11 @@ const AGENT_CONFIG: Record<AgentId, { system: string; tools: (store: LifeStore) 
   body: { system: BODY_PROMPT, tools: (s) => [...bodyTools(s), ...checkinTools(s), ...shoppingTools(s), ...dayTools(s).slice(0, 1), ...memoryTools(s).slice(0, 1)] },
   business: { system: BUSINESS_PROMPT, tools: (s) => [...businessTools(), ...dayTools(s).slice(1, 3), ...memoryTools(s).slice(0, 1)] },
   finance: { system: FINANCE_PROMPT, tools: (s) => [...financeTools(s), ...memoryTools(s).slice(0, 1)] },
+  spirit: {
+    system: SPIRIT_PROMPT,
+    tools: (s) => [...spiritTools(s), ...checkinTools(s).slice(1), ...learningTools(s), ...memoryTools(s).slice(0, 1)],
+  },
+  mind: { system: MIND_PROMPT, tools: (s) => [...mindTools(s), ...checkinTools(s), ...memoryTools(s).slice(0, 1)] },
 };
 
 export class AgentNotConfiguredError extends Error {}
