@@ -151,6 +151,7 @@ async function runCommand(store: LifeStore, command: string, args: string[], ori
         ...list.slice(0, 15).map((r, i) => `${i + 1}. ${whenLabel(r.date, today)} ${r.time} · ${escapeHtml(r.text)}`),
         "",
         "לביטול: /cancel ומספר, למשל /cancel 1",
+        `<a href="${origin}/life/reminders">לעריכה באפליקציה</a>`,
       ].join("\n");
     }
     case "cancel": {

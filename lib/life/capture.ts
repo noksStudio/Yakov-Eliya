@@ -108,7 +108,7 @@ const RULES: Rule[] = [
       const parsed = parseWhen(m[1]);
       if ("error" in parsed) return parsed;
       await addReminder(store, { date: parsed.date, time: parsed.time, text: parsed.text });
-      return { kind: "reminder", message: `אזכיר לך ${whenLabel(parsed.date, today)} ב־${parsed.time}: ${parsed.text}`, href: `/life?v=week&date=${parsed.date}` };
+      return { kind: "reminder", message: `אזכיר לך ${whenLabel(parsed.date, today)} ב־${parsed.time}: ${parsed.text}`, href: "/life/reminders" };
     },
   },
   {

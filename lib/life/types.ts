@@ -146,6 +146,8 @@ export type DayView = {
   contextLessons: ContextLesson[];
   /** Leads to get back to today (overdue included); empty on a day off. */
   dueLeads: DueLead[];
+  /** Today's one-off reminders, sent or not, by time. */
+  reminders: { id: string; time: string; text: string; sent: boolean }[];
   timeline: TimelineItem[];
   openTasks: Task[];
   doneToday: Task[];

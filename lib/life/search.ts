@@ -87,7 +87,7 @@ export async function searchAll(store: LifeStore, ops: OpsStore, query: string, 
     add("recurring", r.id, r.title, "קבוע שבועי", `כל יום ${WEEKDAY_LABELS[r.weekday]} ב־${r.start_time}`, "/life?v=week");
   }
   for (const r of reminders.filter((x) => !x.sent)) {
-    add("reminder", r.id, r.text, "תזכורת", `${dayTitle(r.date)} · ${r.time}`, `/life?v=week&date=${r.date}`);
+    add("reminder", r.id, r.text, "תזכורת", `${dayTitle(r.date)} · ${r.time}`, "/life/reminders");
   }
   for (const o of upcomingOccasions(couple, today)) {
     const words = o.kind === "anniversary" ? "יום נישואין" : o.kind === "birthday" || o.age ? "יום הולדת" : "תאריך";

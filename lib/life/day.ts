@@ -167,6 +167,7 @@ export function buildDay(
     weekFocus,
     contextLessons,
     dueLeads: [],
+    reminders: [],
     timeline,
     openTasks,
     doneToday,

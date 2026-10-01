@@ -33,6 +33,7 @@ function offlineData() {
     "/api/life/leads",
     "/api/life/business",
     "/api/life/shopping",
+    "/api/life/reminders",
   ];
 }
 

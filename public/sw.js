@@ -9,7 +9,7 @@ const MEDIA = `media-${VERSION}`;
 const PAGES = `pages-${VERSION}`;
 const LIFE = "life-v1";
 // Data kept for offline use. Not finance, the journal, chats or couple notes.
-const LIFE_API = ["/api/life/day", "/api/life/calendar", "/api/life/recurring", "/api/life/leads", "/api/life/business", "/api/life/metrics", "/api/life/shopping"];
+const LIFE_API = ["/api/life/day", "/api/life/calendar", "/api/life/recurring", "/api/life/leads", "/api/life/business", "/api/life/metrics", "/api/life/shopping", "/api/life/reminders"];
 // A weak signal should not keep a screen blank: after this long, the saved copy is shown.
 const SLOW_MS = 3500;
 

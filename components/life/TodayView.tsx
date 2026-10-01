@@ -122,6 +122,7 @@ export function TodayView() {
           {!morningDone(day.checkin) && <MorningCheckin checkin={day.checkin} onSave={saveCheckin} />}
           <ContextLessons day={day} />
           <TopTasks day={day} onChange={reload} onError={setError} />
+          <TodayReminders day={day} />
           <DueLeads day={day} />
           {nextUp}
           <WeekFocus day={day} />
@@ -134,6 +135,7 @@ export function TodayView() {
           {nextUp}
           <ContextLessons day={day} />
           <TopTasks day={day} onChange={reload} onError={setError} />
+          <TodayReminders day={day} />
           <DueLeads day={day} />
           {!morningDone(day.checkin) && <MorningCheckin checkin={day.checkin} onSave={saveCheckin} />}
           <BodyToday day={day} now={now} onSave={saveCheckin} />
@@ -144,6 +146,7 @@ export function TodayView() {
       {shown === "evening" && (
         <>
           <EveningCheckin day={day} onSave={saveCheckin} onError={setError} />
+          {day.reminders.some((r) => !r.sent) && <TodayReminders day={day} />}
           <ContextLessons day={day} />
           {nextUp}
         </>
@@ -158,6 +161,32 @@ export function TodayView() {
         {shown === "evening" && <MorningCheckin checkin={day.checkin} onSave={saveCheckin} />}
       </MoreToday>
     </div>
+  );
+}
+
+/** Today's reminders: what is still coming, and what already went out. */
+function TodayReminders({ day }: { day: DayView }) {
+  if (!day.reminders.length) return null;
+  return (
+    <section className="rounded-2xl border border-border-soft bg-surface p-4" aria-labelledby="today-reminders">
+      <div className="mb-2 flex items-center justify-between">
+        <h2 id="today-reminders" className="text-[15px] font-bold">
+          ⏰ תזכורות היום
+        </h2>
+        <Link href="/life/reminders" className="text-xs text-muted underline">
+          כל התזכורות
+        </Link>
+      </div>
+      <ul className="grid gap-1.5">
+        {day.reminders.map((r) => (
+          <li key={r.id} className={`flex items-baseline gap-2.5 text-sm ${r.sent ? "text-muted line-through decoration-white/20" : ""}`}>
+            <span className="font-latin w-11 shrink-0 font-semibold">{r.time}</span>
+            <span className="min-w-0 flex-1">{r.text}</span>
+            {r.sent && <span className="shrink-0 text-[11px] no-underline">נשלחה</span>}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

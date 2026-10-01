@@ -40,6 +40,27 @@ export async function removeReminder(store: LifeStore, id: string) {
   return true;
 }
 
+/**
+ * Changes a reminder's time or text. A new time must be ahead and outside quiet hours; an edited
+ * reminder that was already sent is scheduled again.
+ */
+export async function updateReminder(store: LifeStore, id: string, patch: { date?: string; time?: string; text?: string }, now = new Date()) {
+  const items = await loadReminders(store);
+  const current = items.find((r) => r.id === id);
+  if (!current) return { error: "התזכורת לא נמצאה." } as const;
+  const next = { ...current, ...patch, text: (patch.text ?? current.text).trim().slice(0, 300) };
+  if (!next.text) return { error: "על מה להזכיר?" } as const;
+  if (patch.date || patch.time) {
+    const today = israelToday(now);
+    if (next.date < today || (next.date === today && toMinutes(next.time) <= toMinutes(israelNow(now)))) return { error: "הזמן הזה כבר עבר." } as const;
+    const quiet = quietFor(next.date, next.time);
+    if (quiet) return { error: quiet } as const;
+    next.sent = false;
+  }
+  await save(store, items.map((r) => (r.id === id ? next : r)));
+  return { reminder: next } as const;
+}
+
 export async function upcomingReminders(store: LifeStore) {
   return (await loadReminders(store)).filter((r) => !r.sent);
 }

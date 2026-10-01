@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Bell,
   Brain,
   Briefcase,
   CalendarDays,
@@ -44,6 +45,7 @@ const DRAWER: { title: string; items: DrawerItem[] }[] = [
     items: [
       { href: "/life", label: "היום שלי", icon: CalendarDays },
       { href: "/life/chat", label: "המנהל הראשי", hint: "לו״ז ומשימות", icon: Crown },
+      { href: "/life/reminders", label: "תזכורות", hint: "כל התזכורות, עריכה וביטול", icon: Bell },
       { href: "/life/growth", label: "צמיחה", hint: "חזון 30, לקחים וסקירה שבועית", icon: Sprout },
       { href: "/life/ideas", label: "רעיונות", hint: "מערכות ומוצרים לפתח", icon: Lightbulb },
     ],
