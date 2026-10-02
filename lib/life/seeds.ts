@@ -1,6 +1,7 @@
 import type { LifeStore } from "./store";
 import { getIdeasStore, type IdeaStatus, type NewIdea } from "./ideas";
 import { addReminder } from "./reminders";
+import { setInviteText } from "./guests";
 import { getLessonsStore } from "./lessons";
 import type { Area } from "./types";
 import { israelNow, israelToday, toMinutes } from "./time";
@@ -11,7 +12,10 @@ import { israelNow, israelToday, toMinutes } from "./time";
 type SeedIdea = NewIdea & { status?: IdeaStatus; steps?: string[] };
 type SeedReminder = { date: string; time: string; text: string };
 type SeedLesson = { rule: string; story?: string; source?: "mine" | "others"; source_name?: string; area?: Area; triggers?: string[] };
-type SeedBatch = { id: string; ideas?: SeedIdea[]; reminders?: SeedReminder[]; lessons?: SeedLesson[] };
+type SeedTask = { title: string; due_date?: string; priority?: number; area?: Area };
+/** An event with its prep tasks (linked by event_id) and, optionally, the invitation text for guests. */
+type SeedEvent = { date: string; start_time: string; end_time?: string; title: string; area?: Area; tasks?: SeedTask[]; invite_text?: string };
+type SeedBatch = { id: string; ideas?: SeedIdea[]; reminders?: SeedReminder[]; lessons?: SeedLesson[]; events?: SeedEvent[] };
 
 const SEEDS: SeedBatch[] = [
   {
@@ -139,6 +143,26 @@ const SEEDS: SeedBatch[] = [
       },
     ],
   },
+  {
+    // Lina (his sister) and Yair's wedding, from the invitation he sent.
+    id: "2026-10-02-lina-wedding",
+    events: [
+      {
+        date: "2026-10-19",
+        start_time: "19:30",
+        end_time: "23:30",
+        title: "החתונה של לינה ויאיר · עין חמד (חופה 20:30)",
+        area: "home",
+        tasks: [{ title: "להזמין חברים לחתונה של לינה (19.10)", due_date: "2026-10-04", priority: 1 }],
+        invite_text:
+          "היי {שם}! 🎉\nאחותי לינה מתחתנת עם יאיר, ונשמח מאוד לראות אותך.\n📅 יום שני, 19.10 (ח׳ בחשוון)\n📍 גן אירועים עין חמד\n🕢 קבלת פנים 19:30 · חופה 20:30\nאפשר לעדכן אותי אם מגיעים? 🙏",
+      },
+    ],
+    reminders: [
+      { date: "2026-10-07", time: "19:00", text: "לוודא שהזמנתי את כל החברים לחתונה של לינה (19.10). לסמן מי מגיע בדף האירוע." },
+      { date: "2026-10-15", time: "19:00", text: "החתונה של לינה ביום שני: לבדוק מי עוד לא ענה ולשלוח תזכורת." },
+    ],
+  },
 ];
 
 export async function applySeeds(store: LifeStore) {
@@ -154,6 +178,12 @@ export async function applySeeds(store: LifeStore) {
     // A reminder whose time already passed (e.g. seeded after connecting late) is skipped, not
     // sent late all at once.
     for (const lesson of batch.lessons ?? []) await getLessonsStore().add(lesson);
+    for (const { tasks, invite_text, ...input } of batch.events ?? []) {
+      if (input.date < today) continue;
+      const event = await store.addEvent({ ...input, end_time: input.end_time ?? null });
+      for (const t of tasks ?? []) await store.addTask({ ...t, area: t.area ?? input.area, event_id: event.id });
+      if (invite_text) await setInviteText(store, event.id, invite_text);
+    }
     for (const r of batch.reminders ?? []) {
       if (r.date > today || (r.date === today && toMinutes(r.time) > now)) await addReminder(store, r);
     }

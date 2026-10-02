@@ -41,7 +41,8 @@ export type DocKey =
   | "notify_mute"
   | "backup_log"
   | "integrations"
-  | "intake_log";
+  | "intake_log"
+  | "event_guests";
 
 export interface LifeStore {
   getSettings(): Promise<Settings>;
@@ -58,6 +59,7 @@ export interface LifeStore {
   listEventsRange(from: string, to: string): Promise<LifeEvent[]>;
   addEvent(input: NewEvent): Promise<LifeEvent>;
   deleteEvent(id: string): Promise<boolean>;
+  getEvent(id: string): Promise<LifeEvent | null>;
   getCheckin(date: string): Promise<Checkin | null>;
   listCheckins(from: string, to: string): Promise<Checkin[]>;
   saveCheckin(date: string, patch: CheckinPatch): Promise<Checkin>;
@@ -184,6 +186,9 @@ function supabaseStore(): LifeStore {
     async addEvent(input) {
       const row = { end_time: null, area: "general", source: "user", ...input };
       return check(await db.from("life_events").insert(row).select("*").single()) as LifeEvent;
+    },
+    async getEvent(id) {
+      return check(await db.from("life_events").select("*").eq("id", id).maybeSingle()) as LifeEvent | null;
     },
     async deleteEvent(id) {
       const rows = check(await db.from("life_events").delete().eq("id", id).select("id"));
@@ -331,6 +336,10 @@ function memoryStore(): LifeStore {
       };
       mem.events.push(event);
       return { ...event };
+    },
+    async getEvent(id) {
+      const event = mem.events.find((e) => e.id === id);
+      return event ? { ...event } : null;
     },
     async deleteEvent(id) {
       const before = mem.events.length;

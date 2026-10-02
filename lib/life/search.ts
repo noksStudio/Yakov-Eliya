@@ -81,7 +81,7 @@ export async function searchAll(store: LifeStore, ops: OpsStore, query: string, 
     add("task", t.id, t.title, "משימה", t.due_date ? `${t.done ? "בוצעה · " : ""}${dayTitle(t.due_date)}` : t.done ? "בוצעה" : "משימה פתוחה", t.due_date ? `/life?v=week&date=${t.due_date}` : "/life");
   }
   for (const e of events) {
-    add("event", e.id, e.title, "אירוע", `${dayTitle(e.date)} · ${e.start_time}`, `/life?v=week&date=${e.date}`);
+    add("event", e.id, e.title, "אירוע", `${dayTitle(e.date)} · ${e.start_time}`, `/life/events/${e.id}`);
   }
   for (const r of recurring) {
     add("recurring", r.id, r.title, "קבוע שבועי", `כל יום ${WEEKDAY_LABELS[r.weekday]} ב־${r.start_time}`, "/life?v=week");

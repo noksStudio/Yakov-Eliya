@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   Bell,
   BookOpen,
@@ -177,7 +178,13 @@ function ItemList({ items, onChange, onError }: { items: CalItem[]; onChange: ()
             <span className="w-11 shrink-0 text-xs text-muted">{item.time && <bdi dir="ltr" className="font-latin">{item.time}</bdi>}</span>
             <Icon className={`h-4 w-4 shrink-0 ${AREA_STYLE[item.area].text}`} aria-hidden />
             <span className={`min-w-0 flex-1 ${item.done ? "text-muted line-through" : ""}`}>
-              <span className="block truncate">{item.title}</span>
+              {item.kind === "event" && item.id ? (
+                <Link href={`/life/events/${item.id}`} className="block truncate underline decoration-white/20 underline-offset-4">
+                  {item.title}
+                </Link>
+              ) : (
+                <span className="block truncate">{item.title}</span>
+              )}
               {item.note && <span className="block truncate text-xs text-muted">{item.note}</span>}
               {item.prep && (
                 <span className={`block text-xs ${item.prep.done === item.prep.total ? "text-emerald-300" : "text-muted"}`}>
