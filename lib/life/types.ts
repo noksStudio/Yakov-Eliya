@@ -146,6 +146,8 @@ export type DayView = {
   contextLessons: ContextLesson[];
   /** Leads to get back to today (overdue included); empty on a day off. */
   dueLeads: DueLead[];
+  /** On the eve of Shabbat or Yom Tov: candle lighting, the end, and the home checklist. */
+  shabbat: { title: string; city: string; candles: string; end: string; endRabbeinuTam: string; checklist: string[] } | null;
   /** Today's one-off reminders, sent or not, by time. */
   reminders: { id: string; time: string; text: string; sent: boolean }[];
   timeline: TimelineItem[];

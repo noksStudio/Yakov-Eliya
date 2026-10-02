@@ -168,6 +168,7 @@ export function buildDay(
     contextLessons,
     dueLeads: [],
     reminders: [],
+    shabbat: null,
     timeline,
     openTasks,
     doneToday,

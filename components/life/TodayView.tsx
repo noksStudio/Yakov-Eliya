@@ -93,6 +93,8 @@ export function TodayView() {
         )}
       </header>
 
+      {day.shabbat && now >= "08:00" && <ShabbatCard date={day.date} shabbat={day.shabbat} />}
+
       {demo && (
         <p className="rounded-xl border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-xs text-amber-100">
           Supabase עוד לא מחובר: מוצגים נתוני דוגמה, ושינויים לא נשמרים לאורך זמן.{" "}
@@ -161,6 +163,64 @@ export function TodayView() {
         {shown === "evening" && <MorningCheckin checkin={day.checkin} onSave={saveCheckin} />}
       </MoreToday>
     </div>
+  );
+}
+
+/** Erev Shabbat (or Yom Tov) from 08:00: the times, and the home checklist to tick off. */
+function ShabbatCard({ date, shabbat }: { date: string; shabbat: NonNullable<DayView["shabbat"]> }) {
+  const key = `life-shabbat-done-${date}`;
+  const [done, setDone] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(key) ?? "[]");
+    } catch {
+      return [];
+    }
+  });
+  const toggle = (item: string) => {
+    const next = done.includes(item) ? done.filter((d) => d !== item) : [...done, item];
+    setDone(next);
+    try {
+      localStorage.setItem(key, JSON.stringify(next));
+    } catch {
+      // Not saved on this device; the card still works for now.
+    }
+  };
+  const plain = shabbat.title === "שבת";
+  return (
+    <section className="rounded-2xl border border-gold/40 bg-gradient-to-b from-gold/15 to-gold/[0.04] p-4" aria-labelledby="shabbat-card">
+      <h2 id="shabbat-card" className="flex items-baseline justify-between gap-2 text-[15px] font-bold">
+        <span>🕯️ {plain ? "שבת שלום" : shabbat.title.includes("שבת") ? `${shabbat.title}: שבת שלום וחג שמח` : `${shabbat.title}: חג שמח`}</span>
+        <span className="text-xs font-normal text-muted">{shabbat.city}</span>
+      </h2>
+      <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+        <div className="rounded-xl bg-black/20 py-2">
+          <p className="text-xs text-muted">הדלקת נרות</p>
+          <p className="font-latin text-2xl font-black text-gold-2">{shabbat.candles}</p>
+        </div>
+        <div className="rounded-xl bg-black/20 py-2">
+          <p className="text-xs text-muted">יציאה</p>
+          <p className="font-latin text-2xl font-black">{shabbat.end}</p>
+          <p className="text-[11px] text-muted">ר״ת {shabbat.endRabbeinuTam}</p>
+        </div>
+      </div>
+      {shabbat.checklist.length > 0 && (
+        <ul className="mt-3 grid gap-1.5">
+          {shabbat.checklist.map((item) => {
+            const checked = done.includes(item);
+            return (
+              <li key={item}>
+                <button type="button" onClick={() => toggle(item)} aria-pressed={checked} className="flex w-full items-center gap-2.5 text-start text-sm">
+                  <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${checked ? "border-gold bg-gold text-[#1d1407]" : "border-white/30"}`}>
+                    {checked && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                  </span>
+                  <span className={checked ? "text-muted line-through" : ""}>{item}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 

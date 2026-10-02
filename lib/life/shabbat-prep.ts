@@ -10,7 +10,8 @@ import { CITIES, cityById, restTimes } from "./zmanim";
 export type ShabbatPrefs = { city: string | null; candle_minutes: number | null; checklist: string[] };
 
 export const DEFAULT_CHECKLIST = ["מזגנים על שעון שבת", "מקררים על מצב שבת"];
-const DEFAULTS: ShabbatPrefs = { city: null, candle_minutes: null, checklist: DEFAULT_CHECKLIST };
+// He lives by Netanya times (told in chat); changeable in settings.
+const DEFAULTS: ShabbatPrefs = { city: "netanya", candle_minutes: null, checklist: DEFAULT_CHECKLIST };
 
 export const shabbatPrefsSchema = z.object({
   city: z.enum(CITIES.map((c) => c.id) as [string, ...string[]]).nullable().optional(),

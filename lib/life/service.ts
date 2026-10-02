@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { upcomingTimes } from "./shabbat-prep";
+import { addDays, restDayOf } from "./time";
 import { loadReminders } from "./reminders";
 import { dueDate, dueLeads, getLeadsStore } from "./leads";
 import { ZodError } from "zod";
@@ -35,6 +37,12 @@ export async function loadDay(store: LifeStore, date: string) {
     focus,
     lessons,
   );
+  if (!day.restDay && restDayOf(addDays(date, 1))) {
+    const { prefs, city, eve, times } = await upcomingTimes(store, date);
+    if (city && times && eve === date) {
+      day.shabbat = { title: times.title, city: city.name, candles: times.candles, end: times.end, endRabbeinuTam: times.endRabbeinuTam, checklist: prefs.checklist };
+    }
+  }
   day.reminders = (await loadReminders(store)).filter((r) => r.date === date).map(({ id, time, text, sent }) => ({ id, time, text, sent }));
   // Work waits on a day off; a missing leads table (site SQL not run yet) just means none.
   if (!day.dayOff && !day.restDay) {
