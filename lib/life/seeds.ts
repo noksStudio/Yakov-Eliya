@@ -15,7 +15,16 @@ type SeedLesson = { rule: string; story?: string; source?: "mine" | "others"; so
 type SeedTask = { title: string; due_date?: string; priority?: number; area?: Area };
 /** An event with its prep tasks (linked by event_id) and, optionally, the invitation text for guests. */
 type SeedEvent = { date: string; start_time: string; end_time?: string; title: string; area?: Area; tasks?: SeedTask[]; invite_text?: string };
-type SeedBatch = { id: string; ideas?: SeedIdea[]; reminders?: SeedReminder[]; lessons?: SeedLesson[]; events?: SeedEvent[] };
+/** More prep tasks for an event added earlier, found by its date and a word in its title. */
+type SeedEventTasks = { date: string; titleIncludes: string; tasks: SeedTask[] };
+type SeedBatch = {
+  id: string;
+  ideas?: SeedIdea[];
+  reminders?: SeedReminder[];
+  lessons?: SeedLesson[];
+  events?: SeedEvent[];
+  eventTasks?: SeedEventTasks[];
+};
 
 const SEEDS: SeedBatch[] = [
   {
@@ -163,6 +172,28 @@ const SEEDS: SeedBatch[] = [
       { date: "2026-10-15", time: "19:00", text: "החתונה של לינה ביום שני: לבדוק מי עוד לא ענה ולשלוח תזכורת." },
     ],
   },
+  {
+    // More prep for Lina's wedding (19.10). The barber opens bookings a week ahead at midnight,
+    // so the slot for Sunday 18.10 opens on Saturday night 10.10 at 00:00.
+    id: "2026-10-02-lina-wedding-prep",
+    eventTasks: [
+      {
+        date: "2026-10-19",
+        titleIncludes: "לינה",
+        tasks: [
+          { title: "בגדים לחתונה של לינה: לבדוק מה יש ומה לקנות", due_date: "2026-10-08", priority: 2 },
+          { title: "אילן בחתונה: להחליט אם מגיע איתנו או בייביסיטר (ואם מגיע: בגדים ותיק לערב)", due_date: "2026-10-08", priority: 1 },
+          { title: "לקבוע תספורת ליום ראשון 18.10 (התור נפתח במוצ״ש בחצות)", due_date: "2026-10-11", priority: 1 },
+          { title: "להוציא מזומן למתנה לחתונה של לינה", due_date: "2026-10-15", priority: 2 },
+          { title: "תספורת לפני החתונה", due_date: "2026-10-18", priority: 2 },
+        ],
+      },
+    ],
+    reminders: [
+      { date: "2026-10-09", time: "12:00", text: "הלילה במוצ״ש בחצות נפתח התור לתספורת ליום ראשון 18.10, יום לפני החתונה של לינה. להיות ער ולקבוע." },
+      { date: "2026-10-11", time: "00:00", text: "✂️ התור נפתח עכשיו: לקבוע תספורת ליום ראשון 18.10 (יום לפני החתונה של לינה)." },
+    ],
+  },
 ];
 
 export async function applySeeds(store: LifeStore) {
@@ -183,6 +214,11 @@ export async function applySeeds(store: LifeStore) {
       const event = await store.addEvent({ ...input, end_time: input.end_time ?? null });
       for (const t of tasks ?? []) await store.addTask({ ...t, area: t.area ?? input.area, event_id: event.id });
       if (invite_text) await setInviteText(store, event.id, invite_text);
+    }
+    for (const { date, titleIncludes, tasks } of batch.eventTasks ?? []) {
+      // If the event was deleted meanwhile, the tasks still come, just not linked to it.
+      const event = (await store.listEvents(date)).find((e) => e.title.includes(titleIncludes));
+      for (const t of tasks) await store.addTask({ ...t, area: t.area ?? event?.area, event_id: event?.id ?? null });
     }
     for (const r of batch.reminders ?? []) {
       if (r.date > today || (r.date === today && toMinutes(r.time) > now)) await addReminder(store, r);
