@@ -10,6 +10,7 @@ import { computeInsights, goalsProgress } from "./growth";
 import { getLessonsStore, markLessonShown, pickLesson } from "./lessons";
 import { dueReminders, loadReminders, markRemindersSent } from "./reminders";
 import { applySeeds } from "./seeds";
+import { shabbatMessage } from "./shabbat-prep";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { loadDay } from "./service";
 import { escapeHtml, loadTelegram, sendMessage } from "./telegram";
@@ -31,6 +32,7 @@ export const NOTIFY_RULES = [
   { key: "hitbodedut", label: "התבודדות", hint: "5 דקות לפני", default: true },
   { key: "screens", label: "מסכים כבויים", hint: "בשעת כיבוי המסכים", default: false },
   { key: "weekly", label: "סיכום שבועי", hint: "יום ראשון אחרי שחרית", default: true },
+  { key: "shabbat", label: "הכנה לשבת", hint: "שישי (וערב חג) ב־10:00: כניסה, יציאה ורשימת הבית", default: true },
 ] as const;
 
 export type NotifyKey = (typeof NOTIFY_RULES)[number]["key"];
@@ -75,6 +77,8 @@ export function slotsFor(day: DayView): Slot[] {
   if (new Date(`${day.date}T12:00:00Z`).getUTCDay() === 0) {
     slots.push(slot("weekly", "weekly", toMinutes(s.shacharit_time) + 45));
   }
+  // Every eve of Shabbat or Yom Tov, at 10:00.
+  if (!day.restDay && restDayOf(addDays(day.date, 1))) slots.push(slot("shabbat", "shabbat", toMinutes("10:00")));
   return slots.sort((a, b) => toMinutes(a.at) - toMinutes(b.at));
 }
 
@@ -93,8 +97,8 @@ export function quietReason(date: string, nowMinutes: number) {
  * as one message instead of several a few minutes apart.
  */
 export function dueSlots(day: DayView, prefs: NotifyPrefs, sent: string[], nowMinutes: number, anchor: number | null = null) {
-  // A day off gets only the morning message.
-  const open = slotsFor(day).filter((slot) => prefs[slot.rule] && !sent.includes(slot.id) && !(day.dayOff && slot.rule !== "morning"));
+  // A day off gets only the morning message (and the Shabbat prep, which is not work).
+  const open = slotsFor(day).filter((slot) => prefs[slot.rule] && !sent.includes(slot.id) && !(day.dayOff && slot.rule !== "morning" && slot.rule !== "shabbat"));
   const due = open.filter((slot) => nowMinutes >= toMinutes(slot.at) && nowMinutes < toMinutes(slot.at) + WINDOW_MINUTES);
   const starts = [...due.map((slot) => toMinutes(slot.at)), ...(anchor === null ? [] : [anchor])];
   if (!starts.length) return [];
@@ -225,6 +229,8 @@ async function messageFor(slot: Slot, store: LifeStore, ops: OpsStore, day: DayV
       return `📵 מסכים כבויים. שינה ב־${s.sleep_time}. לילה טוב.`;
     case "weekly":
       return weeklyMessage(store, ops, day.date, origin);
+    case "shabbat":
+      return shabbatMessage(store, day.date, origin);
   }
 }
 
@@ -309,12 +315,15 @@ export async function runNotifications(store: LifeStore, ops: OpsStore, origin: 
     skipped = `השגרה מתחילה ב־${settings.start_date.split("-").reverse().join(".")}`;
   } else if (!canSend) {
     skipped = "הבוט עוד לא מחובר לצ׳אט";
-  } else if (muted) {
-    skipped = "הושתק להיום";
   } else {
     day = await loadDay(store, date);
     const anchor = due.length ? Math.min(...due.map((r) => toMinutes(r.time))) : null;
     slots = dueSlots(day, prefs, opts.dry ? [] : log.sent, nowMinutes, anchor);
+    // Muted: only the Shabbat prep still comes, like a reminder he set.
+    if (muted) {
+      slots = slots.filter((slot) => slot.rule === "shabbat");
+      if (!slots.length) skipped = "הושתק להיום";
+    }
     for (const slot of slots) parts.push({ ids: [{ id: slot.id, at: slot.at }], text: await messageFor(slot, store, ops, day, origin) });
   }
 

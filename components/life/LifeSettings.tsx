@@ -9,6 +9,7 @@ import { BackupSettings } from "./BackupSettings";
 import { CalendarSubscribe } from "./CalendarSubscribe";
 import { IntegrationsSettings } from "./IntegrationsSettings";
 import { clearOfflineData } from "./offline-cache";
+import { ShabbatSettings } from "./ShabbatSettings";
 import { TelegramSettings } from "./TelegramSettings";
 
 type TimeKey = { [K in keyof Settings]: Settings[K] extends string | null ? K : never }[keyof Settings];
@@ -211,6 +212,7 @@ export function LifeSettings() {
       </button>
 
       <TelegramSettings demo={demo} />
+      <ShabbatSettings />
       <CalendarSubscribe />
       <IntegrationsSettings />
       <BackupSettings />

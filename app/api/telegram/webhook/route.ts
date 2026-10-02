@@ -6,6 +6,7 @@ import { goalsProgress, weekFocus } from "@/lib/life/growth";
 import { removeReminder, upcomingReminders } from "@/lib/life/reminders";
 import { capture, type CaptureKind, type CaptureResult } from "@/lib/life/capture";
 import { metricsMessage, morningMessage, setMuted } from "@/lib/life/notify";
+import { shabbatMessage } from "@/lib/life/shabbat-prep";
 import { EXPENSE_CATEGORIES, financeEntrySchema } from "@/lib/life/ops-types";
 import { getOpsStore } from "@/lib/life/ops-store";
 import { loadDay } from "@/lib/life/service";
@@ -179,6 +180,8 @@ async function runCommand(store: LifeStore, command: string, args: string[], ori
         ? ["<b>הפוקוס של השבוע</b>", ...focus.map((f) => `• ${escapeHtml(f)}`)].join("\n")
         : `עוד לא נקבע פוקוס לשבוע. <a href="${origin}/life/growth?tab=review">לסקירה השבועית</a>`;
     }
+    case "shabbat":
+      return shabbatMessage(store, today, origin);
     case "mute":
       await setMuted(store, true, today);
       return "🔕 ההתראות מושתקות עד מחר בבוקר. תזכורות שקבעת עדיין יגיעו.\nלביטול: /unmute";

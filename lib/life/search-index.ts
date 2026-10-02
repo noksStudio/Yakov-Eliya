@@ -111,6 +111,7 @@ export const PAGES: Page[] = [
   { title: "מדדים", subtitle: "כל היעדים במקום אחד", href: "/life/metrics", keywords: "מדדים מדד סטטיסטיקה גרף" },
   { title: "הגדרות", subtitle: "שעות, שבת וחול המועד", href: "/life/settings", keywords: "הגדרות שעות קימה שינה תפילות זמנים חול המועד שבת" },
   { title: "חיבור המערכת", subtitle: "Supabase, מפתח API, טלגרם והתראות", href: "/life/settings/setup", keywords: "חיבור חיבורים התקנה מפתח api סופאבייס supabase vercel משתני סביבה הגדרה מסד נתונים cron" },
+  { title: "זמני שבת", subtitle: "כניסה, יציאה ורשימת הכנות לבית", href: "/life/settings#shabbat-title", keywords: "שבת זמני שבת כניסת שבת יציאת שבת הדלקת נרות הבדלה מזגן שעון שבת מקרר מצב שבת" },
   { title: "תזכורות", subtitle: "כל התזכורות, עריכה וביטול", href: "/life/reminders", keywords: "תזכורות תזכורת להזכיר הזכר לי התראה" },
   { title: "מערכות מחוברות", subtitle: "Bossi: לידים חמים, סגירות ושיחות", href: "/life/settings#integrations-title", keywords: "bossi בוסי חיבור api מפתח התממשקות אינטגרציה crm לידים שיחות קרות" },
   { title: "גיבוי", subtitle: "הורדה, שליחה לטלגרם ושחזור", href: "/life/settings#backup-title", keywords: "גיבוי גיבויים ייצוא שחזור קובץ backup export restore" },
