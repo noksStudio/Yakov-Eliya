@@ -173,8 +173,8 @@ const SEEDS: SeedBatch[] = [
     ],
   },
   {
-    // More prep for Lina's wedding (19.10). The barber opens bookings a week ahead at midnight,
-    // so the slot for Sunday 18.10 opens on Saturday night 10.10 at 00:00.
+    // More prep for Lina's wedding (19.10). The barber opens next Sunday's slots when Sunday turns
+    // into Monday at midnight, so the haircut for Sunday 18.10 is booked at 00:00 on Monday 12.10.
     id: "2026-10-02-lina-wedding-prep",
     eventTasks: [
       {
@@ -183,15 +183,15 @@ const SEEDS: SeedBatch[] = [
         tasks: [
           { title: "בגדים לחתונה של לינה: לבדוק מה יש ומה לקנות", due_date: "2026-10-08", priority: 2 },
           { title: "אילן בחתונה: להחליט אם מגיע איתנו או בייביסיטר (ואם מגיע: בגדים ותיק לערב)", due_date: "2026-10-08", priority: 1 },
-          { title: "לקבוע תספורת ליום ראשון 18.10 (התור נפתח במוצ״ש בחצות)", due_date: "2026-10-11", priority: 1 },
+          { title: "לקבוע תספורת ליום ראשון 18.10 (התור נפתח בלילה שבין ראשון לשני, בחצות)", due_date: "2026-10-12", priority: 1 },
           { title: "להוציא מזומן למתנה לחתונה של לינה", due_date: "2026-10-15", priority: 2 },
           { title: "תספורת לפני החתונה", due_date: "2026-10-18", priority: 2 },
         ],
       },
     ],
     reminders: [
-      { date: "2026-10-09", time: "12:00", text: "הלילה במוצ״ש בחצות נפתח התור לתספורת ליום ראשון 18.10, יום לפני החתונה של לינה. להיות ער ולקבוע." },
-      { date: "2026-10-11", time: "00:00", text: "✂️ התור נפתח עכשיו: לקבוע תספורת ליום ראשון 18.10 (יום לפני החתונה של לינה)." },
+      { date: "2026-10-11", time: "21:00", text: "הלילה בחצות (כשעובר ליום שני) נפתח התור לתספורת ליום ראשון 18.10, יום לפני החתונה של לינה. להיות ער ולקבוע." },
+      { date: "2026-10-12", time: "00:00", text: "✂️ התור נפתח עכשיו: לקבוע תספורת ליום ראשון 18.10 (יום לפני החתונה של לינה)." },
     ],
   },
 ];
