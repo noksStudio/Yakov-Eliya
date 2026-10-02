@@ -2,6 +2,8 @@ import type { LifeStore } from "./store";
 import { getIdeasStore, type IdeaStatus, type NewIdea } from "./ideas";
 import { addReminder } from "./reminders";
 import { setInviteText } from "./guests";
+import { appendGoal } from "./growth";
+import type { Goal } from "./growth-types";
 import { getLessonsStore } from "./lessons";
 import type { Area } from "./types";
 import { israelNow, israelToday, toMinutes } from "./time";
@@ -15,6 +17,8 @@ type SeedLesson = { rule: string; story?: string; source?: "mine" | "others"; so
 type SeedTask = { title: string; due_date?: string; priority?: number; area?: Area };
 /** An event with its prep tasks (linked by event_id) and, optionally, the invitation text for guests. */
 type SeedEvent = { date: string; start_time: string; end_time?: string; title: string; area?: Area; tasks?: SeedTask[]; invite_text?: string };
+/** A Vision 30 goal, optionally with its plan (saved as an idea with notes and steps). */
+type SeedGoal = Omit<Goal, "start_date" | "plan_idea_id"> & { plan?: SeedIdea };
 /** More prep tasks for an event added earlier, found by its date and a word in its title. */
 type SeedEventTasks = { date: string; titleIncludes: string; tasks: SeedTask[] };
 type SeedBatch = {
@@ -24,6 +28,7 @@ type SeedBatch = {
   lessons?: SeedLesson[];
   events?: SeedEvent[];
   eventTasks?: SeedEventTasks[];
+  goals?: SeedGoal[];
 };
 
 const SEEDS: SeedBatch[] = [
@@ -194,6 +199,83 @@ const SEEDS: SeedBatch[] = [
       { date: "2026-10-12", time: "00:00", text: "✂️ התור נפתח עכשיו: לקבוע תספורת ליום ראשון 18.10 (יום לפני החתונה של לינה)." },
     ],
   },
+  {
+    // The Instagram funnel and digital course plan, saved under Vision 30 as told in chat.
+    id: "2026-10-02-digital-course",
+    goals: [
+      {
+        id: "course",
+        title: "קורס דיגיטלי: לקוחות ליווי 1:1 לפני הקורס",
+        area: "business",
+        metric: "custom",
+        start: 0,
+        target: 5,
+        unit: "מלווים",
+        deadline: "2027-01-31",
+        value: 0,
+        plan: {
+          title: "קורס דיגיטלי: משפך אינסטגרם, ליווי 1:1 וקורס",
+          area: "business",
+          status: "doing",
+          notes: `המטרה: קהל באינסטגרם → ליווי 1:1 → קורס דיגיטלי בעוד 3–6 חודשים. לא מוכרים ידע, מראים תהליכים.
+
+━━ הבסיס ━━
+המשפט: ״בונה מערכות עם AI לעסקים, ומראה איך זה נבנה מבפנים.״ לא ״אני אלמד אתכם״, אלא ״תראו מה אני עושה״.
+החוט המחבר: ״הדרך ל־30״. ב־10.3.2027 אני בן 30, עם יעד מדיד: מכ־8 אלף ל־25 אלף ₪ בחודש. סדרה שבה רואים מה קרה השבוע, ומסתיימת בחלון השקת הקורס.
+
+━━ 1. ראש המשפך: חשיפה (כ־60%) ━━
+מטרה: שאנשים שלא מכירים יעצרו, יעקבו וישתפו. מדברים לכמעט כולם.
+• ״בניתי את זה ב־X דקות״: הקלטת מסך מואצת ותוצאה.
+• לפני/אחרי: עסק בבלגן של וואטסאפ → מערכת שמסדרת.
+• החיים כתהליך: ״בניתי לעצמי אפליקציה שמנהלת לי את היום״ (הכפתור +, תזכורות, הבוט).
+• נושאים שכולם מכירים: התמכרות לפלאפון, בוקר, סדר יום של אבא ויזם דתי.
+סגנון: 15–30 שניות, הוק בשנייה הראשונה (משפט על המסך), כתוביות, סוף פתוח (״חלק 2 מחר״).
+מדדים: חשיפה ללא־עוקבים, שיתופים, שמירות, עוקבים חדשים.
+
+━━ 2. אמצע המשפך: אמון (כ־30%) ━━
+מטרה: שיבינו שאני באמת יודע לעשות את זה, ושישאירו פרטים.
+• פרויקט אמיתי מקצה לקצה (באישור הלקוח; Lajit רק באישור של תמיר).
+• יומן שיחות קרות: מה אמרו, מה עבד.
+• טעויות ולקחים (מערכת הלקחים היא בנק תוכן).
+• קרוסלות עם שלבי תהליך, רילס של 45–90 שניות.
+מגנט לידים: ״כתבו לי 'מערכת'״ → צ׳קליסט או סרטון קצר (״5 מערכות שכל עסק קטן צריך״). כל מי שכותב נכנס כליד למערכת.
+מדדים: שמירות, כניסות לפרופיל, הודעות, תגובות למילת המפתח.
+
+━━ 3. תחתית המשפך: סגירה (כ־10%) ━━
+מטרה: ליווי 1:1 עכשיו, קורס אחר כך.
+• תוצאות של מלווים, במספרים.
+• ״למי זה מתאים ולמי לא״.
+• הצצה לפגישת ליווי.
+• מענה להתנגדויות: ״אין לי זמן״, ״אני לא טכנולוגי״.
+• מקומות מוגבלים אמיתיים (למשל 3 בחודש), ורצף סטוריז של 3–5 ימים כשנפתח מחזור.
+קריאה לפעולה: ״כתבו לי 'ליווי'״, או טופס קצר ושיחה.
+מדדים: פניות, שיחות שנקבעו, סגירות.
+
+━━ סטוריז ━━
+3–7 ביום: תהליך מהעבודה, רגע אישי, וסקר או שאלה. Highlights: מי אני · תהליכים · לקוחות · ליווי.
+
+━━ הפקה ━━
+יום צילום אחד בשבוע (כשעתיים) = 4 רילס. מקליטים מסך תוך כדי עבודה רגילה. כל סרטון עולה גם לטיקטוק וליוטיוב שורטס.
+
+━━ שאלות פתוחות ━━
+1. למי הליווי והקורס: בעלי עסקים שרוצים מערכות ו־AI (ההמלצה: אותו קהל קונה שירותים מ־Noks ו־Bossi, ליווי וקורס), פרילנסרים ומתחילים, או יזמים באופן כללי?
+2. ״הדרך ל־30״ כסדרה מרכזית, כולל מספרים וחיים אישיים, או רק העבודה?
+3. קצב: 4 רילס בשבוע וסטוריז יומיים, או 3 בשבוע?
+4. כמה עוקבים יש היום, ונוח לי מול מצלמה עם הפנים?`,
+          steps: [
+            "לענות על 4 השאלות הפתוחות (קהל, ״הדרך ל־30״, קצב, נקודת פתיחה)",
+            "להגדיר יום צילום קבוע בשבוע",
+            "30 רעיונות לסרטונים לפי שלבי המשפך, עם הוק לכל אחד",
+            "חודשים 1–2: 4 רילס בשבוע וסטוריז יומיים, ולבדוק אילו הוקים עובדים",
+            "מגנט לידים: צ׳קליסט ״5 מערכות שכל עסק קטן צריך״ ותגובה אוטומטית ל״מערכת״",
+            "חודשים 2–3: מחזור ליווי ראשון של 3–5 מלווים במחיר היכרות",
+            "לתעד את מקרי ההצלחה של המלווים",
+            "חודשים 4–6: להפוך את תהליך הליווי לקורס, רשימת המתנה והשקה",
+          ],
+        },
+      },
+    ],
+  },
 ];
 
 export async function applySeeds(store: LifeStore) {
@@ -214,6 +296,19 @@ export async function applySeeds(store: LifeStore) {
       const event = await store.addEvent({ ...input, end_time: input.end_time ?? null });
       for (const t of tasks ?? []) await store.addTask({ ...t, area: t.area ?? input.area, event_id: event.id });
       if (invite_text) await setInviteText(store, event.id, invite_text);
+    }
+    for (const { plan, ...goal } of batch.goals ?? []) {
+      let planId: string | null = null;
+      if (plan) {
+        const { status, steps, ...input } = plan;
+        const idea = await ideas.add(input);
+        await ideas.update(idea.id, {
+          ...(status ? { status } : {}),
+          ...(steps?.length ? { steps: steps.map((text) => ({ id: crypto.randomUUID(), text, done: false })) } : {}),
+        });
+        planId = idea.id;
+      }
+      await appendGoal(store, { ...goal, start_date: today, plan_idea_id: planId });
     }
     for (const { date, titleIncludes, tasks } of batch.eventTasks ?? []) {
       // If the event was deleted meanwhile, the tasks still come, just not linked to it.

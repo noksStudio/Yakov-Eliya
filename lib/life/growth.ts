@@ -53,6 +53,13 @@ async function saveGoals(store: LifeStore, goals: Goal[]) {
   await store.saveDoc<GoalsDoc>("goals", { goals });
 }
 
+/** Adds a goal told in chat (seeds), unless one with that id is already there. */
+export async function appendGoal(store: LifeStore, goal: Goal) {
+  const goals = await loadGoals(store);
+  if (goals.some((g) => g.id === goal.id)) return;
+  await saveGoals(store, [...goals, goal]);
+}
+
 export async function addGoal(store: LifeStore, input: unknown, today = israelToday()) {
   const parsed = newGoalSchema.parse(input);
   const goal: Goal = {

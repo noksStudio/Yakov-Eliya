@@ -23,6 +23,8 @@ export type Goal = {
   deadline: string;
   /** Hand-entered value, for custom goals. */
   value?: number | null;
+  /** The full plan behind the goal (an idea with notes and steps), e.g. the digital course funnel. */
+  plan_idea_id?: string | null;
 };
 
 export const newGoalSchema = z.object({

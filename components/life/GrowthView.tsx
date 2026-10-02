@@ -111,6 +111,11 @@ function GoalCard({ goal, onAct }: { goal: GoalProgress; onAct: (fn: () => Promi
         </h2>
         <span className={`rounded-full border px-2 py-0.5 text-[11px] ${s.chip}`}>{s.label}</span>
       </div>
+      {goal.plan_idea_id && (
+        <Link href={`/life/ideas/${goal.plan_idea_id}`} className="mt-1 inline-block text-xs font-semibold text-gold-2 underline underline-offset-4">
+          📄 התוכנית המלאה
+        </Link>
+      )}
       <p className="mt-2 flex flex-wrap items-baseline gap-x-2">
         <span className="text-2xl font-black">{goal.current === null ? "—" : num(goal.current)}</span>
         <span className="text-sm text-muted">
