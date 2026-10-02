@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Check, ChevronLeft, Copy, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import type { Check as CheckRow, CheckState, SetupStatus } from "@/lib/life/setup";
 import { lifeApi } from "./api";
+import { TelegramTestButton } from "./TelegramTestButton";
 
 const DOT: Record<CheckState, string> = {
   ok: "bg-emerald-400",
@@ -174,6 +175,7 @@ export function SetupGuide() {
           <li>מוסיפים ב־Vercel בשם TELEGRAM_BOT_TOKEN, ועושים Redeploy.</li>
           <li>בהגדרות לוחצים ״חיבור הבוט״, פותחים את הקישור ולוחצים Start.</li>
         </Howto>
+        {envByName.TELEGRAM_BOT_TOKEN?.set && <TelegramTestButton onDone={load} />}
         <Link href="/life/settings#telegram-title" className="flex w-fit items-center gap-2 rounded-xl bg-[#229ED9] px-4 py-2.5 text-sm font-semibold text-white">
           לחיבור הבוט בהגדרות
         </Link>

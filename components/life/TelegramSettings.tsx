@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Check, Copy, Loader2, Send } from "lucide-react";
 import type { NotifyKey, NotifyPrefs } from "@/lib/life/notify";
 import { lifeApi } from "./api";
+import { TelegramTestButton } from "./TelegramTestButton";
 
 type Status = {
   configured: boolean;
@@ -31,14 +32,13 @@ export function TelegramSettings({ demo }: { demo: boolean }) {
       .catch((e) => setError((e as Error).message));
   }, []);
 
-  const act = async (action: "setup" | "test" | "unlink" | "mute" | "unmute") => {
+  const act = async (action: "setup" | "unlink" | "mute" | "unmute") => {
     setBusy(action);
     setError(null);
     setNote(null);
     try {
       const d = await lifeApi<{ telegram: Status }>("/telegram", { method: "POST", body: { action } });
       setStatus(d.telegram);
-      if (action === "test") setNote("נשלחה הודעת בדיקה לטלגרם.");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -116,6 +116,16 @@ export function TelegramSettings({ demo }: { demo: boolean }) {
           ) : null}
 
           {status.configured && (
+            <TelegramTestButton
+              onDone={() =>
+                lifeApi<{ telegram: Status }>("/telegram")
+                  .then((d) => setStatus(d.telegram))
+                  .catch(() => {})
+              }
+            />
+          )}
+
+          {status.configured && (
             <div className="flex flex-wrap gap-2">
               {!status.linked && (
                 <button type="button" onClick={() => act("setup")} disabled={busy !== null} className={`${button} flex-1 bg-gold text-[#1d1407]`}>
@@ -125,11 +135,7 @@ export function TelegramSettings({ demo }: { demo: boolean }) {
               )}
               {status.linked && (
                 <>
-                  <button type="button" onClick={() => act("test")} disabled={busy !== null} className={`${button} flex-1 bg-white/10`}>
-                    {busy === "test" && <Loader2 className="h-4 w-4 animate-spin" />}
-                    הודעת בדיקה
-                  </button>
-                  <button type="button" onClick={() => act("setup")} disabled={busy !== null} className={`${button} bg-white/5 text-muted`}>
+                  <button type="button" onClick={() => act("setup")} disabled={busy !== null} className={`${button} flex-1 bg-white/5 text-muted`}>
                     {busy === "setup" && <Loader2 className="h-4 w-4 animate-spin" />}
                     רענון חיבור
                   </button>

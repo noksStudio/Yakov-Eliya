@@ -33,6 +33,11 @@ export function cronSql(origin: string, token: string) {
   ].join("\n");
 }
 
+/** The settings "send a test message" result: what worked, or the next thing to do. */
+export type BotTest =
+  | { ok: true; bot: string }
+  | { ok: false; step: "token" | "link" | "send"; message: string; deep_link?: string | null };
+
 export function isTelegramConfigured() {
   return Boolean(process.env.TELEGRAM_BOT_TOKEN);
 }
