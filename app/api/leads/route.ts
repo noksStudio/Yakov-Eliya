@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "חסרים שם או טלפון" }, { status: 400 });
   }
   if (!isSupabaseConfigured()) {
-    return NextResponse.json({ error: "Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY environment variables" }, { status: 500 });
+    return NextResponse.json({ error: "Missing SUPABASE_URL / SUPABASE_SECRET_KEY environment variables" }, { status: 500 });
   }
 
   const business_type = typeof body?.business_type === "string" ? body.business_type : null;

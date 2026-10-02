@@ -118,14 +118,14 @@ export function SetupGuide() {
       </Step>
 
       <Step n={2} title="מסד נתונים (Supabase)" ok={steps[1]} summary="בלי זה המערכת במצב הדגמה ולא שומרת כלום לאורך זמן.">
-        <Rows rows={[...envRows(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]), ...tableRows(status.database.checks)]} />
+        <Rows rows={[...envRows(["SUPABASE_URL", "SUPABASE_SECRET_KEY"]), ...tableRows(status.database.checks)]} />
         <Howto>
           {!envByName.SUPABASE_URL?.set && (
             <>
               <li>
                 פותחים פרויקט ב־<Ext href="https://supabase.com/dashboard/new">Supabase</Ext> (האזור הקרוב: Frankfurt).
               </li>
-              <li>Project Settings ← API: מעתיקים את Project URL ל־SUPABASE_URL, ואת מפתח service_role ל־SUPABASE_SERVICE_ROLE_KEY ב־Vercel. את המפתח הזה לא משתפים עם אף אחד.</li>
+              <li>בפרויקט: Connect ← מעתיקים רק את הערך של SUPABASE_URL ואת הערך של SUPABASE_SECRET_KEY (sb_secret_…), ומוסיפים אותם ב־Vercel באותם שמות. את המפתח הסודי לא משתפים עם אף אחד.</li>
               <li>Redeploy, ואז חוזרים לכאן.</li>
             </>
           )}

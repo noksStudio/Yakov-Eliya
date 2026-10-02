@@ -6,7 +6,7 @@ export function DemoBanner() {
       <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
       <p>
         <span className="font-semibold">מצב הדגמה.</span> Supabase עוד לא מחובר, אז מוצגים נתוני דוגמה. שינויים לא נשמרים.
-        אחרי שתוסיף את <code className="text-amber-50">SUPABASE_URL</code> ו־<code className="text-amber-50">SUPABASE_SERVICE_ROLE_KEY</code>{" "}
+        אחרי שתוסיף את <code className="text-amber-50">SUPABASE_URL</code> ו־<code className="text-amber-50">SUPABASE_SECRET_KEY</code>{" "}
         ותריץ את <code className="text-amber-50">supabase/schema.sql</code>, יופיעו כאן הנתונים האמיתיים.
       </p>
     </div>

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
-import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getSupabaseAdmin, isSupabaseConfigured, supabaseServerKey } from "@/lib/supabase/server";
 import { getLifeStore } from "./store";
 import { cronSql, cronToken, loadTelegram, telegramCall } from "./telegram";
 
@@ -25,7 +25,7 @@ const ENV: { name: string; purpose: string; optional?: boolean }[] = [
   { name: "ADMIN_PASSWORD", purpose: "סיסמה לכניסה" },
   { name: "ADMIN_SESSION_SECRET", purpose: "חתימת הכניסה, הבוט וההתראות" },
   { name: "SUPABASE_URL", purpose: "כתובת מסד הנתונים" },
-  { name: "SUPABASE_SERVICE_ROLE_KEY", purpose: "מפתח השרת של מסד הנתונים" },
+  { name: "SUPABASE_SECRET_KEY", purpose: "מפתח השרת של מסד הנתונים (sb_secret_…)" },
   { name: "ANTHROPIC_API_KEY", purpose: "הסוכנים (המנהל הראשי ושאר היועצים)" },
   { name: "TELEGRAM_BOT_TOKEN", purpose: "בוט הטלגרם וההתראות" },
   { name: "RESEND_API_KEY", purpose: "מייל על כל ליד חדש מהאתר", optional: true },
@@ -145,7 +145,7 @@ export async function setupStatus(origin: string): Promise<SetupStatus> {
   const telegram = await telegramChecks(dbReady);
   const telegramReady = telegram.every((c) => c.state === "ok");
   return {
-    env: ENV.map((e) => ({ ...e, set: Boolean(process.env[e.name]) })),
+    env: ENV.map((e) => ({ ...e, set: e.name === "SUPABASE_SECRET_KEY" ? Boolean(supabaseServerKey()) : Boolean(process.env[e.name]) })),
     database: { checks: db.life, sql_editor: sqlEditorUrl() },
     ai: process.env.ANTHROPIC_API_KEY
       ? { key: "ai", label: "מפתח Anthropic", state: "ok", detail: "מוגדר. אפשר לבדוק שהוא עובד" }
