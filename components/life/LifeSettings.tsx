@@ -64,7 +64,17 @@ export function LifeSettings() {
 
   if (!settings) {
     return error ? (
-      <p className="mt-10 rounded-xl bg-red-500/10 p-4 text-sm text-red-300">{error}</p>
+      <div className="flex flex-col gap-4">
+        <h1 className="text-2xl font-black">הגדרות</h1>
+        <p className="rounded-xl bg-red-500/10 p-4 text-sm leading-relaxed text-red-300">{error}</p>
+        <Link href="/life/settings/setup" className="flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface p-4 text-sm">
+          <span>
+            <span className="block text-[15px] font-bold">חיבור המערכת</span>
+            <span className="mt-1 block text-xs text-gold-2">מדריך צעד־אחר־צעד ובדיקת כל החיבורים</span>
+          </span>
+          <ChevronLeft className="h-5 w-5 shrink-0 text-muted" aria-hidden />
+        </Link>
+      </div>
     ) : (
       <div className="flex min-h-[60svh] items-center justify-center text-muted" role="status">
         <Loader2 className="h-6 w-6 animate-spin" aria-hidden />

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { upcomingTimes } from "./shabbat-prep";
 import { addDays, restDayOf } from "./time";
 import { loadReminders } from "./reminders";
@@ -68,8 +69,26 @@ export async function withStore(fn: (store: LifeStore) => Promise<unknown>) {
       return NextResponse.json({ error: error.issues[0]?.message ?? "קלט לא תקין" }, { status: 400 });
     }
     console.error("[life]", error);
+    const setup = setupProblem(error);
+    if (setup) return NextResponse.json({ error: setup, setup: true }, { status: 503 });
     return NextResponse.json({ error: "שגיאה בשרת" }, { status: 500 });
   }
+}
+
+/** A database failure that the connection screen fixes (tables not created yet, wrong key or URL). */
+function setupProblem(error: unknown) {
+  if (!isSupabaseConfigured()) return null;
+  const message = error instanceof Error ? `${error.message} ${String(error.cause ?? "")}` : String(error);
+  if (/could not find the table|does not exist|schema cache/i.test(message)) {
+    return "מסד הנתונים מחובר, אבל הטבלאות עוד לא נוצרו. בחיבור המערכת: מעתיקים את קוד הטבלאות ומריצים ב־SQL Editor של Supabase.";
+  }
+  if (/api key|jwt|jws|unauthorized|permission denied/i.test(message)) {
+    return "Supabase דחה את המפתח. בדוק ב־Vercel שהערך של SUPABASE_SECRET_KEY הוא המפתח הסודי (sb_secret_…) של אותו פרויקט, בלי רווחים, ואז Redeploy.";
+  }
+  if (/fetch failed|enotfound|econnrefused|getaddrinfo|invalid url/i.test(message)) {
+    return "אין גישה לכתובת של Supabase. בדוק ב־Vercel שהערך של SUPABASE_URL הוא בדיוק https://….supabase.co, ואז Redeploy.";
+  }
+  return null;
 }
 
 export function notFound() {

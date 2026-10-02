@@ -7,7 +7,7 @@ import type { Area, Checkin, DayView, Task, TimelineItem } from "@/lib/life/type
 import { AREA_LABELS, AREAS } from "@/lib/life/types";
 import { israelNow, toMinutes } from "@/lib/life/time";
 import { telUrl, whatsappUrl } from "@/lib/life/lead-types";
-import { lifeApi } from "./api";
+import { lifeApi, SetupError } from "./api";
 import type { Metric } from "@/lib/life/metrics";
 import { MetricCard } from "./MetricsView";
 import { AREA_STYLE } from "./areas";
@@ -22,6 +22,7 @@ export function TodayView() {
   const [day, setDay] = useState<DayView | null>(null);
   const [demo, setDemo] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [setupNeeded, setSetupNeeded] = useState(false);
   const [now, setNow] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<Metric[] | null>(null);
   // The time of day picks the view; a tap can look at another part of the day for now.
@@ -33,11 +34,13 @@ export function TodayView() {
       setDay(data.day);
       setDemo(data.demo);
       setError(null);
+      setSetupNeeded(false);
       lifeApi<{ metrics: Metric[] }>("/metrics")
         .then((m) => setMetrics(m.metrics))
         .catch(() => setMetrics(null));
     } catch (e) {
       setError((e as Error).message);
+      setSetupNeeded(e instanceof SetupError);
     }
   }, []);
 
@@ -68,7 +71,7 @@ export function TodayView() {
     }
   };
 
-  if (error && !day) return <ErrorCard message={error} onRetry={reload} />;
+  if (error && !day) return <ErrorCard message={error} onRetry={reload} setup={setupNeeded} />;
   if (!day || !now) return <LoadingDay />;
   if (day.restDay) return <RestScreen name={day.restDay.name} kind={day.restDay.kind} />;
 
@@ -472,13 +475,20 @@ function LoadingDay() {
   );
 }
 
-function ErrorCard({ message, onRetry }: { message: string; onRetry: () => void }) {
+function ErrorCard({ message, onRetry, setup }: { message: string; onRetry: () => void; setup?: boolean }) {
   return (
     <div className="mt-10 rounded-2xl border border-red-400/20 bg-red-500/10 p-5 text-center">
-      <p className="text-sm text-red-200">{message}</p>
-      <button onClick={onRetry} className="mt-4 rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold">
-        נסה שוב
-      </button>
+      <p className="text-sm leading-relaxed text-red-200">{message}</p>
+      <div className="mt-4 flex flex-wrap justify-center gap-2">
+        {setup && (
+          <Link href="/life/settings/setup" className="rounded-xl bg-gold px-4 py-2 text-sm font-bold text-[#1d1407]">
+            לחיבור המערכת
+          </Link>
+        )}
+        <button onClick={onRetry} className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold">
+          נסה שוב
+        </button>
+      </div>
     </div>
   );
 }

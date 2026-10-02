@@ -6,6 +6,9 @@
  */
 export const LIFE_OFFLINE_DATA = "life:offline-data";
 
+/** A server error the connection screen fixes (tables not created yet, wrong Supabase key or URL). */
+export class SetupError extends Error {}
+
 /** Fetch wrapper for /api/life: JSON in and out, Hebrew errors, login redirect on 401. */
 export async function lifeApi<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
   const method = init?.method ?? "GET";
@@ -30,6 +33,6 @@ export async function lifeApi<T>(path: string, init?: { method?: string; body?: 
     window.location.replace("/admin/login?next=/life");
     throw new Error("נדרשת התחברות");
   }
-  if (!res.ok) throw new Error(data.error ?? "משהו השתבש");
+  if (!res.ok) throw data.setup ? new SetupError(data.error) : new Error(data.error ?? "משהו השתבש");
   return data as T;
 }
