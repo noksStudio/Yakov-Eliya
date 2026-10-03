@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Brain, Briefcase, Crown, Dumbbell, Heart, Loader2, MoonStar, Send, Wallet } from "lucide-react";
 import type { AgentId, ChatMessage } from "@/lib/life/types";
+import { AGENT_QUESTIONS, ASSISTANT_QUESTIONS, type AssistantQuestion } from "@/lib/life/assistant-types";
 import { lifeApi } from "./api";
 
 const AGENT_UI: Record<
@@ -88,8 +89,9 @@ export function AgentChat({ agent }: { agent: AgentId }) {
   const ui = AGENT_UI[agent];
   const Icon = ui.icon;
   const params = useSearchParams();
+  const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [connected, setConnected] = useState(true);
+  const [connected, setConnected] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState<string | null>(null);
@@ -115,6 +117,24 @@ export function AgentChat({ agent }: { agent: AgentId }) {
     }
   };
 
+  /** While the AI is off: a question button answered by the rules, or free text as quick capture. */
+  const assist = async (body: { ask: AssistantQuestion } | { text: string }) => {
+    const label = "ask" in body ? ASSISTANT_QUESTIONS[body.ask] : body.text.trim();
+    if (!label || pending) return;
+    setPending(label);
+    setError(null);
+    if ("text" in body) setInput("");
+    try {
+      const data = await lifeApi<{ messages: ChatMessage[] }>("/assistant", { method: "POST", body: { agent, ...body } });
+      setMessages((prev) => [...prev, ...data.messages]);
+    } catch (e) {
+      setError((e as Error).message);
+      if ("text" in body) setInput(body.text);
+    } finally {
+      setPending(null);
+    }
+  };
+
   useEffect(() => {
     lifeApi<{ messages: ChatMessage[]; connected: boolean }>(`/chat?agent=${agent}`)
       .then((data) => {
@@ -132,10 +152,20 @@ export function AgentChat({ agent }: { agent: AgentId }) {
     const preset =
       ui.presets[params.get("preset") ?? ""] ??
       (plan ? `בוא נתכנן את ${plan.slice(0, 80)}. תשאל אותי מה צריך, ואחרי שאענה תכין אירוע ומשימות הכנה בזמן.` : undefined);
-    if (!loaded || !preset || presetSent.current || !connected) return;
+    if (!loaded || !preset || presetSent.current) return;
     presetSent.current = true;
     window.history.replaceState(null, "", window.location.pathname);
-    void send(preset, true);
+    const key = params.get("preset");
+    // Sent after this effect (not inside it), so the request's state updates don't cascade.
+    queueMicrotask(() => {
+      if (connected) void send(preset, true);
+      // Rules mode: the shortcuts map to the matching answers (the review has its own screen).
+      else if (key === "review") router.replace("/life/growth?tab=review");
+      else if (key === "morning") void assist({ ask: "now" });
+      else if (key === "evening") void assist({ ask: "tomorrow" });
+      else if (key === "stuck") void assist({ ask: "procrastinating" });
+      else if (key === "hard") void assist({ ask: "hard_day" });
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, connected, params]);
 
@@ -156,15 +186,15 @@ export function AgentChat({ agent }: { agent: AgentId }) {
       </header>
 
       {!connected && (
-        <div className="mb-3 rounded-xl border border-amber-400/25 bg-amber-400/10 p-3 text-sm text-amber-200">
-          {ui.name} עוד לא מחובר. כדי להפעיל אותו צריך להוסיף מפתח API של Anthropic בהגדרות הסביבה (ANTHROPIC_API_KEY).
-        </div>
+        <p className="mb-3 rounded-xl border border-border-soft bg-surface px-3 py-2 text-xs text-muted">
+          עובד על חוקים: תשובות מיידיות מהנתונים שלך, בלי AI ובלי עלות. כתיבה חופשית נרשמת כמו בכפתור +.
+        </p>
       )}
 
       <div className="flex flex-1 flex-col gap-2.5 pb-3" aria-live="polite">
         {loaded && messages.length === 0 && !pending && (
           <div className="mt-6 text-center text-sm text-muted">
-            <p>{ui.empty}</p>
+            <p>{connected ? ui.empty : "בחר שאלה למטה, או כתוב משהו לרישום מהיר."}</p>
           </div>
         )}
         {messages.map((m) => (
@@ -174,7 +204,7 @@ export function AgentChat({ agent }: { agent: AgentId }) {
           <>
             <Bubble role="user" text={pending} />
             <div className="flex items-center gap-2 self-start rounded-2xl rounded-ss-sm bg-surface-strong px-4 py-3 text-sm text-muted" role="status">
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> {ui.name} חושב…
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> {connected ? `${ui.name} חושב…` : "רגע…"}
             </div>
           </>
         )}
@@ -184,22 +214,34 @@ export function AgentChat({ agent }: { agent: AgentId }) {
 
       <div className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] -mx-4 bg-background/95 px-4 pb-2 pt-2">
         <div className="mb-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
-          {ui.suggestions.map((s) => (
-            <button
-              key={s}
-              type="button"
-              disabled={Boolean(pending)}
-              onClick={() => send(s, true)}
-              className="shrink-0 rounded-full border border-border-soft bg-surface px-3 py-1.5 text-xs text-muted hover:text-foreground disabled:opacity-50"
-            >
-              {s}
-            </button>
-          ))}
+          {connected
+            ? ui.suggestions.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  disabled={Boolean(pending)}
+                  onClick={() => send(s, true)}
+                  className="shrink-0 rounded-full border border-border-soft bg-surface px-3 py-1.5 text-xs text-muted hover:text-foreground disabled:opacity-50"
+                >
+                  {s}
+                </button>
+              ))
+            : AGENT_QUESTIONS[agent].map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  disabled={Boolean(pending)}
+                  onClick={() => assist({ ask: q })}
+                  className="shrink-0 rounded-full border border-gold/30 bg-gold/[0.07] px-3 py-1.5 text-xs font-semibold text-gold-2 disabled:opacity-50"
+                >
+                  {ASSISTANT_QUESTIONS[q]}
+                </button>
+              ))}
         </div>
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            void send(input);
+            void (connected ? send(input) : assist({ text: input }));
           }}
           className="flex items-end gap-2"
         >
@@ -209,11 +251,11 @@ export function AgentChat({ agent }: { agent: AgentId }) {
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                void send(input);
+                void (connected ? send(input) : assist({ text: input }));
               }
             }}
             rows={1}
-            placeholder={`כתוב ל${ui.name}…`}
+            placeholder={connected ? `כתוב ל${ui.name}…` : "רישום מהיר: משימה, תזכורת, ליד, הכנסה…"}
             aria-label={`הודעה ל${ui.name}`}
             className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border border-border-soft bg-surface px-4 py-2.5 text-[15px] outline-none placeholder:text-muted/70 focus:border-gold/40"
           />

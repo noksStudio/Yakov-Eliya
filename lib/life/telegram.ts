@@ -151,7 +151,10 @@ const COMMAND_GROUPS: { title: string; commands: BotCommand[] }[] = [
     title: "📅 היום והשבוע",
     commands: [
       { command: "today", description: "התכנית של היום" },
-      { command: "plan", description: "המנהל מתכנן איתי את היום" },
+      { command: "plan", description: "מה עכשיו, ו־3 המשימות החשובות" },
+      { command: "tomorrow", description: "תכנון מחר: יומן ו־3 משימות" },
+      { command: "week", description: "איך אני עומד השבוע" },
+      { command: "stuck", description: "מה תקוע: משימות באיחור, לידים ועסקאות" },
       { command: "focus", description: "הפוקוס של השבוע" },
       { command: "shabbat", description: "זמני כניסה ויציאה של השבת או החג הקרובים, ורשימת הבית" },
       { command: "mute", description: "השתקת ההתראות עד מחר בבוקר (תזכורות עדיין מגיעות)" },

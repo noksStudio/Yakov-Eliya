@@ -1,5 +1,7 @@
 import { NextResponse, after } from "next/server";
-import { AgentNotConfiguredError, askAgent, isAgentConnected } from "@/lib/life/agents";
+import { aiEnabled } from "@/lib/life/ai";
+import { AgentNotConfiguredError, askAgent } from "@/lib/life/agents";
+import { answer } from "@/lib/life/assistant";
 import { loadBodyPlan } from "@/lib/life/body";
 import { financeSummary } from "@/lib/life/finance";
 import { goalsProgress, weekFocus } from "@/lib/life/growth";
@@ -76,7 +78,7 @@ export async function POST(request: Request) {
     // is connected, becomes a task so nothing written is lost.
     const reply = command
       ? await runCommand(store, command, rest, origin, raw)
-      : await capture(store, getOpsStore(), text, !isAgentConnected()).then((r) => (r ? captureReply(r, origin) : null));
+      : await capture(store, getOpsStore(), text, !(await aiEnabled(store))).then((r) => (r ? captureReply(r, origin) : null));
     if (reply) {
       await sendMessage(chatId, reply, true);
       return ok();
@@ -133,6 +135,14 @@ async function runCommand(store: LifeStore, command: string, args: string[], ori
       return ALL_TEXT;
     case "today":
       return morningMessage(store, ops, await loadDay(store, today), origin);
+    // The rules assistant (no model): same answers as the chat buttons in the app.
+    case "tomorrow":
+    case "week":
+    case "stuck":
+      return escapeHtml(await answer(store, ops, command));
+    case "plan":
+      // With the AI on, /plan goes to the chief manager (below); off, the rules answer.
+      return (await aiEnabled(store)) ? null : escapeHtml(await answer(store, ops, "now"));
     case "metrics":
       return metricsMessage(store, ops, today, origin);
     case "idea":

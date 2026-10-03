@@ -14,6 +14,7 @@ import { AREA_STYLE } from "./areas";
 import { Bidi } from "./Bidi";
 import { LessonStory } from "./GrowthView";
 import { LIFE_CHANGED } from "./QuickCapture";
+import { TodayInsights } from "./TodayInsights";
 
 type DayResponse = { day: DayView; demo: boolean };
 type CheckinPatch = Partial<Omit<Checkin, "date" | "updated_at">>;
@@ -124,6 +125,8 @@ export function TodayView() {
       )}
 
       <PhaseSwitch phase={shown} auto={phase} onPick={setPicked} />
+
+      <TodayInsights date={day.date} />
 
       {/* Only what matters at this time of day; everything else waits under "עוד להיום". */}
       {shown === "morning" && (

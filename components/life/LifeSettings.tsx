@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Check, ChevronLeft, Loader2, LogOut } from "lucide-react";
 import type { Settings } from "@/lib/life/types";
 import { lifeApi } from "./api";
+import { AiSettings } from "./AiSettings";
 import { BackupSettings } from "./BackupSettings";
 import { CalendarSubscribe } from "./CalendarSubscribe";
 import { IntegrationsSettings } from "./IntegrationsSettings";
@@ -45,7 +46,6 @@ const GROUPS: { title: string; fields: { key: TimeKey; label: string; optional?:
 export function LifeSettings() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [demo, setDemo] = useState(false);
-  const [connected, setConnected] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,9 +57,6 @@ export function LifeSettings() {
         setDemo(d.demo);
       })
       .catch((e) => setError((e as Error).message));
-    lifeApi<{ connected: boolean }>("/chat")
-      .then((d) => setConnected(d.connected))
-      .catch(() => setConnected(false));
   }, []);
 
   if (!settings) {
@@ -109,13 +106,12 @@ export function LifeSettings() {
   };
 
   // While something is missing the connection guide comes first; once connected it moves to the end.
-  const needsSetup = demo || connected === false;
+  const needsSetup = demo;
   const setupCard = (
     <Link href="/life/settings/setup" className="flex items-center justify-between gap-3 rounded-2xl border border-border-soft bg-surface p-4 text-sm">
       <span className="min-w-0">
         <span className="mb-1 block text-[15px] font-bold">חיבור המערכת</span>
         <Status ok={!demo} label="מסד נתונים" hint={demo ? "מצב הדגמה: Supabase לא מחובר, הנתונים לא נשמרים" : undefined} />
-        <Status ok={Boolean(connected)} label="הסוכנים (Claude)" hint={connected === false ? "חסר ANTHROPIC_API_KEY" : undefined} />
         <span className="mt-1 block text-xs text-gold-2">מדריך צעד־אחר־צעד ובדיקת כל החיבורים</span>
       </span>
       <ChevronLeft className="h-5 w-5 shrink-0 text-muted" aria-hidden />
@@ -222,6 +218,7 @@ export function LifeSettings() {
       </button>
 
       <TelegramSettings demo={demo} />
+      <AiSettings />
       <ShabbatSettings />
       <CalendarSubscribe />
       <IntegrationsSettings />

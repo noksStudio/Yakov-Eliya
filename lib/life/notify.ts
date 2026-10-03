@@ -12,12 +12,14 @@ import { getLessonsStore, markLessonShown, pickLesson } from "./lessons";
 import { dueReminders, loadReminders, markRemindersSent } from "./reminders";
 import { applySeeds } from "./seeds";
 import { restEndMinutes, shabbatMessage } from "./shabbat-prep";
+import { insightsFor } from "./rules";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { loadDay } from "./service";
 import { escapeHtml, loadTelegram, sendMessage } from "./telegram";
 import { addDays, fromMinutes, israelNow, israelToday, restDayOf, toMinutes } from "./time";
 
-// Scheduled Telegram nudges. A cron pings /api/cron/notify every few minutes; each rule fires once
+// Scheduled Telegram nudges. They read the data and the rules engine only, never a model: the AI
+// layer stays separate (and off) until it is deliberately connected. A cron pings /api/cron/notify every few minutes; each rule fires once
 // a day, in the first run inside its 10-minute window. Nothing is sent on Shabbat or Yom Tov, or
 // from 14:00 on the eve of one. Fewer, fuller messages: whatever falls within 15 minutes goes out
 // as one message, "mute today" silences the rest of the day (reminders he set still come), and a
@@ -169,6 +171,11 @@ export async function morningMessage(store: LifeStore, ops: OpsStore, day: DayVi
         o.daysLeft === 0 ? `🎂 היום ${escapeHtml(occasionLabel(o))}!` : `🎁 ${escapeHtml(occasionLabel(o))} ${o.daysLeft === 1 ? "מחר" : `בעוד ${o.daysLeft} ימים`}`,
       ),
     );
+  }
+  // What the rules noticed (no model involved): the two most urgent, with the next step.
+  const insights = (await insightsFor(store, ops, "morning", day.date, toMinutes(day.settings.wake_time))).filter((i) => i.level !== "good").slice(0, 2);
+  if (insights.length) {
+    lines.push("", "<b>שים לב</b>", ...insights.map((i) => `${i.level === "alert" ? "🟠" : "💡"} ${escapeHtml(i.text)}${i.detail ? `\n${escapeHtml(i.detail)}` : ""}`));
   }
   const reminders = (await loadReminders(store)).filter((r) => !r.sent && r.date === day.date);
   if (reminders.length) lines.push("", "<b>תזכורות להיום</b>", ...reminders.map((r) => `⏰ ${r.time} ${escapeHtml(r.text)}`));

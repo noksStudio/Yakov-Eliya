@@ -26,7 +26,7 @@ const ENV: { name: string; purpose: string; optional?: boolean }[] = [
   { name: "ADMIN_SESSION_SECRET", purpose: "חתימת הכניסה, הבוט וההתראות" },
   { name: "SUPABASE_URL", purpose: "כתובת מסד הנתונים" },
   { name: "SUPABASE_SECRET_KEY", purpose: "מפתח השרת של מסד הנתונים (sb_secret_…)" },
-  { name: "ANTHROPIC_API_KEY", purpose: "הסוכנים (המנהל הראשי ושאר היועצים)" },
+  { name: "ANTHROPIC_API_KEY", purpose: "לא חובה: AI בעתיד (כרגע כבוי, המערכת עובדת על חוקים)", optional: true },
   { name: "TELEGRAM_BOT_TOKEN", purpose: "בוט הטלגרם וההתראות" },
   { name: "RESEND_API_KEY", purpose: "מייל על כל ליד חדש מהאתר", optional: true },
   { name: "LEAD_NOTIFICATION_EMAIL", purpose: "לאן לשלוח את המייל על ליד", optional: true },
@@ -149,7 +149,7 @@ export async function setupStatus(origin: string): Promise<SetupStatus> {
     database: { checks: db.life, sql_editor: sqlEditorUrl() },
     ai: process.env.ANTHROPIC_API_KEY
       ? { key: "ai", label: "מפתח Anthropic", state: "ok", detail: "מוגדר. אפשר לבדוק שהוא עובד" }
-      : { key: "ai", label: "מפתח Anthropic", state: "missing", detail: "חסר ANTHROPIC_API_KEY" },
+      : { key: "ai", label: "מפתח Anthropic", state: "waiting", detail: "לא מוגדר, וזה בסדר: כרגע המערכת עובדת על חוקים, בלי עלות" },
     telegram,
     cron: { check: await cronCheck(dbReady, telegramReady), sql: process.env.ADMIN_SESSION_SECRET ? cronSql(origin, await cronToken()) : null },
     site: db.site,

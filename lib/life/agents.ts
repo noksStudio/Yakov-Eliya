@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { aiEnabled, hasAiKey } from "./ai";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { BetaToolRunnerParams } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { learningForDate, loadLearningGoal } from "./learning";
@@ -821,9 +822,6 @@ const AGENT_CONFIG: Record<AgentId, { system: string; tools: (store: LifeStore) 
 
 export class AgentNotConfiguredError extends Error {}
 
-export function isAgentConnected() {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
-}
 
 function toParams(history: ChatMessage[], context: string, userText: string): Anthropic.Beta.BetaMessageParam[] {
   const firstUser = history.findIndex((m) => m.role === "user");
@@ -837,8 +835,11 @@ function toParams(history: ChatMessage[], context: string, userText: string): An
 /** Sends one message to an agent and returns its reply (its tools may change the day or plans). */
 /** `deep`: a planning turn (morning plan, day close, plan changes) that gets more thinking. */
 export async function askAgent(store: LifeStore, agent: AgentId, userText: string, deep = false): Promise<string> {
-  if (!isAgentConnected()) {
-    throw new AgentNotConfiguredError("הסוכנים עוד לא מחוברים: חסר מפתח API של Anthropic (ANTHROPIC_API_KEY).");
+  // The AI switch in settings, off by default: no model call (and no cost) until he turns it on.
+  if (!(await aiEnabled(store))) {
+    throw new AgentNotConfiguredError(
+      hasAiKey() ? "ה־AI כבוי בהגדרות. בינתיים העוזר עובד על חוקים." : "הסוכנים לא מחוברים (אין מפתח Anthropic). בינתיים העוזר עובד על חוקים.",
+    );
   }
   const config = AGENT_CONFIG[agent];
   const client = new Anthropic();

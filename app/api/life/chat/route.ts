@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { AgentNotConfiguredError, askAgent, isAgentConnected } from "@/lib/life/agents";
+import { aiEnabled } from "@/lib/life/ai";
+import { AgentNotConfiguredError, askAgent } from "@/lib/life/agents";
 import { readJson, withStore } from "@/lib/life/service";
 import { AGENTS } from "@/lib/life/types";
 
@@ -13,7 +14,8 @@ export async function GET(request: Request) {
   const agent = new URL(request.url).searchParams.get("agent") ?? undefined;
   return withStore(async (store) => ({
     messages: await store.listMessages(agentSchema.parse(agent), 60),
-    connected: isAgentConnected(),
+    // Off (the default): the screen works as the rules assistant.
+    connected: await aiEnabled(store),
   }));
 }
 

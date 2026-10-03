@@ -77,7 +77,9 @@ export function SetupGuide() {
     allOk(status.telegram),
     status.cron.check.state === "ok",
   ];
-  const done = steps.filter(Boolean).length;
+  // The AI step (3) is optional while the system runs on rules; it doesn't count toward "done".
+  const requiredSteps = steps.filter((_, i) => i !== 2);
+  const done = requiredSteps.filter(Boolean).length;
   const envByName = Object.fromEntries(status.env.map((e) => [e.name, e]));
   const envRows = (names: string[]) =>
     names.map((n): CheckRow => ({ key: n, label: n, state: envByName[n]?.set ? "ok" : "missing", detail: envByName[n]?.purpose }));
@@ -91,15 +93,15 @@ export function SetupGuide() {
         <div>
           <h1 className="text-2xl font-black">חיבור המערכת</h1>
           <p className="mt-1 text-sm text-muted">
-            {done === steps.length ? "הכל מחובר ועובד." : `${done} מתוך ${steps.length} שלבים מוכנים. כל שלב אומר בדיוק מה לעשות.`}
+            {done === requiredSteps.length ? "הכל מחובר ועובד." : `${done} מתוך ${requiredSteps.length} שלבים מוכנים. כל שלב אומר בדיוק מה לעשות.`}
           </p>
         </div>
         <button type="button" onClick={load} disabled={loading} className="flex shrink-0 items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold disabled:opacity-60">
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> בדיקה מחדש
         </button>
       </header>
-      <div className="h-1.5 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={done} aria-label="התקדמות החיבור">
-        <div className="h-full rounded-full bg-gold transition-[width]" style={{ width: `${(done / steps.length) * 100}%` }} />
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuemin={0} aria-valuemax={requiredSteps.length} aria-valuenow={done} aria-label="התקדמות החיבור">
+        <div className="h-full rounded-full bg-gold transition-[width]" style={{ width: `${(done / requiredSteps.length) * 100}%` }} />
       </div>
       {error && <p className="rounded-xl bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
 
@@ -142,9 +144,10 @@ export function SetupGuide() {
 
       <Step
         n={3}
-        title="הסוכנים (Anthropic)"
+        title="AI (לא חובה, כבוי כרגע)"
         ok={steps[2]}
-        summary="המנהל הראשי, המאמן והיועצים. בלעדיו הכל עובד חוץ מהצ׳אט עם הסוכנים."
+        optional
+        summary="כרגע המערכת עובדת על חוקים, בחינם. אם תרצה AI בעתיד: מוסיפים מפתח, ומדליקים את המתג בהגדרות ← AI."
         action={
           status.ai.state === "ok" && (
             <div className="grid gap-2">

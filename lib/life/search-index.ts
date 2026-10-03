@@ -110,6 +110,8 @@ export const PAGES: Page[] = [
   { title: "תאריכים במשפחה", subtitle: "ימי הולדת ואירועים גדולים", href: "/life/couple", keywords: "יום הולדת ימי הולדת משפחה ילדים אילן תאריכים" },
   { title: "מדדים", subtitle: "כל היעדים במקום אחד", href: "/life/metrics", keywords: "מדדים מדד סטטיסטיקה גרף" },
   { title: "הגדרות", subtitle: "שעות, שבת וחול המועד", href: "/life/settings", keywords: "הגדרות שעות קימה שינה תפילות זמנים חול המועד שבת" },
+  { title: "החוקים של המערכת", subtitle: "מה כל חוק בודק, ואפשרות לכבות", href: "/life/settings/rules", keywords: "חוקים חוק המלצות כללים מנוע תובנות התראות ai בינה מלאכותית" },
+  { title: "AI", subtitle: "מתג ה־AI (כבוי) ומנוע החוקים", href: "/life/settings#ai-title", keywords: "ai בינה מלאכותית קלוד claude anthropic סוכנים עלות טוקנים מתג" },
   { title: "חיבור המערכת", subtitle: "Supabase, מפתח API, טלגרם והתראות", href: "/life/settings/setup", keywords: "חיבור חיבורים התקנה מפתח api סופאבייס supabase vercel משתני סביבה הגדרה מסד נתונים cron" },
   { title: "זמני שבת", subtitle: "כניסה, יציאה ורשימת הכנות לבית", href: "/life/settings#shabbat-title", keywords: "שבת זמני שבת כניסת שבת יציאת שבת הדלקת נרות הבדלה מזגן שעון שבת מקרר מצב שבת" },
   { title: "תזכורות", subtitle: "כל התזכורות, עריכה וביטול", href: "/life/reminders", keywords: "תזכורות תזכורת להזכיר הזכר לי התראה" },
