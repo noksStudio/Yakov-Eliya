@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { CatchUp } from "@/components/life/CatchUp";
 import { LifeNav } from "@/components/life/LifeNav";
 import { OfflineSupport } from "@/components/life/OfflineSupport";
 import { QuickCapture } from "@/components/life/QuickCapture";
@@ -24,6 +25,7 @@ export default function LifeLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <QuickCapture />
+      <CatchUp />
       <LifeNav />
     </div>
   );
