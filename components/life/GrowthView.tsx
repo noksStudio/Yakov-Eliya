@@ -4,7 +4,18 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Lightbulb, Loader2, MessageCircle, Plus, RotateCcw, Sprout, Target, Trash2 } from "lucide-react";
-import type { GoalProgress, GoalStatus, GrowthSummary, Insight, Lesson, WeeklyReview } from "@/lib/life/growth-types";
+import {
+  FELL_REASONS,
+  type FellReason,
+  type FOCUS_KEPT,
+  type GoalProgress,
+  type GoalStatus,
+  type GrowthSummary,
+  type Insight,
+  type Lesson,
+  type ReviewContext,
+  type WeeklyReview,
+} from "@/lib/life/growth-types";
 import { AREA_LABELS, AREAS, type Area } from "@/lib/life/types";
 import { lifeApi } from "./api";
 import { AREA_STYLE } from "./areas";
@@ -15,6 +26,8 @@ const TABS = [
   { key: "review", label: "סקירה שבועית" },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
+
+type FocusKept = (typeof FOCUS_KEPT)[number];
 
 const field = "w-full rounded-xl bg-white/5 px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted/70";
 const shortDate = (d: string) => `${Number(d.slice(8, 10))}.${Number(d.slice(5, 7))}`;
@@ -431,21 +444,44 @@ function LessonOfDay({ lesson, onAct }: { lesson: Lesson; onAct: (fn: () => Prom
 
 function ReviewTab({ data, onSaved, onError }: { data: GrowthSummary; onSaved: () => void; onError: (m: string) => void }) {
   const r = data.review;
+  const [context, setContext] = useState<ReviewContext | null>(null);
+  const [checks, setChecks] = useState<Record<string, FocusKept>>(() => Object.fromEntries((r?.focus_check ?? []).map((c) => [c.text, c.kept])));
   const [wentWell, setWentWell] = useState(r?.went_well ?? "");
   const [wentBadly, setWentBadly] = useState(r?.went_badly ?? "");
+  const [reasons, setReasons] = useState<FellReason[]>(r?.fell_reasons ?? []);
   const [lesson, setLesson] = useState(r?.lesson ?? "");
   const [focus, setFocus] = useState<string[]>([r?.focus[0] ?? "", r?.focus[1] ?? "", r?.focus[2] ?? ""]);
   const [saveLesson, setSaveLesson] = useState(!r);
   const [saved, setSaved] = useState(false);
 
-  const behind = data.goals.filter((g) => g.status === "behind");
+  useEffect(() => {
+    lifeApi<{ context: ReviewContext }>("/growth/review")
+      .then((d) => setContext(d.context))
+      .catch((e) => onError((e as Error).message));
+  }, [onError]);
+
+  const toggleReason = (key: FellReason) => setReasons(reasons.includes(key) ? reasons.filter((k) => k !== key) : [...reasons, key]);
+  /** A tip becomes a focus item, in the first empty slot. */
+  const addFocus = (text: string) => {
+    if (focus.includes(text)) return;
+    const i = focus.findIndex((f) => !f.trim());
+    if (i !== -1) setFocus(focus.map((f, j) => (j === i ? text : f)));
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await lifeApi("/growth/review", {
         method: "PUT",
-        body: { went_well: wentWell, went_badly: wentBadly, lesson, focus: focus.map((f) => f.trim()).filter(Boolean), save_lesson: saveLesson },
+        body: {
+          went_well: wentWell,
+          went_badly: wentBadly,
+          lesson,
+          focus: focus.map((f) => f.trim()).filter(Boolean),
+          fell_reasons: reasons,
+          focus_check: (context?.lastFocus ?? []).filter((t) => checks[t]).map((text) => ({ text, kept: checks[text] })),
+          save_lesson: saveLesson,
+        },
       });
       setSaved(true);
       setSaveLesson(false);
@@ -455,28 +491,136 @@ function ReviewTab({ data, onSaved, onError }: { data: GrowthSummary; onSaved: (
     }
   };
 
+  const repeat = context?.reasons.filter((x) => x.count >= 2) ?? [];
+  const tips = FELL_REASONS.filter((x) => reasons.includes(x.key));
+
   return (
     <>
       <section className="rounded-2xl border border-border-soft bg-surface p-4">
-        <h2 className="text-[15px] font-bold">השבוע של {shortDate(data.week)}</h2>
-        <p className="mt-1 text-xs text-muted">
-          {behind.length ? `כדאי לתת פוקוס ל: ${behind.map((g) => g.title).join(", ")}.` : "כל היעדים בקצב. לשמור על זה."}
-        </p>
-        <Link href="/life/chat?preset=review" className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-gold/40 bg-gold/10 py-2.5 text-sm font-semibold text-gold-2">
-          <MessageCircle className="h-4 w-4" /> לעשות את הסקירה עם המנהל הראשי
-        </Link>
+        <h2 className="text-[15px] font-bold">השבוע במספרים</h2>
+        {!context ? (
+          <Loader2 className="mx-auto my-4 h-5 w-5 animate-spin text-muted" aria-label="טוען" />
+        ) : (
+          <>
+            <p className="mt-0.5 text-xs text-muted">
+              <bdi dir="ltr">
+                {shortDate(context.numbers.from)}–{shortDate(context.numbers.to)}
+              </bdi>{" "}
+              · {context.numbers.workDays} ימי עבודה · מה עשית מול מה שתכננת
+            </p>
+            {context.numbers.workDays === 0 && <p className="mt-3 text-sm text-muted">השבוע הזה היה לפני תחילת השגרה (או כולו חג), אז אין מול מה למדוד. מהשבוע הבא יופיעו כאן המספרים.</p>}
+            <ul className={`mt-3 grid gap-1.5 ${context.numbers.workDays === 0 ? "hidden" : ""}`}>
+              {context.numbers.rows.map((row) => (
+                <li key={row.key} className="flex items-start justify-between gap-3 text-sm">
+                  <span className="min-w-0">
+                    <span className="me-1.5" aria-hidden>
+                      {row.ok === null ? "•" : row.ok ? "✅" : "🟠"}
+                    </span>
+                    {row.label}
+                    {row.note && <span className="block ps-6 text-xs text-muted">{row.note}</span>}
+                  </span>
+                  <span className="font-latin shrink-0 text-sm">
+                    <b>{row.actual}</b>
+                    {row.target !== "—" && <span className="text-muted"> / {row.target}</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {context.numbers.missingDays > 0 && (
+              <p className="mt-3 rounded-xl bg-amber-400/10 px-3 py-2 text-xs text-amber-100">
+                {context.numbers.missingDays === 1 ? "יום אחד" : `${context.numbers.missingDays} ימים`} בלי סיכום יום. בלי נתונים קשה לראות מה באמת קרה, ולכן הפופ־אפ מזכיר לעדכן.
+              </p>
+            )}
+          </>
+        )}
       </section>
 
-      <form onSubmit={submit} className="grid gap-3 rounded-2xl border border-border-soft bg-surface p-4">
-        <h2 className="text-[15px] font-bold">או לבד, ב־5 דקות</h2>
+      <form onSubmit={submit} className="grid gap-4 rounded-2xl border border-border-soft bg-surface p-4">
+        <h2 className="text-[15px] font-bold">הסקירה לשבוע של {shortDate(context?.week ?? data.week)}</h2>
+
+        {context && context.lastFocus.length > 0 && (
+          <fieldset className="grid gap-2">
+            <legend className="mb-1.5 text-xs text-muted">הפוקוס של השבוע שעבר: עמדת בו?</legend>
+            {context.lastFocus.map((text) => (
+              <div key={text} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white/[0.03] px-3 py-2 text-sm">
+                <span className="min-w-0">{text}</span>
+                <span className="flex gap-1">
+                  {(
+                    [
+                      ["yes", "כן"],
+                      ["partly", "חלקית"],
+                      ["no", "לא"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={checks[text] === key}
+                      onClick={() => setChecks({ ...checks, [text]: key })}
+                      className={`rounded-full px-3 py-1 text-xs ${checks[text] === key ? (key === "yes" ? "bg-emerald-500/25 text-emerald-200" : key === "partly" ? "bg-gold/25 text-gold-2" : "bg-red-500/20 text-red-200") : "bg-white/5 text-muted"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </span>
+              </div>
+            ))}
+          </fieldset>
+        )}
+
         <label className="grid gap-1.5 text-xs text-muted">
           מה הלך טוב השבוע?
           <textarea value={wentWell} onChange={(e) => setWentWell(e.target.value)} rows={2} className={`resize-none ${field}`} />
         </label>
-        <label className="grid gap-1.5 text-xs text-muted">
-          מה היה קשה או לא הלך?
-          <textarea value={wentBadly} onChange={(e) => setWentBadly(e.target.value)} rows={2} className={`resize-none ${field}`} />
-        </label>
+
+        <fieldset className="grid gap-2">
+          <legend className="mb-1.5 text-xs text-muted">איפה נפלת, ולמה? (אפשר כמה)</legend>
+          {repeat.length > 0 && (
+            <p className="rounded-xl bg-amber-400/10 px-3 py-2 text-xs text-amber-100">
+              חוזר על עצמו:{" "}
+              {repeat.map((x) => `${FELL_REASONS.find((f) => f.key === x.key)!.label} (${x.count} מתוך ${x.of} שבועות)`).join(" · ")}
+            </p>
+          )}
+          <div className="flex flex-wrap gap-1.5">
+            {FELL_REASONS.map((x) => (
+              <button
+                key={x.key}
+                type="button"
+                aria-pressed={reasons.includes(x.key)}
+                onClick={() => toggleReason(x.key)}
+                className={`rounded-full px-3 py-1.5 text-xs ${reasons.includes(x.key) ? "bg-gold/25 font-semibold text-gold-2" : "bg-white/5 text-muted"}`}
+              >
+                {x.label}
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={wentBadly}
+            onChange={(e) => setWentBadly(e.target.value)}
+            rows={2}
+            placeholder="מה בדיוק קרה? (לא חובה)"
+            aria-label="מה היה קשה"
+            className={`resize-none ${field}`}
+          />
+          {tips.length > 0 && (
+            <div className="grid gap-1.5">
+              <p className="text-xs text-muted">מה יכול לעזור (לחיצה מוסיפה לפוקוס):</p>
+              {tips.map((x) => (
+                <button
+                  key={x.key}
+                  type="button"
+                  onClick={() => addFocus(x.tip)}
+                  disabled={focus.includes(x.tip)}
+                  className="flex items-center gap-2 rounded-xl border border-gold/25 bg-gold/[0.06] px-3 py-2 text-start text-sm disabled:opacity-50"
+                >
+                  <Plus className="h-3.5 w-3.5 shrink-0 text-gold-2" />
+                  {x.tip}
+                </button>
+              ))}
+            </div>
+          )}
+        </fieldset>
+
         <label className="grid gap-1.5 text-xs text-muted">
           הלקח (כלל קצר)
           <input value={lesson} onChange={(e) => setLesson(e.target.value)} placeholder="למשל: שיחות מכירה בבוקר, לפני המיילים" className={field} />
@@ -487,22 +631,26 @@ function ReviewTab({ data, onSaved, onError }: { data: GrowthSummary; onSaved: (
             לשמור גם ברשימת הלקחים, כדי שיחזור אליי
           </label>
         )}
+
         <fieldset className="grid gap-2">
-          <legend className="mb-1.5 text-xs text-muted">עד 3 פוקוסים לשבוע (יופיעו במסך היום ובהודעת הבוקר)</legend>
+          <legend className="mb-1.5 text-xs text-muted">הדבר האחד לשבוע הבא (מופיע במסך היום ובהודעת הבוקר)</legend>
           {focus.map((f, i) => (
             <input
               key={i}
               value={f}
               onChange={(e) => setFocus(focus.map((x, j) => (j === i ? e.target.value : x)))}
-              placeholder={["למשל: 3 שיחות מכירה ביום", "למשל: 3 אימונים", "למשל: לישון עד 22:45"][i]}
-              aria-label={`פוקוס ${i + 1}`}
-              className={field}
+              placeholder={["הכי חשוב, למשל: 3 שיחות מכירה ביום", "עוד אחד (לא חובה)", "ועוד אחד (לא חובה)"][i]}
+              aria-label={i === 0 ? "הדבר האחד" : `פוקוס ${i + 1}`}
+              className={`${field} ${i === 0 ? "border border-gold/40" : ""}`}
             />
           ))}
         </fieldset>
         <button type="submit" className="rounded-xl bg-gold py-2.5 text-sm font-bold text-[#1d1407]">
           {saved ? "נשמר ✓" : r ? "עדכון הסקירה" : "שמירת הסקירה"}
         </button>
+        <Link href="/life/chat?preset=review" className="flex items-center justify-center gap-2 text-xs text-muted underline">
+          <MessageCircle className="h-3.5 w-3.5" /> או לעשות אותה בשיחה עם המנהל הראשי
+        </Link>
       </form>
 
       <Insights insights={data.insights} />
@@ -528,6 +676,14 @@ function PastReview({ review }: { review: WeeklyReview }) {
       {review.went_well && <p>✓ {review.went_well}</p>}
       {review.went_badly && <p className="text-muted">✗ {review.went_badly}</p>}
       {review.lesson && <p className="mt-1 text-gold-2">💡 {review.lesson}</p>}
+      {(review.fell_reasons ?? []).length > 0 && (
+        <p className="mt-1 text-xs text-muted">נפלתי בגלל: {review.fell_reasons.map((k) => FELL_REASONS.find((f) => f.key === k)?.label ?? k).join(" · ")}</p>
+      )}
+      {(review.focus_check ?? []).length > 0 && (
+        <p className="mt-1 text-xs text-muted">
+          עמידה בפוקוס: {review.focus_check.map((c) => `${c.kept === "yes" ? "✅" : c.kept === "partly" ? "🟡" : "❌"} ${c.text}`).join(" · ")}
+        </p>
+      )}
       {review.focus.length > 0 && <p className="mt-1 text-xs text-muted">פוקוס: {review.focus.join(" · ")}</p>}
     </li>
   );

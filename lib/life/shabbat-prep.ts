@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { LifeStore } from "./store";
 import { escapeHtml } from "./telegram";
 import { addDays, israelToday, restDayOf, weekdayName } from "./time";
-import { CITIES, cityById, restTimes } from "./zmanim";
+import { CITIES, cityById, restTimes, sunsetMinutes } from "./zmanim";
 
 // Erev Shabbat (and erev Yom Tov) at 10:00: candle lighting and end times for his city, and the
 // home checklist he keeps (air conditioners on the Shabbat timer, fridges on Shabbat mode).
@@ -27,6 +27,12 @@ export async function saveShabbatPrefs(store: LifeStore, patch: z.infer<typeof s
   const next = { ...(await loadShabbatPrefs(store)), ...patch };
   await store.saveDoc<ShabbatPrefs>("shabbat", next);
   return next;
+}
+
+/** Minutes from midnight when the rest day ends (tzeit) in his city, Netanya if none is set. */
+export async function restEndMinutes(store: LifeStore, date: string) {
+  const city = cityById((await loadShabbatPrefs(store)).city) ?? cityById("netanya")!;
+  return Math.ceil(sunsetMinutes(date, city.lat, city.lon, 98.5));
 }
 
 /** The next eve (a non-rest day followed by a rest day), from `from` on. */

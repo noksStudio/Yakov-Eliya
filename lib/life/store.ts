@@ -43,7 +43,8 @@ export type DocKey =
   | "integrations"
   | "intake_log"
   | "event_guests"
-  | "shabbat";
+  | "shabbat"
+  | "weekly_notice";
 
 export interface LifeStore {
   getSettings(): Promise<Settings>;

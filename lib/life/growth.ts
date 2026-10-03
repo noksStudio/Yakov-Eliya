@@ -154,12 +154,20 @@ export async function goalsProgress(store: LifeStore, ops: OpsStore, today = isr
 }
 
 // ---------------------------------------------------------------------------------------------
-// Weekly review (Sunday, after Shacharit)
+// Weekly review (Motzei Shabbat; the numbers behind it are in review.ts)
 
 type ReviewsDoc = { items: WeeklyReview[] };
 
 export function weekOf(date: string) {
   return addDays(date, -new Date(`${date}T12:00:00Z`).getUTCDay());
+}
+
+/**
+ * The week a review made today is for. On Shabbat (Motzei Shabbat) it is the coming week, so the
+ * focus set then shows up from Sunday morning; otherwise the current week.
+ */
+export function reviewWeek(today = israelToday()) {
+  return new Date(`${today}T12:00:00Z`).getUTCDay() === 6 ? addDays(today, 1) : weekOf(today);
 }
 
 export async function loadReviews(store: LifeStore): Promise<WeeklyReview[]> {
@@ -168,7 +176,7 @@ export async function loadReviews(store: LifeStore): Promise<WeeklyReview[]> {
 
 export async function saveReview(store: LifeStore, input: unknown, today = israelToday()) {
   const parsed = reviewSchema.parse(input);
-  const week = weekOf(today);
+  const week = reviewWeek(today);
   const review: WeeklyReview = { ...parsed, week, saved_at: new Date().toISOString() };
   const items = (await loadReviews(store)).filter((r) => r.week !== week);
   await store.saveDoc<ReviewsDoc>("reviews", { items: [review, ...items].slice(0, 52) });
@@ -283,7 +291,7 @@ export async function growthSummary(store: LifeStore, ops: OpsStore, today = isr
     store.listCheckins(addDays(today, -41), today),
     ops.listActivity(addDays(today, -41), today),
   ]);
-  const week = weekOf(today);
+  const week = reviewWeek(today);
   return {
     visionDate: VISION_DATE,
     daysToVision: Math.max(0, daysBetween(today, VISION_DATE)),

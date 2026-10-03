@@ -104,13 +104,56 @@ export type Lesson = {
 /** A contextual lesson matched to something on the schedule today or tomorrow. */
 export type ContextLesson = { lesson: Lesson; when: "today" | "tomorrow"; match: string; trigger: string };
 
+/** Why a week slipped: the answers come back as a pattern over the weeks ("the phone, 3 of 4"). */
+export const FELL_REASONS = [
+  { key: "phone", label: "הטלפון שאב אותי", tip: "טלפון בחדר אחר בזמן בלוק העבודה העמוקה" },
+  { key: "sleep", label: "עייפות / שינה", tip: "מסכים כבויים בזמן, לישון בשעה קבועה" },
+  { key: "no_plan", label: "לא תכננתי מראש", tip: "3 משימות למחר נקבעות בסגירת היום" },
+  { key: "distractions", label: "הסחות ובלת״מים", tip: "בלוק עבודה אחד מוגן בבוקר, לפני הכל" },
+  { key: "mood", label: "מצב רוח / מוטיבציה", tip: "להתחיל מ־10 דקות בלבד, רק להתחיל" },
+  { key: "family", label: "עומס משפחתי / אירועים", tip: "לתכנן את השבוע סביב האירועים מראש" },
+  { key: "unclear", label: "לא היה ברור מה לעשות", tip: "צעד ראשון קטן וברור לכל משימה" },
+] as const;
+export type FellReason = (typeof FELL_REASONS)[number]["key"];
+
+export const FOCUS_KEPT = ["yes", "partly", "no"] as const;
+
 export const reviewSchema = z.object({
   went_well: z.string().trim().max(1000).default(""),
   went_badly: z.string().trim().max(1000).default(""),
   lesson: z.string().trim().max(300).default(""),
   focus: z.array(z.string().trim().min(1).max(120)).max(3).default([]),
+  fell_reasons: z.array(z.enum(FELL_REASONS.map((r) => r.key) as [FellReason, ...FellReason[]])).max(FELL_REASONS.length).default([]),
+  /** Last week's focus items and whether he kept them. */
+  focus_check: z
+    .array(z.object({ text: z.string().trim().min(1).max(120), kept: z.enum(FOCUS_KEPT) }))
+    .max(3)
+    .default([]),
 });
 export type WeeklyReview = z.output<typeof reviewSchema> & { week: string; saved_at: string };
+
+/** One line of the week in numbers: what was done against the plan. */
+export type WeekRow = { key: string; label: string; actual: string; target: string; ok: boolean | null; note?: string };
+
+export type WeekNumbers = {
+  /** The week reviewed, Sunday to Saturday. */
+  from: string;
+  to: string;
+  workDays: number;
+  /** Working days with no check-in at all (nothing to judge by). */
+  missingDays: number;
+  rows: WeekRow[];
+};
+
+export type ReviewContext = {
+  /** The week the review (and its focus) is for. */
+  week: string;
+  numbers: WeekNumbers;
+  /** Last week's focus, to check. */
+  lastFocus: string[];
+  /** How often each reason came up in the last reviews. */
+  reasons: { key: FellReason; count: number; of: number }[];
+};
 
 export type Insight = { key: string; text: string; area: Area };
 

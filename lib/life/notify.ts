@@ -6,11 +6,12 @@ import { businessSummary } from "./business";
 import { loadCouple, occasionLabel, reminderDays, upcomingOccasions } from "./couple";
 import { financeSummary } from "./finance";
 import { computeMetrics } from "./metrics";
-import { computeInsights, goalsProgress } from "./growth";
+import { computeInsights, goalsProgress, reviewWeek } from "./growth";
+import { endsWeek, reviewOpen, weekNumbers } from "./review";
 import { getLessonsStore, markLessonShown, pickLesson } from "./lessons";
 import { dueReminders, loadReminders, markRemindersSent } from "./reminders";
 import { applySeeds } from "./seeds";
-import { shabbatMessage } from "./shabbat-prep";
+import { restEndMinutes, shabbatMessage } from "./shabbat-prep";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { loadDay } from "./service";
 import { escapeHtml, loadTelegram, sendMessage } from "./telegram";
@@ -31,7 +32,7 @@ export const NOTIFY_RULES = [
   { key: "close", label: "סגירת יום", hint: "תפילות, מכירות ורווח היום", default: true },
   { key: "hitbodedut", label: "התבודדות", hint: "5 דקות לפני", default: true },
   { key: "screens", label: "מסכים כבויים", hint: "בשעת כיבוי המסכים", default: false },
-  { key: "weekly", label: "סיכום שבועי", hint: "יום ראשון אחרי שחרית", default: true },
+  { key: "weekly", label: "סקירה שבועית", hint: "מוצאי שבת, חצי שעה אחרי צאת השבת (ואם לא הגיע: ראשון אחרי שחרית)", default: true },
   { key: "shabbat", label: "הכנה לשבת", hint: "שישי (וערב חג) ב־10:00: כניסה, יציאה ורשימת הבית", default: true },
 ] as const;
 
@@ -39,6 +40,8 @@ export type NotifyKey = (typeof NOTIFY_RULES)[number]["key"];
 export type NotifyPrefs = Record<NotifyKey, boolean>;
 
 const WINDOW_MINUTES = 10;
+/** Motzei Shabbat's review goes out in the first run within this long after its time. */
+const WEEKLY_WINDOW_MINUTES = 60;
 /** Nudges due within this many minutes of each other go out together, in the earliest one's run. */
 export const BATCH_MINUTES = 15;
 const EVE_CUTOFF = toMinutes("14:00");
@@ -248,25 +251,57 @@ export async function metricsMessage(store: LifeStore, ops: OpsStore, date: stri
 
 const goalNum = (n: number) => (Math.abs(n) >= 1000 ? Math.round(n).toLocaleString("he-IL") : String(Math.round(n * 10) / 10));
 
-/** Sunday after Shacharit: where the goals stand, what the data taught, and the review link. */
+/**
+ * Motzei Shabbat (or Sunday after Shacharit, if that didn't go out): the week in numbers against
+ * the plan, where the goals stand, and the review link.
+ */
 async function weeklyMessage(store: LifeStore, ops: OpsStore, date: string, origin: string) {
-  const [goals, checkins, activity] = await Promise.all([
+  const week = reviewWeek(date);
+  const [numbers, goals, checkins, activity] = await Promise.all([
+    weekNumbers(store, ops, week),
     goalsProgress(store, ops, date),
     store.listCheckins(addDays(date, -41), date),
     ops.listActivity(addDays(date, -41), date),
   ]);
   const mark = { done: "✅", on_track: "🟢", behind: "🟠", no_data: "⚪️" } as const;
-  const insights = computeInsights(checkins, activity).slice(0, 2);
+  const insights = computeInsights(checkins, activity).slice(0, 1);
+  const motzash = Boolean(restDayOf(date));
   return [
-    "🗓️ <b>שבוע חדש: סקירה שבועית</b>",
+    motzash ? "🌙 <b>שבוע טוב! סקירה שבועית</b>" : "🗓️ <b>הסקירה השבועית עוד מחכה</b>",
+    "",
+    "<b>השבוע במספרים</b>",
+    ...numbers.rows.map((r) => `${r.ok === null ? "•" : r.ok ? "✅" : "🟠"} ${escapeHtml(r.label)}: <b>${escapeHtml(r.actual)}</b>${r.target !== "—" ? ` / ${escapeHtml(r.target)}` : ""}`),
+    ...(numbers.missingDays ? [`⚪️ ${numbers.missingDays} ימים בלי סיכום יום`] : []),
     "",
     "<b>חזון 30</b>",
     ...goals.map((g) => `${mark[g.status]} ${escapeHtml(g.title)}: ${g.current === null ? "—" : goalNum(g.current)} / ${goalNum(g.target)} ${escapeHtml(g.unit)}`),
-    ...(insights.length ? ["", "<b>מה למדנו עליך</b>", ...insights.map((i) => `• ${escapeHtml(i.text)}`)] : []),
+    ...(insights.length ? ["", `💡 ${escapeHtml(insights[0].text)}`] : []),
     "",
-    "5 דקות: מה הלך טוב, מה לא, איזה לקח לוקחים, ו־3 פוקוסים לשבוע.",
+    "5 דקות: עמדת בפוקוס? איפה נפלת ולמה? מה הדבר האחד לשבוע הבא?",
     link(origin, "/life/growth?tab=review", "לסקירה השבועית"),
   ].join("\n");
+}
+
+type WeeklyNotice = { week: string };
+
+/**
+ * The review message on Motzei Shabbat, half an hour after the end of Shabbat (or of a Yom Tov
+ * that runs into it), in its own window: every other nudge is silent on a rest day.
+ */
+async function motzashReview(store: LifeStore, ops: OpsStore, origin: string, date: string, nowMinutes: number, now: string, dry: boolean): Promise<NotifyResult | null> {
+  const at = (await restEndMinutes(store, date)) + 30;
+  if (nowMinutes < at || nowMinutes >= at + WEEKLY_WINDOW_MINUTES) return null;
+  const week = reviewWeek(date);
+  const [prefs, settings, telegram, notice] = await Promise.all([loadNotifyPrefs(store), store.getSettings(), loadTelegram(store), store.getDoc<WeeklyNotice>("weekly_notice")]);
+  if (!prefs.weekly || (settings.start_date && date < settings.start_date) || notice?.week === week) return null;
+  if (!dry && telegram.chat_id === null) return null;
+  if (!(await reviewOpen(store, date))) return null;
+  const text = await weeklyMessage(store, ops, date, origin);
+  if (!dry) {
+    await sendMessage(telegram.chat_id!, text, true);
+    await store.saveDoc<WeeklyNotice>("weekly_notice", { week });
+  }
+  return { date, now, sent: [{ id: "weekly", at: fromMinutes(at), ...(dry ? { text } : {}) }] };
 }
 
 export type NotifyResult = {
@@ -287,6 +322,11 @@ export async function runNotifications(store: LifeStore, ops: OpsStore, origin: 
   const nowMinutes = toMinutes(now);
   const base = { date, now, sent: [] as NotifyResult["sent"] };
 
+  if (endsWeek(date)) {
+    await applySeeds(store);
+    const weekly = await motzashReview(store, ops, origin, date, nowMinutes, now, Boolean(opts.dry));
+    if (weekly) return weekly;
+  }
   const quiet = quietReason(date, nowMinutes);
   if (quiet) return { ...base, skipped: quiet };
 
@@ -319,6 +359,11 @@ export async function runNotifications(store: LifeStore, ops: OpsStore, origin: 
     day = await loadDay(store, date);
     const anchor = due.length ? Math.min(...due.map((r) => toMinutes(r.time))) : null;
     slots = dueSlots(day, prefs, opts.dry ? [] : log.sent, nowMinutes, anchor);
+    // Sunday's review nudge is only a fallback: not when Motzei Shabbat's went out or it's done.
+    if (slots.some((slot) => slot.rule === "weekly")) {
+      const notice = await store.getDoc<WeeklyNotice>("weekly_notice");
+      if (notice?.week === reviewWeek(date) || !(await reviewOpen(store, date))) slots = slots.filter((slot) => slot.rule !== "weekly");
+    }
     // Muted: only the Shabbat prep still comes, like a reminder he set.
     if (muted) {
       slots = slots.filter((slot) => slot.rule === "shabbat");

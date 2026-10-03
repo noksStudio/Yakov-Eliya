@@ -3,7 +3,9 @@ import type { OpsStore } from "./ops-store";
 import type { Checkin } from "./types";
 import { OPEN_STAGES, type DealStage } from "./ops-types";
 import { dueDate, dueLeads, getLeadsStore } from "./leads";
-import { addDays, cholHamoedOf, israelToday, restDayOf, weekdayName } from "./time";
+import { endsWeek, reviewOpen } from "./review";
+import { restEndMinutes } from "./shabbat-prep";
+import { addDays, cholHamoedOf, israelNow, israelToday, restDayOf, toMinutes, weekdayName } from "./time";
 
 // "Things you didn't update": what fell behind, for the catch-up popup that opens with the app.
 // Only what a tap can fix (yesterday's check-in, overdue tasks, leads and deals, a missing
@@ -33,16 +35,29 @@ export function dayLabel(date: string, today: string) {
  * routine started.
  */
 function checkinDay(today: string, start: string | null) {
-  for (let d = addDays(today, -1), i = 0; i < 4; d = addDays(d, -1), i++) {
-    if (restDayOf(d)) continue;
-    if (restDayOf(addDays(d, 1)) || (start && d < start)) return null;
-    return d;
+  // A plain loop on purpose: the production bundler mis-compiled an import call inside a
+  // for-loop's update clause here (it stayed unbound and threw on Sundays).
+  let d = addDays(today, -1);
+  for (let i = 0; i < 4; i++) {
+    if (!restDayOf(d)) return restDayOf(addDays(d, 1)) || (start && d < start) ? null : d;
+    d = addDays(d, -1);
   }
   return null;
 }
 
-export async function pendingItems(store: LifeStore, ops: OpsStore, today = israelToday(), reviewDue = false): Promise<PendingItem[]> {
-  if (restDayOf(today)) return [];
+/**
+ * The weekly review is offered from the end of Shabbat (Motzei Shabbat) until Monday, while it
+ * is still open. On a rest day it is the only item, and only once the day is out.
+ */
+async function reviewItem(store: LifeStore, today: string, nowMinutes: number): Promise<PendingItem | null> {
+  const weekday = new Date(`${today}T12:00:00Z`).getUTCDay();
+  const due = restDayOf(today) ? endsWeek(today) && nowMinutes >= (await restEndMinutes(store, today)) : weekday <= 1;
+  return due && (await reviewOpen(store, today)) ? { kind: "review", id: `review:${today}`, week: today } : null;
+}
+
+export async function pendingItems(store: LifeStore, ops: OpsStore, today = israelToday(), nowMinutes = toMinutes(israelNow())): Promise<PendingItem[]> {
+  const review = await reviewItem(store, today, nowMinutes);
+  if (restDayOf(today)) return review ? [review] : [];
   const settings = await store.getSettings();
   if (settings.start_date && today < settings.start_date) return [];
   const dayOff = settings.chol_hamoed_off && Boolean(cholHamoedOf(today));
@@ -102,6 +117,6 @@ export async function pendingItems(store: LifeStore, ops: OpsStore, today = isra
     items.push({ kind: "weight", id: `weight:${today}`, date: today, last: last ? { date: last.date, value: Number(last.weight) } : null });
   }
 
-  if (reviewDue) items.unshift({ kind: "review", id: `review:${today}`, week: today });
+  if (review) items.unshift(review);
   return items;
 }
