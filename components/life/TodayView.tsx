@@ -15,6 +15,7 @@ import { Bidi } from "./Bidi";
 import { LessonStory } from "./GrowthView";
 import { LIFE_CHANGED } from "./QuickCapture";
 import { TodayInsights } from "./TodayInsights";
+import { SleepCard } from "./SleepCard";
 
 type DayResponse = { day: DayView; demo: boolean };
 type CheckinPatch = Partial<Omit<Checkin, "date" | "updated_at">>;
@@ -100,6 +101,8 @@ export function TodayView() {
           </span>
         )}
       </header>
+
+      <SleepCard date={day.date} now={now} />
 
       {day.shabbat && now >= "08:00" && <ShabbatCard date={day.date} shabbat={day.shabbat} />}
 
@@ -535,6 +538,8 @@ function AfterRest({ day, onError }: { day: DayView; onError: (m: string) => voi
         <h1 className="mt-0.5 text-2xl font-black tracking-tight">{weekEnded ? "שבוע טוב!" : `${day.restDay?.name ?? "החג"} יצא`}</h1>
         <p className="mt-1 text-sm text-muted">{weekEnded ? "מוצאי שבת. כמה דקות להתארגן לשבוע, ולמנוחה." : "מועדים לשמחה. מה מחכה מחר:"}</p>
       </header>
+
+      <SleepCard date={day.date} now={israelNow()} />
 
       {day.restEnd?.review && (
         <Link href="/life/growth?tab=review" className="flex items-center justify-between rounded-2xl border border-gold/30 bg-gold/[0.07] p-4 text-sm">

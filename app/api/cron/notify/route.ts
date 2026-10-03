@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { runNotifications } from "@/lib/life/notify";
 import { getOpsStore } from "@/lib/life/ops-store";
 import { getLifeStore, isDemoStore } from "@/lib/life/store";
-import { cronToken, safeEqual } from "@/lib/life/telegram";
+import { cronToken, ensureWebhook, safeEqual } from "@/lib/life/telegram";
 
 // Pinged every 5 minutes by a Supabase pg_cron job (the SQL is shown in /life/settings).
 // Outside the proxy matcher on purpose: it authenticates with a token derived from
@@ -34,7 +34,10 @@ async function handle(request: Request) {
   try {
     const store = getLifeStore();
     // Heartbeat for the connection screen: shows the scheduled job is really running.
-    if (!dry) await store.saveDoc("cron_seen", { at: new Date().toISOString() });
+    if (!dry) {
+      await store.saveDoc("cron_seen", { at: new Date().toISOString() });
+      await ensureWebhook(store, url.origin).catch((error) => console.error("[life/notify] webhook", error));
+    }
     return NextResponse.json(await runNotifications(store, getOpsStore(), url.origin, { dry, now }));
   } catch (error) {
     console.error("[life/notify]", error);

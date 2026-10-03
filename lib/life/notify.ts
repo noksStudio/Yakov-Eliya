@@ -15,7 +15,8 @@ import { restEndMinutes, shabbatMessage } from "./shabbat-prep";
 import { insightsFor } from "./rules";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { loadDay } from "./service";
-import { escapeHtml, loadTelegram, sendMessage } from "./telegram";
+import { escapeHtml, loadTelegram, sendMessage, type LinkButton } from "./telegram";
+import { hoursLabel, loadSleep, sleepPlan, wakeChoices } from "./sleep";
 import { addDays, fromMinutes, israelNow, israelToday, restDayOf, toMinutes } from "./time";
 
 // Scheduled Telegram nudges. They read the data and the rules engine only, never a model: the AI
@@ -33,7 +34,8 @@ export const NOTIFY_RULES = [
   { key: "prayers", label: "מנחה וערבית", hint: "10 דקות לפני, כשהשעה מוגדרת", default: true },
   { key: "close", label: "סגירת יום", hint: "תפילות, מכירות ורווח היום", default: true },
   { key: "hitbodedut", label: "התבודדות", hint: "5 דקות לפני", default: true },
-  { key: "screens", label: "מסכים כבויים", hint: "בשעת כיבוי המסכים", default: false },
+  { key: "screens", label: "התארגנות לשינה", hint: "חצי שעה לפני השינה: מסכים כבויים", default: true },
+  { key: "sleep", label: "זמן לישון", hint: "בשעת השינה, עם כפתור ״הולך לישון״", default: true },
   { key: "weekly", label: "סקירה שבועית", hint: "מוצאי שבת, חצי שעה אחרי צאת השבת (ואם לא הגיע: ראשון אחרי שחרית)", default: true },
   { key: "shabbat", label: "הכנה לשבת", hint: "שישי (וערב חג) ב־10:00: כניסה, יציאה ורשימת הבית", default: true },
 ] as const;
@@ -79,6 +81,8 @@ export function slotsFor(day: DayView): Slot[] {
   slots.push(slot("close", "close", toMinutes(s.day_close_time)));
   slots.push(slot("hitbodedut", "hitbodedut", toMinutes(s.hitbodedut_time) - 5));
   slots.push(slot("screens", "screens", toMinutes(s.screens_off_time)));
+  // A bedtime after midnight belongs to the next day's list, not this morning.
+  if (toMinutes(s.sleep_time) >= toMinutes("18:00")) slots.push(slot("sleep", "sleep", toMinutes(s.sleep_time)));
   if (new Date(`${day.date}T12:00:00Z`).getUTCDay() === 0) {
     slots.push(slot("weekly", "weekly", toMinutes(s.shacharit_time) + 45));
   }
@@ -111,6 +115,7 @@ export function dueSlots(day: DayView, prefs: NotifyPrefs, sent: string[], nowMi
   return open.filter((slot) => due.includes(slot) || (toMinutes(slot.at) > nowMinutes && toMinutes(slot.at) <= until));
 }
 
+const hm = (iso: string) => new Intl.DateTimeFormat("he-IL", { timeZone: "Asia/Jerusalem", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(iso));
 const ils = (n: number) => `${Math.round(n).toLocaleString("he-IL")} ₪`;
 const link = (origin: string, path: string, label: string) => `<a href="${origin}${path}">${label}</a>`;
 
@@ -236,7 +241,11 @@ async function messageFor(slot: Slot, store: LifeStore, ops: OpsStore, day: DayV
     case "hitbodedut":
       return `🌌 התבודדות ב־${s.hitbodedut_time}, ${s.hitbodedut_minutes} דקות. הטלפון בצד.`;
     case "screens":
-      return `📵 מסכים כבויים. שינה ב־${s.sleep_time}. לילה טוב.`;
+      return `📵 בעוד חצי שעה לישון (${s.sleep_time}): מסכים כבויים, בגדים ותפילין מוכנים למחר.`;
+    case "sleep": {
+      const plan = sleepPlan(s);
+      return `🌙 <b>${s.sleep_time}, זמן לישון.</b> מחר קמים ב־${s.wake_time} (${hoursLabel(plan.targetHours)}).\nכשנכנסים למיטה, לוחצים:`;
+    }
     case "weekly":
       return weeklyMessage(store, ops, day.date, origin);
     case "shabbat":
@@ -343,7 +352,7 @@ export async function runNotifications(store: LifeStore, ops: OpsStore, origin: 
   const telegram = await loadTelegram(store);
   const canSend = opts.dry || telegram.chat_id !== null;
   // Everything due in this run becomes one message; `ids` are what it covers.
-  const parts: { ids: { id: string; at: string }[]; text: string }[] = [];
+  const parts: { ids: { id: string; at: string }[]; text: string; buttons?: LinkButton[][] }[] = [];
 
   // Reminders he set himself go out even before the routine starts, and even when muted.
   const due = canSend ? dueReminders(await loadReminders(store), date, nowMinutes) : [];
@@ -380,7 +389,27 @@ export async function runNotifications(store: LifeStore, ops: OpsStore, origin: 
       slots = slots.filter((slot) => slot.rule === "shabbat");
       if (!slots.length) skipped = "הושתק להיום";
     }
-    for (const slot of slots) parts.push({ ids: [{ id: slot.id, at: slot.at }], text: await messageFor(slot, store, ops, day, origin) });
+    // Already in bed (tapped "הולך לישון"): no wind-down or bedtime nudge.
+    const sleep = await loadSleep(store);
+    if (sleep.asleep_at && Date.now() - Date.parse(sleep.asleep_at) < 6 * 3_600_000) {
+      slots = slots.filter((slot) => slot.rule !== "screens" && slot.rule !== "sleep");
+    }
+    for (const slot of slots) {
+      parts.push({
+        ids: [{ id: slot.id, at: slot.at }],
+        text: await messageFor(slot, store, ops, day, origin),
+        ...(slot.rule === "sleep" ? { buttons: [[{ text: "🌙 הולך לישון", callback_data: "sleep" }]] } : {}),
+      });
+      // The morning message asks when he woke, if last night's "הולך לישון" is still open.
+      if (slot.rule === "morning" && sleep.asleep_at) {
+        const choices = wakeChoices(day.settings, nowMinutes);
+        parts.push({
+          ids: [],
+          text: `😴 נרשם שהלכת לישון ב־${hm(sleep.asleep_at)}. מתי קמת?`,
+          buttons: [[{ text: "☀️ קמתי עכשיו", callback_data: "wake" }, ...choices.map((t) => ({ text: t, callback_data: `wake:${t}` }))]],
+        });
+      }
+    }
   }
 
   if (parts.length) {
@@ -388,7 +417,7 @@ export async function runNotifications(store: LifeStore, ops: OpsStore, origin: 
     if (opts.dry) {
       base.sent.push(...parts.flatMap((p) => p.ids).map((x, i) => ({ ...x, ...(i === 0 ? { text } : {}) })));
     } else {
-      await sendMessage(telegram.chat_id!, text, true);
+      await sendMessage(telegram.chat_id!, text, true, parts.flatMap((p) => p.buttons ?? []));
       if (due.length) await markRemindersSent(store, due.map((r) => r.id));
       if (slots.length) {
         log.sent.push(...slots.map((slot) => slot.id));

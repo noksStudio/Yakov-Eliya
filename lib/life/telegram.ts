@@ -15,9 +15,27 @@ export type TelegramDoc = {
   linked_at: string | null;
   /** Highest update handled, so Telegram's retries are not processed twice. */
   last_update_id: number | null;
+  /** Which webhook setup is live (WEBHOOK_VERSION); older ones are refreshed by the cron. */
+  webhook_version?: number;
 };
 
+/** Messages, and taps on the inline buttons (הולך לישון, קמתי). */
+export const ALLOWED_UPDATES = ["message", "callback_query"];
+export const WEBHOOK_VERSION = 2;
+
 const EMPTY: TelegramDoc = { chat_id: null, bot_username: null, link_code: null, linked_at: null, last_update_id: null };
+
+/**
+ * Brings an older webhook setup up to date (button taps need "callback_query"), once, from the
+ * cron run, so nothing has to be reconnected by hand. Pending updates are kept.
+ */
+export async function ensureWebhook(store: LifeStore, origin: string) {
+  if (!isTelegramConfigured()) return;
+  const telegram = await loadTelegram(store);
+  if (!telegram.chat_id || telegram.webhook_version === WEBHOOK_VERSION) return;
+  await telegramCall("setWebhook", { url: `${origin}/api/telegram/webhook`, secret_token: await webhookSecret(), allowed_updates: ALLOWED_UPDATES });
+  await saveTelegram(store, { webhook_version: WEBHOOK_VERSION });
+}
 
 /** Supabase pg_cron job that pings the notification route every 5 minutes. */
 export function cronSql(origin: string, token: string) {
@@ -86,7 +104,8 @@ function chunks(text: string) {
   return out;
 }
 
-export type LinkButton = { text: string; url: string };
+/** An inline button: a link, or an action the webhook handles (callback_data, e.g. "sleep"). */
+export type LinkButton = { text: string; url: string } | { text: string; callback_data: string };
 
 /**
  * `html`: our own templates use HTML formatting; agent replies go as plain text.
@@ -157,6 +176,8 @@ const COMMAND_GROUPS: { title: string; commands: BotCommand[] }[] = [
       { command: "stuck", description: "מה תקוע: משימות באיחור, לידים ועסקאות" },
       { command: "focus", description: "הפוקוס של השבוע" },
       { command: "shabbat", description: "זמני כניסה ויציאה של השבת או החג הקרובים, ורשימת הבית" },
+      { command: "sleep", description: "הולך לישון (נרשמת השעה)" },
+      { command: "wake", description: "קמתי (נרשמות שעות השינה)" },
       { command: "mute", description: "השתקת ההתראות עד מחר בבוקר (תזכורות עדיין מגיעות)" },
       { command: "unmute", description: "ביטול ההשתקה" },
     ],

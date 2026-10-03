@@ -46,7 +46,8 @@ export type DocKey =
   | "shabbat"
   | "weekly_notice"
   | "rules"
-  | "ai";
+  | "ai"
+  | "sleep";
 
 export interface LifeStore {
   getSettings(): Promise<Settings>;

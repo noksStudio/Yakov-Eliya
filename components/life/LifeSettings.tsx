@@ -13,6 +13,8 @@ import { clearOfflineData } from "./offline-cache";
 import { ShabbatSettings } from "./ShabbatSettings";
 import { TelegramSettings } from "./TelegramSettings";
 
+const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+
 type TimeKey = { [K in keyof Settings]: Settings[K] extends string | null ? K : never }[keyof Settings];
 
 const GROUPS: { title: string; fields: { key: TimeKey; label: string; optional?: boolean }[] }[] = [
@@ -146,6 +148,11 @@ export function LifeSettings() {
                 </span>
               </label>
             ))}
+            {group.title === "שינה וקימה" && (
+              <p className="text-xs text-muted">
+                יעד שינה: {(((toMin(settings.wake_time) - toMin(settings.sleep_time) + 1440) % 1440) / 60).toString()} שעות. בשעת השינה מגיעה התראה עם כפתור ״הולך לישון״, וחצי שעה לפני: מסכים כבויים.
+              </p>
+            )}
             {group.title === "שגרת יום" && (
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>משך התבודדות</span>

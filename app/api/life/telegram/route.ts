@@ -4,7 +4,9 @@ import { NOTIFY_RULES, isMuted, loadNotifyPrefs, setMuted } from "@/lib/life/not
 import { readJson, withStore } from "@/lib/life/service";
 import type { LifeStore } from "@/lib/life/store";
 import {
+  ALLOWED_UPDATES,
   BOT_COMMANDS,
+  WEBHOOK_VERSION,
   type BotTest,
   TelegramError,
   cronSql,
@@ -45,12 +47,13 @@ async function connectBot(store: LifeStore, origin: string) {
   await telegramCall("setWebhook", {
     url: `${origin}/api/telegram/webhook`,
     secret_token: await webhookSecret(),
-    allowed_updates: ["message"],
+    allowed_updates: ALLOWED_UPDATES,
     drop_pending_updates: true,
   });
   await telegramCall("setMyCommands", { commands: BOT_COMMANDS });
   const telegram = await loadTelegram(store);
   await saveTelegram(store, {
+    webhook_version: WEBHOOK_VERSION,
     bot_username: me.username,
     // Keep an existing binding; issue a fresh one-time code only when there is none.
     link_code: telegram.chat_id ? null : crypto.randomUUID().replace(/-/g, "").slice(0, 20),

@@ -5,7 +5,7 @@ import { setInviteText } from "./guests";
 import { appendGoal } from "./growth";
 import type { Goal } from "./growth-types";
 import { getLessonsStore } from "./lessons";
-import type { Area } from "./types";
+import type { Area, Settings } from "./types";
 import { israelNow, israelToday, toMinutes } from "./time";
 
 // Content told in chat that belongs in the user's own data (not in code defaults): each batch is
@@ -29,6 +29,8 @@ type SeedBatch = {
   events?: SeedEvent[];
   eventTasks?: SeedEventTasks[];
   goals?: SeedGoal[];
+  /** Schedule changes told in chat (e.g. a new bedtime). */
+  settings?: Partial<Settings>;
 };
 
 const SEEDS: SeedBatch[] = [
@@ -425,6 +427,12 @@ const SEEDS: SeedBatch[] = [
       },
     ],
   },
+  {
+    // Told in chat (4.10): 7.5 hours of sleep before a 06:30 wake-up, so bed at 23:00, and the
+    // wind-down (screens off) half an hour before.
+    id: "2026-10-04-bedtime",
+    settings: { sleep_time: "23:00", screens_off_time: "22:30" },
+  },
 ];
 
 export async function applySeeds(store: LifeStore) {
@@ -437,6 +445,7 @@ export async function applySeeds(store: LifeStore) {
   const today = israelToday();
   const now = toMinutes(israelNow());
   for (const batch of pending) {
+    if (batch.settings) await store.saveSettings(batch.settings);
     // A reminder whose time already passed (e.g. seeded after connecting late) is skipped, not
     // sent late all at once.
     for (const lesson of batch.lessons ?? []) await getLessonsStore().add(lesson);

@@ -14,6 +14,7 @@ import { getOpsStore } from "@/lib/life/ops-store";
 import { loadDay } from "@/lib/life/service";
 import { getLifeStore, type LifeStore } from "@/lib/life/store";
 import { applySeeds } from "@/lib/life/seeds";
+import { goToSleep, hoursLabel, todayAt, wakeUp } from "@/lib/life/sleep";
 import { ALL_TEXT, HELP_TEXT, escapeHtml, loadTelegram, safeEqual, saveTelegram, sendMessage, telegramCall, webhookSecret } from "@/lib/life/telegram";
 import { addDays, israelToday } from "@/lib/life/time";
 
@@ -26,6 +27,8 @@ export const maxDuration = 120;
 type Update = {
   update_id: number;
   message?: { chat: { id: number; type: string }; text?: string };
+  /** A tap on an inline button (הולך לישון, קמתי). */
+  callback_query?: { id: string; data?: string; message?: { message_id: number; chat: { id: number } } };
 };
 
 const ok = () => NextResponse.json({ ok: true });
@@ -43,7 +46,8 @@ export async function POST(request: Request) {
 
   const update = (await request.json().catch(() => null)) as Update | null;
   const message = update?.message;
-  if (!update || !message?.text || message.chat.type !== "private") return ok();
+  const tap = update?.callback_query;
+  if (!update || (!tap && (!message?.text || message.chat.type !== "private"))) return ok();
 
   const store = getLifeStore();
   await applySeeds(store);
@@ -51,6 +55,12 @@ export async function POST(request: Request) {
   // Telegram retries until it gets a 200; never handle the same update twice.
   if (telegram.last_update_id !== null && update.update_id <= telegram.last_update_id) return ok();
   await saveTelegram(store, { last_update_id: update.update_id });
+
+  if (tap) {
+    await handleTap(store, telegram.chat_id, tap);
+    return ok();
+  }
+  if (!message?.text) return ok();
 
   const chatId = message.chat.id;
   const text = message.text.trim();
@@ -135,6 +145,12 @@ async function runCommand(store: LifeStore, command: string, args: string[], ori
       return ALL_TEXT;
     case "today":
       return morningMessage(store, ops, await loadDay(store, today), origin);
+    case "sleep": {
+      const r = await goToSleep(store);
+      return `🌙 נרשם: הלכת לישון ב־${r.time}. לילה טוב! בבוקר שלח /wake או לחץ ״קמתי״.`;
+    }
+    case "wake":
+      return wakeReply(await wakeUp(store));
     // The rules assistant (no model): same answers as the chat buttons in the app.
     case "tomorrow":
     case "week":
@@ -248,4 +264,34 @@ async function replyWithAgent(store: LifeStore, chatId: number, text: string, de
     console.error("[telegram/agent]", error);
     await sendMessage(chatId, "המנהל לא הצליח לענות כרגע. נסה שוב בעוד רגע.").catch(() => {});
   }
+}
+
+function wakeReply(r: Awaited<ReturnType<typeof wakeUp>>) {
+  return "error" in r ? `😴 ${escapeHtml(r.error)}` : `☀️ בוקר טוב! ישנת <b>${hoursLabel(r.hours)}</b> (קמת ב־${r.time}). נרשם בסיכום היום.`;
+}
+
+/**
+ * Inline buttons: "sleep" (הולך לישון), "wake" (קמתי עכשיו) and "wake:06:30" (קמתי ב־06:30 הבוקר).
+ * Only the linked chat counts. The buttons are taken off the message once used.
+ */
+async function handleTap(store: LifeStore, chatId: number | null, tap: NonNullable<Update["callback_query"]>) {
+  const chat = tap.message?.chat.id;
+  if (chatId === null || chat !== chatId) {
+    await telegramCall("answerCallbackQuery", { callback_query_id: tap.id }).catch(() => {});
+    return;
+  }
+  let reply: string | null = null;
+  if (tap.data === "sleep") {
+    const r = await goToSleep(store);
+    reply = `🌙 נרשם: הלכת לישון ב־${r.time}. לילה טוב!`;
+  } else if (tap.data === "wake" || tap.data?.startsWith("wake:")) {
+    const time = tap.data.slice(5);
+    reply = wakeReply(await wakeUp(store, /^\d{2}:\d{2}$/.test(time) ? todayAt(time) : new Date()));
+  }
+  await telegramCall("answerCallbackQuery", { callback_query_id: tap.id, text: reply ? "נרשם ✓" : undefined }).catch(() => {});
+  if (!reply) return;
+  if (tap.message) {
+    await telegramCall("editMessageReplyMarkup", { chat_id: chat, message_id: tap.message.message_id, reply_markup: { inline_keyboard: [] } }).catch(() => {});
+  }
+  await sendMessage(chatId, reply, true);
 }
