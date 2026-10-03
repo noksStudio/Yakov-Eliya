@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
-import { upcomingTimes } from "./shabbat-prep";
-import { addDays, restDayOf } from "./time";
+import { restEndMinutes, upcomingTimes } from "./shabbat-prep";
+import { endsWeek, reviewOpen } from "./review";
+import { addDays, fromMinutes, restDayOf } from "./time";
 import { loadReminders } from "./reminders";
 import { dueDate, dueLeads, getLeadsStore } from "./leads";
 import { ZodError } from "zod";
@@ -43,6 +44,10 @@ export async function loadDay(store: LifeStore, date: string) {
     if (city && times && eve === date) {
       day.shabbat = { title: times.title, city: city.name, candles: times.candles, end: times.end, endRabbeinuTam: times.endRabbeinuTam, checklist: prefs.checklist };
     }
+  }
+  if (day.restDay && !restDayOf(addDays(date, 1))) {
+    const weekEnds = endsWeek(date);
+    day.restEnd = { at: fromMinutes(await restEndMinutes(store, date)), weekEnds, review: weekEnds && (await reviewOpen(store, date)) };
   }
   day.reminders = (await loadReminders(store)).filter((r) => r.date === date).map(({ id, time, text, sent }) => ({ id, time, text, sent }));
   // Work waits on a day off; a missing leads table (site SQL not run yet) just means none.

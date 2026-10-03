@@ -328,7 +328,9 @@ export async function runNotifications(store: LifeStore, ops: OpsStore, origin: 
     if (weekly) return weekly;
   }
   const quiet = quietReason(date, nowMinutes);
-  if (quiet) return { ...base, skipped: quiet };
+  // Once Shabbat or Yom Tov is out, reminders he set for the evening go out; nudges stay off.
+  const afterRest = Boolean(quiet) && Boolean(restDayOf(date)) && !restDayOf(addDays(date, 1)) && nowMinutes >= (await restEndMinutes(store, date));
+  if (quiet && !afterRest) return { ...base, skipped: quiet };
 
   await applySeeds(store);
   const telegram = await loadTelegram(store);
@@ -351,7 +353,9 @@ export async function runNotifications(store: LifeStore, ops: OpsStore, origin: 
   let day: DayView | null = null;
   const [prefs, savedLog, muted] = await Promise.all([loadNotifyPrefs(store), store.getDoc<NotifyLog>("notify_log"), isMuted(store, date)]);
   const log: NotifyLog = savedLog?.date === date ? savedLog : { date, sent: [] };
-  if (settings.start_date && date < settings.start_date) {
+  if (afterRest) {
+    skipped = "מוצאי שבת או חג: רק תזכורות";
+  } else if (settings.start_date && date < settings.start_date) {
     skipped = `השגרה מתחילה ב־${settings.start_date.split("-").reverse().join(".")}`;
   } else if (!canSend) {
     skipped = "הבוט עוד לא מחובר לצ׳אט";

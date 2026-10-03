@@ -162,6 +162,7 @@ export function buildDay(
     gregorian: gregorianLabel(date),
     hebrewDate: hebrewDateLabel(date),
     restDay: settings.shabbat_silence ? restDayOf(date) : null,
+    restEnd: null,
     dayOff,
     startsOn: settings.start_date && date < settings.start_date ? settings.start_date : null,
     weekFocus,

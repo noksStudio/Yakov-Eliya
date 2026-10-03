@@ -136,6 +136,11 @@ export type DayView = {
   gregorian: string;
   hebrewDate: string;
   restDay: RestDay | null;
+  /**
+   * On the last day of a rest period: when it ends (tzeit in his city), whether the week ends
+   * with it, and whether the weekly review is waiting. After that time the day screen wakes up again.
+   */
+  restEnd: { at: string; weekEnds: boolean; review: boolean } | null;
   /** A day off work that is not Shabbat or Yom Tov (Chol HaMoed), when the setting is on. */
   dayOff: string | null;
   /** The routine's start date, while it is still ahead. */

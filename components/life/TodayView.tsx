@@ -5,7 +5,7 @@ import Link from "next/link";
 import { BookOpen, Check, Dumbbell, Footprints, Loader2, MessageCircle, MoonStar, Phone, Plus, Sunrise, Trash2, Undo2, X } from "lucide-react";
 import type { Area, Checkin, DayView, Task, TimelineItem } from "@/lib/life/types";
 import { AREA_LABELS, AREAS } from "@/lib/life/types";
-import { israelNow, toMinutes } from "@/lib/life/time";
+import { addDays, israelNow, toMinutes } from "@/lib/life/time";
 import { telUrl, whatsappUrl } from "@/lib/life/lead-types";
 import { lifeApi, SetupError } from "./api";
 import type { Metric } from "@/lib/life/metrics";
@@ -73,7 +73,11 @@ export function TodayView() {
 
   if (error && !day) return <ErrorCard message={error} onRetry={reload} setup={setupNeeded} />;
   if (!day || !now) return <LoadingDay />;
-  if (day.restDay) return <RestScreen name={day.restDay.name} kind={day.restDay.kind} />;
+  if (day.restDay) {
+    // Once Shabbat or Yom Tov is out, the screen wakes up: tonight and a look at tomorrow.
+    if (day.restEnd && now >= day.restEnd.at) return <AfterRest day={day} onError={setError} />;
+    return <RestScreen name={day.restDay.name} kind={day.restDay.kind} until={day.restEnd?.at ?? null} />;
+  }
 
   const phase = phaseOf(day, now);
   const shown = picked ?? phase;
@@ -493,12 +497,85 @@ function ErrorCard({ message, onRetry, setup }: { message: string; onRetry: () =
   );
 }
 
-function RestScreen({ name, kind }: { name: string; kind: "shabbat" | "yomtov" }) {
+function RestScreen({ name, kind, until }: { name: string; kind: "shabbat" | "yomtov"; until: string | null }) {
+  const at = until ? ` (${until})` : "";
   return (
     <div className="flex min-h-[75svh] flex-col items-center justify-center text-center">
       <MoonStar className="h-12 w-12 text-gold-2" strokeWidth={1.4} />
       <h1 className="mt-5 text-3xl font-black">{kind === "shabbat" ? "שבת שלום" : `חג שמח`}</h1>
-      <p className="mt-2 text-muted">{kind === "shabbat" ? "המערכת שקטה עד מוצאי שבת." : `${name} · המערכת שקטה עד צאת החג.`}</p>
+      <p className="mt-2 text-muted">{kind === "shabbat" ? `המערכת שקטה עד מוצאי שבת${at}.` : `${name} · המערכת שקטה עד צאת החג${at}.`}</p>
+    </div>
+  );
+}
+
+/** Motzei Shabbat / Yom Tov: the review if the week ended, tonight's reminders, and tomorrow. */
+function AfterRest({ day, onError }: { day: DayView; onError: (m: string) => void }) {
+  const [tomorrow, setTomorrow] = useState<DayView | null>(null);
+  const next = addDays(day.date, 1);
+  const load = useCallback(() => {
+    lifeApi<DayResponse>(`/day?date=${next}`)
+      .then((d) => setTomorrow(d.day))
+      .catch((e) => onError((e as Error).message));
+  }, [next, onError]);
+  useEffect(load, [load]);
+
+  const weekEnded = Boolean(day.restEnd?.weekEnds);
+  const tonight = day.reminders.filter((r) => !r.sent && day.restEnd && r.time >= day.restEnd.at);
+  const events = tomorrow?.timeline.filter((i) => i.kind === "event" && i.start) ?? [];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <header>
+        <p className="text-sm text-muted">
+          {day.weekday} · {day.gregorian}
+        </p>
+        <h1 className="mt-0.5 text-2xl font-black tracking-tight">{weekEnded ? "שבוע טוב!" : `${day.restDay?.name ?? "החג"} יצא`}</h1>
+        <p className="mt-1 text-sm text-muted">{weekEnded ? "מוצאי שבת. כמה דקות להתארגן לשבוע, ולמנוחה." : "מועדים לשמחה. מה מחכה מחר:"}</p>
+      </header>
+
+      {day.restEnd?.review && (
+        <Link href="/life/growth?tab=review" className="flex items-center justify-between rounded-2xl border border-gold/30 bg-gold/[0.07] p-4 text-sm">
+          <span>
+            <span className="block text-[15px] font-bold">הסקירה השבועית</span>
+            <span className="text-xs text-muted">5 דקות: מה עשית מול התכנון, איפה נפלת ולמה, והדבר האחד לשבוע.</span>
+          </span>
+          <span className="shrink-0 font-semibold text-gold-2">לסקירה ←</span>
+        </Link>
+      )}
+
+      {tonight.length > 0 && <TodayReminders day={{ ...day, reminders: tonight }} />}
+
+      {!tomorrow ? (
+        <LoadingDay />
+      ) : (
+        <>
+          <h2 className="mt-1 text-[15px] font-bold">
+            מחר, {tomorrow.weekday}
+            {tomorrow.dayOff && <span className="ms-2 text-xs font-normal text-emerald-300">{tomorrow.dayOff}: חופש מעבודה</span>}
+          </h2>
+          {tomorrow.restDay ? (
+            <p className="text-sm text-muted">מחר {tomorrow.restDay.name}.</p>
+          ) : (
+            <>
+              {events.length > 0 && (
+                <section className="rounded-2xl border border-border-soft bg-surface p-4" aria-label="מחר ביומן">
+                  <ul className="grid gap-1.5 text-sm">
+                    {events.map((e) => (
+                      <li key={e.key} className="flex gap-3">
+                        <span className="font-latin w-12 shrink-0 text-muted">{e.start}</span>
+                        <span className="min-w-0">{e.title}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              <TopTasks day={tomorrow} onChange={load} onError={onError} />
+              {/* The review card above already invites to the review. */}
+              {(tomorrow.weekFocus.length > 0 || !day.restEnd?.review) && <WeekFocus day={tomorrow} />}
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 }

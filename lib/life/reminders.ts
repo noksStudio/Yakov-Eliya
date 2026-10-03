@@ -1,5 +1,6 @@
 import type { LifeStore } from "./store";
 import { addDays, fromMinutes, israelNow, israelToday, restDayOf, toMinutes } from "./time";
+import { cityById, sunsetMinutes } from "./zmanim";
 
 // One-off reminders ("מחר ב־10:00 להתקשר לדני"), sent by the notification cron within five minutes
 // of their time. Written from Telegram, the chief manager, or the app.
@@ -18,13 +19,28 @@ async function save(store: LifeStore, items: Reminder[], today = israelToday()) 
   await store.saveDoc<RemindersDoc>("reminders", { items: items.filter((r) => !r.sent || r.date >= cutoff) });
 }
 
-/** Nothing is sent on Shabbat or Yom Tov, or from 14:00 on the eve of one (same rule as all nudges). */
+/**
+ * Nothing is sent on Shabbat or Yom Tov until it is out, or from 14:00 on the eve of one (same
+ * rule as all nudges). Motzei Shabbat / Yom Tov is fine from the end time (Netanya's here; the
+ * sender waits for his own city's).
+ */
 export function quietFor(date: string, time: string): string | null {
   const rest = restDayOf(date);
-  if (rest) return `זה יוצא ב${rest.name}, ואז אין התראות. בחר זמן אחר.`;
+  if (rest) {
+    const end = restDayOf(addDays(date, 1)) ? null : defaultRestEnd(date);
+    if (end !== null && toMinutes(time) >= end) return null;
+    return end === null
+      ? `זה יוצא ב${rest.name}, ואז אין התראות. בחר זמן אחר.`
+      : `זה יוצא ב${rest.name}, ואז אין התראות. אפשר מ־${fromMinutes(end)}, אחרי ${rest.kind === "shabbat" ? "צאת השבת" : "צאת החג"}.`;
+  }
   const eve = restDayOf(addDays(date, 1));
   if (eve && toMinutes(time) >= toMinutes("14:00")) return `בערב ${eve.name} אין התראות מ־14:00. בחר שעה מוקדמת יותר.`;
   return null;
+}
+
+function defaultRestEnd(date: string) {
+  const city = cityById("netanya")!;
+  return Math.ceil(sunsetMinutes(date, city.lat, city.lon, 98.5));
 }
 
 export async function addReminder(store: LifeStore, input: { date: string; time: string; text: string }) {
@@ -125,7 +141,7 @@ export function parseWhen(input: string, now = new Date(), { forTask = false }: 
   // Day words.
   const day = take(new RegExp(`${B}(היום|מחרתיים|מחר)${E}`));
   if (day) date = addDays(today, day[1] === "היום" ? 0 : day[1] === "מחר" ? 1 : 2);
-  const wd = take(new RegExp(`${B}(?:ב?יום\\s+(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|ב(ראשון|שלישי|רביעי|חמישי|שישי|שבת))${E}`));
+  const wd = take(new RegExp(`${B}(?:ב?יום\\s+(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|ב(ראשון|שלישי|רביעי|חמישי|שישי|שבת))(?:\\s+(?:הבא|הבאה|הקרוב|הקרובה))?${E}`));
   if (wd) {
     const target = WEEKDAYS[wd[1] ?? wd[2]];
     const current = new Date(`${today}T12:00:00Z`).getUTCDay();
