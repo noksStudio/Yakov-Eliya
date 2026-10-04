@@ -1,6 +1,6 @@
 import type { LifeStore } from "./store";
 import { getIdeasStore, type IdeaStatus, type NewIdea } from "./ideas";
-import { addReminder } from "./reminders";
+import { addReminder, loadReminders, updateReminder } from "./reminders";
 import { setInviteText } from "./guests";
 import { appendGoal } from "./growth";
 import type { Goal } from "./growth-types";
@@ -36,6 +36,8 @@ type SeedBatch = {
   leads?: SeedLead[];
   /** Notes added to a lead already in the list, found by phone; added as a new lead if it is not there. */
   leadNotes?: SeedLeadNotes[];
+  /** A check done for him: today's reminder to check is replaced by what was found. */
+  reminderResults?: { date: string; textIncludes: string; text: string }[];
 };
 type SeedLead = { name: string; phone: string; business_type?: string; notes?: string };
 type SeedLeadNotes = SeedLead & { follow_up_date?: string; status?: LeadPatch["status"] };
@@ -591,6 +593,17 @@ const SEEDS: SeedBatch[] = [
     id: "2026-10-04-hausmaster-plan-2",
     leadNotes: [{ name: "Hausmaster", phone: "052-2154648", follow_up_date: "2026-10-05", status: "qualified", notes: HAUSMASTER_PLAN }],
   },
+  {
+    // The 20:00 campaign check (4.10) was done by Claude; the reminder shows the result instead.
+    id: "2026-10-04-campaign-check-result",
+    reminderResults: [
+      {
+        date: "2026-10-04",
+        textIncludes: "קמפיין המטבחים",
+        text: "📊 נבדק ב־20:00: 24 ₪ · 263 חשיפות · 5 קליקים · 0 שיחות וואטסאפ עדיין. אין שגיאות. לא לגעת (למידה); בדיקה הבאה מחר 20:00. אחרי 100 ₪ בלי שיחה: מחליפים פתיח.",
+      },
+    ],
+  },
 ];
 
 async function addLeadNotes({ notes, follow_up_date, status, ...lead }: SeedLeadNotes, today: string) {
@@ -659,6 +672,10 @@ export async function applySeeds(store: LifeStore) {
     }
     for (const r of batch.reminders ?? []) {
       if (r.date > today || (r.date === today && toMinutes(r.time) > now)) await addReminder(store, r);
+    }
+    for (const r of batch.reminderResults ?? []) {
+      const found = (await loadReminders(store)).find((x) => x.date === r.date && x.text.includes(r.textIncludes));
+      if (found) await updateReminder(store, found.id, { text: r.text });
     }
     for (const { status, steps, ...input } of batch.ideas ?? []) {
       const idea = await ideas.add(input);
