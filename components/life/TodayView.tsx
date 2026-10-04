@@ -7,6 +7,7 @@ import type { Area, Checkin, DayView, Task, TimelineItem } from "@/lib/life/type
 import { AREA_LABELS, AREAS } from "@/lib/life/types";
 import { addDays, israelNow, toMinutes } from "@/lib/life/time";
 import { telUrl, whatsappUrl } from "@/lib/life/lead-types";
+import { amudLabel, type LearningGoal } from "@/lib/life/learning";
 import { lifeApi, SetupError } from "./api";
 import type { Metric } from "@/lib/life/metrics";
 import { MetricCard } from "./MetricsView";
@@ -700,6 +701,20 @@ function Learning({ day, onChange, onError }: { day: DayView; onChange: () => vo
       setBusy(false);
     }
   };
+  const [picking, setPicking] = useState(false);
+  /** Jump to where he really is: `index` amudim are done, the next is amud `index`. */
+  const jump = async (index: number) => {
+    setBusy(true);
+    try {
+      await lifeApi("/learning", { method: "PUT", body: { done: index } });
+      setPicking(false);
+      onChange();
+    } catch (e) {
+      onError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
   const pct = Math.round((l.done / l.total) * 100);
   const onPace = l.neededPerWeek <= l.plannedPerWeek;
   return (
@@ -719,9 +734,32 @@ function Learning({ day, onChange, onError }: { day: DayView; onChange: () => vo
         <p className="mt-3 text-sm font-bold text-gold-2">סיימת את המסכת! הדרן עלך 🎉</p>
       ) : (
         <>
-          <p className="mt-3 text-sm">
-            הבא: <span className="font-bold">{l.next}</span>
+          <p className="mt-3 flex items-center justify-between gap-2 text-sm">
+            <span>
+              הבא: <span className="font-bold">{l.next}</span>
+            </span>
+            <button type="button" onClick={() => setPicking(!picking)} className="text-xs text-muted underline">
+              אני בעמוד אחר
+            </button>
           </p>
+          {picking && (
+            <label className="mt-2 flex items-center gap-2 text-xs text-muted">
+              הבא ללמוד:
+              <select
+                defaultValue={l.done}
+                disabled={busy}
+                onChange={(e) => jump(Number(e.target.value))}
+                className="min-w-0 flex-1 rounded-lg bg-white/5 px-2 py-2 text-sm text-foreground outline-none"
+                aria-label="העמוד הבא ללמוד"
+              >
+                {Array.from({ length: l.total }, (_, i) => (
+                  <option key={i} value={i} className="bg-[#0b0d1f]">
+                    {amudLabel({ firstDaf: l.firstDaf } as LearningGoal, i)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <p className={`mt-0.5 text-xs ${onPace ? "text-muted" : "text-amber-300"}`}>
             {onPace
               ? `בקצב: ${l.plannedPerWeek} עמודים בשבוע מספיקים לסיום עד יום ההולדת (עוד ${l.daysLeft} ימים).`

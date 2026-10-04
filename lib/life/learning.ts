@@ -61,6 +61,8 @@ export type LearningToday = {
   plannedPerWeek: number;
   daysLeft: number;
   session: { start: string; end: string } | null;
+  /** First daf of the masechet, for naming any amud ("אני בעמוד…"). */
+  firstDaf: number;
 };
 
 export function learningForDate(goal: LearningGoal, date: string): LearningToday {
@@ -83,5 +85,6 @@ export function learningForDate(goal: LearningGoal, date: string): LearningToday
     plannedPerWeek: goal.days.length,
     daysLeft,
     session,
+    firstDaf: goal.firstDaf,
   };
 }
