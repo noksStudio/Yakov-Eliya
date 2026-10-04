@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { BadgeDollarSign, ChevronDown, Loader2, MessageCircle, Phone, Plus } from "lucide-react";
 import { addDays, israelToday } from "@/lib/life/time";
-import { isOpenLead, leadStatusLabel, sourceLabel, telUrl, whatsappUrl, type Lead } from "@/lib/life/lead-types";
+import { isMobile, isOpenLead, leadStatusLabel, outreachMessage, sourceLabel, telUrl, whatsappUrl, type Lead } from "@/lib/life/lead-types";
 import { lifeApi } from "./api";
 
 const shortDate = (d: string) => `${Number(d.slice(8, 10))}.${Number(d.slice(5, 7))}`;
@@ -100,7 +100,10 @@ function LeadCard({ lead, today, onChange, onDeal, onError }: { lead: Lead; toda
   const [next, setNext] = useState("");
   const due = dueLabel(dueOf(lead), today);
   const tel = telUrl(lead.phone);
-  const wa = whatsappUrl(lead.phone);
+  // Outreach: the first message comes ready, and only a mobile number gets the WhatsApp button
+  // (an 072 directory number or a landline has no WhatsApp).
+  const outreach = lead.source === "outreach";
+  const wa = outreach ? (isMobile(lead.phone) ? whatsappUrl(lead.phone, outreachMessage(lead.name ?? "העסק")) : null) : whatsappUrl(lead.phone);
 
   const patch = async (body: Record<string, unknown>) => {
     setBusy(true);

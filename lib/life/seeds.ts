@@ -5,6 +5,7 @@ import { setInviteText } from "./guests";
 import { appendGoal } from "./growth";
 import type { Goal } from "./growth-types";
 import { getLessonsStore } from "./lessons";
+import { getLeadsStore } from "./leads";
 import type { Area, Settings } from "./types";
 import { israelNow, israelToday, toMinutes } from "./time";
 
@@ -31,7 +32,10 @@ type SeedBatch = {
   goals?: SeedGoal[];
   /** Schedule changes told in chat (e.g. a new bedtime). */
   settings?: Partial<Settings>;
+  /** Businesses to reach out to (a call list), added as open leads due today. */
+  leads?: SeedLead[];
 };
+type SeedLead = { name: string; phone: string; business_type?: string; notes?: string };
 
 const SEEDS: SeedBatch[] = [
   {
@@ -433,6 +437,25 @@ const SEEDS: SeedBatch[] = [
     id: "2026-10-04-bedtime",
     settings: { sleep_time: "23:00", screens_off_time: "22:30" },
   },
+  {
+    // Told in chat (4.10): kitchen businesses in Netanya to call or message today.
+    id: "2026-10-04-netanya-kitchens",
+    leads: [
+      { name: "גסטון מטבחים", phone: "072-3132765", business_type: "מטבחים · נתניה", notes: "שכטרמן 33, נתניה. מספר 072 של אתר מדריכים (מעביר לעסק), לא וואטסאפ. להתקשר, ולבקש את הנייד של הבעלים." },
+      { name: "מטבחי גלי", phone: "072-3137563", business_type: "מטבחים · נתניה", notes: "צבי שכטרמן 29, נתניה. מספר 072 של אתר מדריכים (מעביר לעסק), לא וואטסאפ. להתקשר, ולבקש את הנייד של הבעלים." },
+      { name: "מטבחי שלישמן", phone: "072-3135464", business_type: "מטבחים · נתניה", notes: "מספר 072 של אתר מדריכים (מעביר לעסק), לא וואטסאפ. להתקשר, ולבקש את הנייד של הבעלים." },
+      { name: "מטבחי דהן", phone: "072-3139890", business_type: "מטבחים · נתניה", notes: "מספר 072 של אתר מדריכים (מעביר לעסק), לא וואטסאפ. להתקשר, ולבקש את הנייד של הבעלים." },
+      { name: "אריה, מטבחים וחדרי אמבט", phone: "072-3106268", business_type: "מטבחים · נתניה", notes: "מספר 072 של אתר מדריכים (מעביר לעסק), לא וואטסאפ. להתקשר, ולבקש את הנייד של הבעלים." },
+      { name: "מטבחי לוסטיג", phone: "072-3132434", business_type: "מטבחים · נתניה", notes: "מספר 072 של אתר מדריכים (מעביר לעסק), לא וואטסאפ. להתקשר, ולבקש את הנייד של הבעלים." },
+      { name: "נונו מטבחי ליבורנו", phone: "050-6564485", business_type: "מטבחים · נתניה", notes: "הקדר 6, נתניה. עוד: 072-3130118, 077-7931930. מטבחים במחיר נגיש." },
+      { name: "NOYA מטבחים ונגרות", phone: "050-2808180", business_type: "מטבחים · נתניה", notes: "מטבחים ונגרות בהתאמה אישית." },
+      { name: "חזות למטבח", phone: "072-3313101", business_type: "מטבחים · נתניה", notes: "המלאכה 22, נתניה. מספר 072 של אתר מדריכים (מעביר לעסק), לא וואטסאפ. להתקשר, ולבקש את הנייד של הבעלים." },
+      { name: "Hausmaster", phone: "052-2154648", business_type: "מטבחים · נתניה (אולם תצוגה)", notes: "הגביש 4, נתניה. משרד: 09-8851123. רשת: לבקש את מנהל השיווק או הבעלים." },
+      { name: "ARAN Cucine נתניה", phone: "052-6722640", business_type: "מטבחים · נתניה (אולם תצוגה)", notes: "גיבורי ישראל 10, נתניה. משרד: 09-9775550. רשת: לבקש את מנהל השיווק." },
+      { name: "דלקוב מטבחים", phone: "09-9787533", business_type: "מטבחים · נתניה (רשת)", notes: "גיבורי ישראל 24, נתניה. קווי: להתקשר ולבקש את מנהל השיווק." },
+      { name: "דקל קמילה נתניה", phone: "074-7399006", business_type: "מטבחים · נתניה (רשת)", notes: "המלאכה 22, נתניה. רשת ארצית: לבקש את מנהל השיווק." },
+    ],
+  },
 ];
 
 export async function applySeeds(store: LifeStore) {
@@ -446,6 +469,17 @@ export async function applySeeds(store: LifeStore) {
   const now = toMinutes(israelNow());
   for (const batch of pending) {
     if (batch.settings) await store.saveSettings(batch.settings);
+    if (batch.leads?.length) {
+      // The leads table comes with the site SQL; if it is not there yet, try again next time.
+      try {
+        for (const lead of batch.leads) await getLeadsStore().add({ ...lead, follow_up_date: today, source: "outreach" });
+      } catch (error) {
+        console.error("[life/seeds] leads", error);
+        const now = (await store.getDoc<{ applied: string[] }>("seeds"))?.applied ?? [];
+        await store.saveDoc("seeds", { applied: now.filter((id) => id !== batch.id) });
+        continue;
+      }
+    }
     // A reminder whose time already passed (e.g. seeded after connecting late) is skipped, not
     // sent late all at once.
     for (const lesson of batch.lessons ?? []) await getLessonsStore().add(lesson);
