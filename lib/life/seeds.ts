@@ -465,6 +465,13 @@ const SEEDS: SeedBatch[] = [
       { date: "2026-10-18", time: "10:00", text: "🎯 שבועיים לקמפיין המטבחים: להתחיל קמפיין ריטרגט על הקהל \"ריטרגט - מעורבים בעמוד NOKS 90 יום\"." },
     ],
   },
+  {
+    // Three days before the retargeting launch (18.10): prepare its copy and creative.
+    id: "2026-10-04-retargeting-prep",
+    reminders: [
+      { date: "2026-10-15", time: "10:00", text: "✍️ עוד 3 ימים קמפיין הריטרגט (18.10): לשבת על הקופירייט, הקריאייטיב (סרטון/המלצה), הקהל וההצעה." },
+    ],
+  },
 ];
 
 export async function applySeeds(store: LifeStore) {
