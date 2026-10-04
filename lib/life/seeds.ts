@@ -523,6 +523,24 @@ const SEEDS: SeedBatch[] = [
       { date: "2026-10-09", time: "10:00", text: "🚦 בדיקת קמפיין המטבחים: פחות מ־5 שיחות וואטסאפ או אפס בעלי עסקים אמיתיים? מפעילים את תוכנית המגירה \"משלמים רק על תוצאות\" (פרטים ברעיונות)." },
     ],
   },
+  {
+    // Told in chat (4.10): a meeting at Hausmaster kitchens tomorrow.
+    id: "2026-10-04-hausmaster-meeting",
+    events: [
+      {
+        date: "2026-10-05",
+        start_time: "11:30",
+        end_time: "12:30",
+        title: "פגישה: Hausmaster מטבחים (הגביש 4, נתניה)",
+        area: "business",
+        tasks: [{ title: "להכין לפגישה עם Hausmaster: מקרה ה־0→25 אלף, ההצעה (יום צילום 3,500 + ניהול 2,500) ושאלות על השיווק היום", due_date: "2026-10-05", priority: 1 }],
+      },
+    ],
+    reminders: [
+      { date: "2026-10-05", time: "09:00", text: "היום 11:30 פגישה ב־Hausmaster מטבחים, הגביש 4 נתניה. להכין: מקרה ה־0→25 אלף, ההצעה, ושאלות על השיווק שלהם היום." },
+      { date: "2026-10-05", time: "11:00", text: "🚗 לצאת עכשיו לפגישה ב־Hausmaster, הגביש 4 נתניה (11:30)." },
+    ],
+  },
 ];
 
 export async function applySeeds(store: LifeStore) {
