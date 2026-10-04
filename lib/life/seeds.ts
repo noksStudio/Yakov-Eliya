@@ -5,7 +5,7 @@ import { setInviteText } from "./guests";
 import { appendGoal } from "./growth";
 import type { Goal } from "./growth-types";
 import { getLessonsStore } from "./lessons";
-import { getLeadsStore } from "./leads";
+import { getLeadsStore, intlPhone } from "./leads";
 import type { Area, Settings } from "./types";
 import { israelNow, israelToday, toMinutes } from "./time";
 
@@ -34,8 +34,11 @@ type SeedBatch = {
   settings?: Partial<Settings>;
   /** Businesses to reach out to (a call list), added as open leads due today. */
   leads?: SeedLead[];
+  /** Notes added to a lead already in the list, found by phone; added as a new lead if it is not there. */
+  leadNotes?: SeedLeadNotes[];
 };
 type SeedLead = { name: string; phone: string; business_type?: string; notes?: string };
+type SeedLeadNotes = SeedLead & { follow_up_date?: string };
 
 const SEEDS: SeedBatch[] = [
   {
@@ -541,7 +544,57 @@ const SEEDS: SeedBatch[] = [
       { date: "2026-10-05", time: "11:00", text: "🚗 לצאת עכשיו לפגישה ב־Hausmaster, הגביש 4 נתניה (11:30)." },
     ],
   },
+  {
+    // The plan for the Hausmaster meeting (5.10), written on their lead as asked in chat.
+    id: "2026-10-04-hausmaster-plan",
+    leadNotes: [
+      {
+        name: "Hausmaster",
+        phone: "052-2154648",
+        business_type: "מטבחים · נתניה (אולם תצוגה)",
+        follow_up_date: "2026-10-05",
+        notes: [
+          "📅 פגישה 5.10 11:30 · הגביש 4. מטבחי יוקרה, יעד 5 סגירות בחודש, 40–70K למטבח.",
+          "",
+          "━ החשבון (להתאים למספרים שלהם) ━",
+          "5×55K ≈ 275K/חודש · סגירה מביקור ~25% → 20 ביקורים · ביקור מליד ~35% → 60 לידים · ליד יוקרה 100–150 ₪ → מדיה 6–9K/חודש.",
+          "",
+          "━ המשפך ━",
+          "1. תוכן פרימיום: יום צילום באולם + מטבחים מותקנים + ״לקוחות מספרים״.",
+          "2. המודעה מזמינה ל״פגישת תכנון אישית באולם״, לא ״הצעת מחיר״.",
+          "3. טופס סינון: מתי, שלב בנייה, עיר, תקציב 40K+.",
+          "4. ריטרגט כבד (החלטה של 1–3 חודשים).",
+          "5. מעקב: תיאום פגישה, תזכורת, פולואפ אחרי ביקור (CRM / Bossi).",
+          "6. ערוץ אדריכלים ומעצבים: תוכנית שותפים.",
+          "",
+          "━ ההצעה ━",
+          "יום צילום 3,500 · ניהול 4,000/חודש · בונוס 1,000 ₪ על כל מטבח שנסגר מליד שלנו.",
+          "",
+          "━ שאלות לפגישה ━",
+          "• מאיפה מגיעים לקוחות היום? כמה ביקורים באולם בחודש?",
+          "• אחוז סגירה מביקור? עסקה ממוצעת?",
+          "• מי מטפל בלידים ותוך כמה זמן?",
+          "• עבדו עם סוכנות? מה לא עבד?",
+          "• עובדים עם אדריכלים?",
+          "• באילו ערים הלקוחות?",
+          "• מי מחליט על השיווק ומי בפגישה?",
+        ].join("\n"),
+      },
+    ],
+  },
 ];
+
+async function addLeadNotes({ notes, follow_up_date, ...lead }: SeedLeadNotes, today: string) {
+  const leads = getLeadsStore();
+  const phone = intlPhone(lead.phone);
+  const found = (await leads.list()).find((l) => phone && intlPhone(l.phone) === phone);
+  if (!found) {
+    await leads.add({ ...lead, notes: notes ?? null, follow_up_date: follow_up_date ?? today, source: "outreach" });
+    return;
+  }
+  const merged = [found.notes, notes].filter(Boolean).join("\n\n");
+  await leads.update(found.id, { notes: merged, ...(follow_up_date ? { follow_up_date } : {}) });
+}
 
 export async function applySeeds(store: LifeStore) {
   const applied = (await store.getDoc<{ applied: string[] }>("seeds"))?.applied ?? [];
@@ -554,10 +607,11 @@ export async function applySeeds(store: LifeStore) {
   const now = toMinutes(israelNow());
   for (const batch of pending) {
     if (batch.settings) await store.saveSettings(batch.settings);
-    if (batch.leads?.length) {
+    if (batch.leads?.length || batch.leadNotes?.length) {
       // The leads table comes with the site SQL; if it is not there yet, try again next time.
       try {
-        for (const lead of batch.leads) await getLeadsStore().add({ ...lead, follow_up_date: today, source: "outreach" });
+        for (const lead of batch.leads ?? []) await getLeadsStore().add({ ...lead, follow_up_date: today, source: "outreach" });
+        for (const entry of batch.leadNotes ?? []) await addLeadNotes(entry, today);
       } catch (error) {
         console.error("[life/seeds] leads", error);
         const now = (await store.getDoc<{ applied: string[] }>("seeds"))?.applied ?? [];
