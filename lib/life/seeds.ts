@@ -456,6 +456,15 @@ const SEEDS: SeedBatch[] = [
       { name: "דקל קמילה נתניה", phone: "074-7399006", business_type: "מטבחים · נתניה (רשת)", notes: "המלאכה 22, נתניה. רשת ארצית: לבקש את מנהל השיווק." },
     ],
   },
+  {
+    // The Netanya kitchens campaign went live on 4.10 (WhatsApp clicks, 50 ₪/day). Check it tonight,
+    // and start retargeting the engaged audience two weeks in.
+    id: "2026-10-04-kitchens-campaign",
+    reminders: [
+      { date: "2026-10-04", time: "20:00", text: "📊 לבדוק את קמפיין המטבחים בנתניה: כמה הוצא, כמה הודעות וואטסאפ נכנסו, ולענות לכולן." },
+      { date: "2026-10-18", time: "10:00", text: "🎯 שבועיים לקמפיין המטבחים: להתחיל קמפיין ריטרגט על הקהל \"ריטרגט - מעורבים בעמוד NOKS 90 יום\"." },
+    ],
+  },
 ];
 
 export async function applySeeds(store: LifeStore) {
