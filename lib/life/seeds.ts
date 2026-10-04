@@ -5,7 +5,7 @@ import { setInviteText } from "./guests";
 import { appendGoal } from "./growth";
 import type { Goal } from "./growth-types";
 import { getLessonsStore } from "./lessons";
-import { getLeadsStore, intlPhone } from "./leads";
+import { getLeadsStore, intlPhone, type LeadPatch } from "./leads";
 import type { Area, Settings } from "./types";
 import { israelNow, israelToday, toMinutes } from "./time";
 
@@ -38,7 +38,35 @@ type SeedBatch = {
   leadNotes?: SeedLeadNotes[];
 };
 type SeedLead = { name: string; phone: string; business_type?: string; notes?: string };
-type SeedLeadNotes = SeedLead & { follow_up_date?: string };
+type SeedLeadNotes = SeedLead & { follow_up_date?: string; status?: LeadPatch["status"] };
+
+// The Hausmaster meeting plan (5.10), kept on their lead.
+const HAUSMASTER_PLAN = [
+  "📅 פגישה 5.10 11:30 · הגביש 4. מטבחי יוקרה, יעד 5 סגירות בחודש, 40–70K למטבח.",
+  "",
+  "━ החשבון (להתאים למספרים שלהם) ━",
+  "5×55K ≈ 275K/חודש · סגירה מביקור ~25% → 20 ביקורים · ביקור מליד ~35% → 60 לידים · ליד יוקרה 100–150 ₪ → מדיה 6–9K/חודש.",
+  "",
+  "━ המשפך ━",
+  "1. תוכן פרימיום: יום צילום באולם + מטבחים מותקנים + ״לקוחות מספרים״.",
+  "2. המודעה מזמינה ל״פגישת תכנון אישית באולם״, לא ״הצעת מחיר״.",
+  "3. טופס סינון: מתי, שלב בנייה, עיר, תקציב 40K+.",
+  "4. ריטרגט כבד (החלטה של 1–3 חודשים).",
+  "5. מעקב: תיאום פגישה, תזכורת, פולואפ אחרי ביקור (CRM / Bossi).",
+  "6. ערוץ אדריכלים ומעצבים: תוכנית שותפים.",
+  "",
+  "━ ההצעה ━",
+  "יום צילום 3,500 · ניהול 4,000/חודש · בונוס 1,000 ₪ על כל מטבח שנסגר מליד שלנו.",
+  "",
+  "━ שאלות לפגישה ━",
+  "• מאיפה מגיעים לקוחות היום? כמה ביקורים באולם בחודש?",
+  "• אחוז סגירה מביקור? עסקה ממוצעת?",
+  "• מי מטפל בלידים ותוך כמה זמן?",
+  "• עבדו עם סוכנות? מה לא עבד?",
+  "• עובדים עם אדריכלים?",
+  "• באילו ערים הלקוחות?",
+  "• מי מחליט על השיווק ומי בפגישה?",
+  ].join("\n");
 
 const SEEDS: SeedBatch[] = [
   {
@@ -553,47 +581,30 @@ const SEEDS: SeedBatch[] = [
         phone: "052-2154648",
         business_type: "מטבחים · נתניה (אולם תצוגה)",
         follow_up_date: "2026-10-05",
-        notes: [
-          "📅 פגישה 5.10 11:30 · הגביש 4. מטבחי יוקרה, יעד 5 סגירות בחודש, 40–70K למטבח.",
-          "",
-          "━ החשבון (להתאים למספרים שלהם) ━",
-          "5×55K ≈ 275K/חודש · סגירה מביקור ~25% → 20 ביקורים · ביקור מליד ~35% → 60 לידים · ליד יוקרה 100–150 ₪ → מדיה 6–9K/חודש.",
-          "",
-          "━ המשפך ━",
-          "1. תוכן פרימיום: יום צילום באולם + מטבחים מותקנים + ״לקוחות מספרים״.",
-          "2. המודעה מזמינה ל״פגישת תכנון אישית באולם״, לא ״הצעת מחיר״.",
-          "3. טופס סינון: מתי, שלב בנייה, עיר, תקציב 40K+.",
-          "4. ריטרגט כבד (החלטה של 1–3 חודשים).",
-          "5. מעקב: תיאום פגישה, תזכורת, פולואפ אחרי ביקור (CRM / Bossi).",
-          "6. ערוץ אדריכלים ומעצבים: תוכנית שותפים.",
-          "",
-          "━ ההצעה ━",
-          "יום צילום 3,500 · ניהול 4,000/חודש · בונוס 1,000 ₪ על כל מטבח שנסגר מליד שלנו.",
-          "",
-          "━ שאלות לפגישה ━",
-          "• מאיפה מגיעים לקוחות היום? כמה ביקורים באולם בחודש?",
-          "• אחוז סגירה מביקור? עסקה ממוצעת?",
-          "• מי מטפל בלידים ותוך כמה זמן?",
-          "• עבדו עם סוכנות? מה לא עבד?",
-          "• עובדים עם אדריכלים?",
-          "• באילו ערים הלקוחות?",
-          "• מי מחליט על השיווק ומי בפגישה?",
-        ].join("\n"),
+        notes: HAUSMASTER_PLAN,
       },
     ],
   },
+  {
+    // The plan did not show on the lead (5.10); written again, skipped if it is already there.
+    // He said it is in closing: a face-to-face sales meeting at their showroom tomorrow.
+    id: "2026-10-04-hausmaster-plan-2",
+    leadNotes: [{ name: "Hausmaster", phone: "052-2154648", follow_up_date: "2026-10-05", status: "qualified", notes: HAUSMASTER_PLAN }],
+  },
 ];
 
-async function addLeadNotes({ notes, follow_up_date, ...lead }: SeedLeadNotes, today: string) {
+async function addLeadNotes({ notes, follow_up_date, status, ...lead }: SeedLeadNotes, today: string) {
   const leads = getLeadsStore();
   const phone = intlPhone(lead.phone);
   const found = (await leads.list()).find((l) => phone && intlPhone(l.phone) === phone);
   if (!found) {
-    await leads.add({ ...lead, notes: notes ?? null, follow_up_date: follow_up_date ?? today, source: "outreach" });
+    await leads.add({ ...lead, notes: notes ?? null, follow_up_date: follow_up_date ?? today, source: "outreach", ...(status ? { status } : {}) });
     return;
   }
-  const merged = [found.notes, notes].filter(Boolean).join("\n\n");
-  await leads.update(found.id, { notes: merged, ...(follow_up_date ? { follow_up_date } : {}) });
+  // Notes already there (an earlier batch with the same text) are not added twice.
+  const firstLine = notes?.split("\n")[0] ?? "";
+  const merged = !notes || found.notes?.includes(firstLine) ? found.notes : [found.notes, notes].filter(Boolean).join("\n\n");
+  await leads.update(found.id, { notes: merged, ...(follow_up_date ? { follow_up_date } : {}), ...(status ? { status } : {}) });
 }
 
 export async function applySeeds(store: LifeStore) {

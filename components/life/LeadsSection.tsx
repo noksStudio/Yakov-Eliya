@@ -95,6 +95,13 @@ function LeadCard({ lead, today, onChange, onDeal, onError }: { lead: Lead; toda
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notes, setNotes] = useState(lead.notes ?? "");
+  // Notes changed elsewhere (a reload) replace an untouched draft, so leaving the box never saves
+  // the old text over the new one.
+  const [notesBase, setNotesBase] = useState(lead.notes ?? "");
+  if ((lead.notes ?? "") !== notesBase) {
+    setNotesBase(lead.notes ?? "");
+    if (notes === notesBase) setNotes(lead.notes ?? "");
+  }
   const [dealForm, setDealForm] = useState(false);
   const [value, setValue] = useState("");
   const [next, setNext] = useState("");
