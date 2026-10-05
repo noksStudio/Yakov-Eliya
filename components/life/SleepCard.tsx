@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Moon, Sun } from "lucide-react";
-import { toMinutes } from "@/lib/life/time";
+import { fromMinutes, toMinutes } from "@/lib/life/time";
 import { lifeApi } from "./api";
 import { LIFE_CHANGED } from "./QuickCapture";
 
@@ -24,7 +24,8 @@ const hours = (h: number) => {
 
 /**
  * Night: "הולך לישון" (from an hour before the wind-down until 04:00). Asleep: "קמתי", which
- * records the night's hours. The morning after: how long he slept, until noon.
+ * records the night's hours. A morning with nothing tapped at night: "קמתי" with when he went to
+ * sleep. The morning after: how long he slept, until noon.
  */
 export function SleepCard({ date, now }: { date: string; now: string }) {
   const [sleep, setSleep] = useState<Sleep | null>(null);
@@ -38,11 +39,11 @@ export function SleepCard({ date, now }: { date: string; now: string }) {
   }, []);
   useEffect(load, [load]);
 
-  const act = async (action: "sleep" | "wake") => {
+  const act = async (action: "sleep" | "wake", slept_at?: string) => {
     setBusy(true);
     setError(null);
     try {
-      const d = await lifeApi<{ sleep: Sleep }>("/sleep", { method: "POST", body: { action } });
+      const d = await lifeApi<{ sleep: Sleep }>("/sleep", { method: "POST", body: { action, slept_at } });
       setSleep(d.sleep);
       window.dispatchEvent(new Event(LIFE_CHANGED));
     } catch (e) {
@@ -91,7 +92,30 @@ export function SleepCard({ date, now }: { date: string; now: string }) {
     );
   }
 
-  if (sleep.last?.date === date && minutes < toMinutes("12:00")) {
+  const morning = minutes >= toMinutes("04:00") && minutes < toMinutes("12:00");
+  if (morning && sleep.last?.date !== date) {
+    // Times around the planned bedtime, for the night "הולך לישון" was not tapped.
+    const bed = toMinutes(sleep.bedtime);
+    const choices = [-60, -30, 0, 30, 60, 90, 120].map((d) => fromMinutes((bed + d + 1440) % 1440));
+    return (
+      <section className="grid gap-2.5 rounded-2xl border border-amber-300/20 bg-amber-400/[0.06] p-4" aria-label="שינה">
+        <p className="text-sm">
+          <span className="block font-bold">☀️ בוקר טוב! קמתי, והלכתי לישון ב־</span>
+          <span className="text-xs text-muted">בוחרים את השעה, והשעות נרשמות לבד</span>
+        </p>
+        <div className="flex flex-wrap gap-2" dir="ltr">
+          {choices.map((t) => (
+            <button key={t} type="button" onClick={() => act("wake", t)} disabled={busy} className="rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold tabular-nums disabled:opacity-60">
+              {t}
+            </button>
+          ))}
+        </div>
+        {error && <p className="text-xs text-red-300">{error}</p>}
+      </section>
+    );
+  }
+
+  if (sleep.last?.date === date && morning) {
     const ok = sleep.last.hours >= sleep.targetHours - 0.25;
     return (
       <p className={`rounded-2xl border px-4 py-2.5 text-sm ${ok ? "border-emerald-400/25 bg-emerald-400/[0.06]" : "border-amber-400/25 bg-amber-400/[0.06]"}`}>

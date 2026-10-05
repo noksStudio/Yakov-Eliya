@@ -1,7 +1,7 @@
 import type { LifeStore } from "./store";
 import type { Settings } from "./types";
 import { israelToUtc } from "./ics";
-import { fromMinutes, israelNow, israelToday, toMinutes } from "./time";
+import { addDays, fromMinutes, israelNow, israelToday, toMinutes } from "./time";
 
 // Sleep, without filling anything in: "הולך לישון" at night and "קמתי" in the morning (in the app
 // or from the Telegram buttons) give the night's hours, which go straight into the check-in.
@@ -36,8 +36,14 @@ export async function goToSleep(store: LifeStore, at = new Date()) {
  * The night is over: its hours go into that morning's check-in. `at` is when he woke (a time
  * picked from the morning question, or now).
  */
-export async function wakeUp(store: LifeStore, at = new Date()): Promise<{ hours: number; date: string; time: string } | { error: string }> {
-  const doc = await loadSleep(store);
+export async function wakeUp(
+  store: LifeStore,
+  at = new Date(),
+  /** When "הולך לישון" was not tapped: the bedtime he picks in the morning ("23:30"). */
+  sleptAt?: string,
+): Promise<{ hours: number; date: string; time: string } | { error: string }> {
+  const loaded = await loadSleep(store);
+  const doc = loaded.asleep_at || !sleptAt ? loaded : { ...loaded, asleep_at: lastNightAt(sleptAt, at).toISOString() };
   if (!doc.asleep_at) return { error: "לא נרשם מתי הלכת לישון. אפשר לכתוב את שעות השינה בסיכום הבוקר." };
   const hours = Math.round(((at.getTime() - Date.parse(doc.asleep_at)) / 3_600_000) * 4) / 4;
   if (hours <= 0 || hours > MAX_HOURS) {
@@ -49,6 +55,12 @@ export async function wakeUp(store: LifeStore, at = new Date()): Promise<{ hours
   const night: Night = { date, asleep_at: doc.asleep_at, woke_at: at.toISOString(), hours };
   await store.saveDoc<SleepDoc>("sleep", { asleep_at: null, nights: [...doc.nights.filter((n) => n.date !== date), night].slice(-KEEP_NIGHTS) });
   return { hours, date, time: hm(at.toISOString()) };
+}
+
+/** A bedtime picked in the morning, as a moment: an evening time is yesterday, a small-hours time today. */
+export function lastNightAt(time: string, now = new Date()) {
+  const today = israelToday(now);
+  return israelToUtc(toMinutes(time) >= toMinutes("12:00") ? addDays(today, -1) : today, time);
 }
 
 /** "06:30" this morning, as a moment (for the wake-up buttons in the morning message). */
