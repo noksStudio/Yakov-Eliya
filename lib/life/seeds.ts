@@ -653,6 +653,17 @@ const SEEDS: SeedBatch[] = [
     ],
   },
   {
+    // The 20:00 campaign check (5.10), done by Claude; arrives as a reminder at 20:20.
+    id: "2026-10-05-campaign-check",
+    reminders: [
+      {
+        date: "2026-10-05",
+        time: "20:20",
+        text: "📊 קמפיין המטבחים (נבדק 20:00): היום 38 ₪ · 576 חשיפות · 5 קליקים · 🎉 שיחת וואטסאפ ראשונה! סה״כ: 77 ₪, שיחה 1. עלות החשיפות ירדה (90→67 ₪). אין שגיאות. לענות לשיחה אם עוד לא; ממשיכים בלי שינוי.",
+      },
+    ],
+  },
+  {
     // Told in chat (5.10): a mobile podcast for professionals, as part of Noks; a pilot call list.
     id: "2026-10-05-mobile-podcast",
     ideas: [
