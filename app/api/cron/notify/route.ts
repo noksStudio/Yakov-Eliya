@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { runAdsRest } from "@/lib/life/ads-rest";
 import { runNotifications } from "@/lib/life/notify";
 import { getOpsStore } from "@/lib/life/ops-store";
 import { getLifeStore, isDemoStore } from "@/lib/life/store";
@@ -37,6 +38,8 @@ async function handle(request: Request) {
     if (!dry) {
       await store.saveDoc("cron_seen", { at: new Date().toISOString() });
       await ensureWebhook(store, url.origin).catch((error) => console.error("[life/notify] webhook", error));
+      // His own ad account rests on Shabbat and Yom Tov (paused before, back on after).
+      await runAdsRest(store).catch((error) => console.error("[life/ads-rest]", error));
     }
     return NextResponse.json(await runNotifications(store, getOpsStore(), url.origin, { dry, now }));
   } catch (error) {

@@ -30,6 +30,7 @@ const ENV: { name: string; purpose: string; optional?: boolean }[] = [
   { name: "TELEGRAM_BOT_TOKEN", purpose: "בוט הטלגרם וההתראות" },
   { name: "RESEND_API_KEY", purpose: "מייל על כל ליד חדש מהאתר", optional: true },
   { name: "LEAD_NOTIFICATION_EMAIL", purpose: "לאן לשלוח את המייל על ליד", optional: true },
+  { name: "META_ACCESS_TOKEN", purpose: "השהיית הקמפיינים של noks.studio בשבת ובחג (רק חשבון המודעות שלך)", optional: true },
 ];
 
 // Every table in supabase/life.sql, with the columns added later by "alter table" (the ones an
