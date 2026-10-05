@@ -61,9 +61,11 @@ export const whatsappUrl = (phone: string | null | undefined, text?: string) => 
 /** A mobile number (05x), the only kind that has WhatsApp for sure. */
 export const isMobile = (phone: string | null | undefined) => /^9725\d{8}$/.test(intlPhone(phone) ?? "");
 
-/** The first message to a business he reaches out to (source "outreach"). */
-export const outreachMessage = (name: string) =>
-  `היי, כאן יעקב מ־Noks Studio 👋\nראיתי את ${name} ורציתי לשתף משהו קצר: עסק מטבחים שעבדתי איתו עבר מ־0 ל־25 אלף ₪ בסגירות כבר בחודש הראשון, מקמפיינים ממומנים.\nאשמח להראות לך בשיחה של 10 דקות איך זה יכול לעבוד גם אצלכם. מתי נוח לך?`;
+/** The first WhatsApp message to a business on a call list: the kitchens case, or the podcast pilot. */
+export const outreachMessage = (name: string, businessType?: string | null) =>
+  businessType?.includes("פודקאסט")
+    ? `היי, כאן יעקב מ־Noks Studio 👋\nאני מקים פודקאסט נייד לאנשי מקצוע בנתניה: מגיע אליך למשרד עם ציוד מלא, שעה של שיחה, ויוצאים לך מזה 10–12 סרטונים קצרים לרשתות.\nאני מחפש 3 משרדים לפרקי פיילוט בתנאים מיוחדים. מתאים לך לשמוע פרטים?`
+    : `היי, כאן יעקב מ־Noks Studio 👋\nראיתי את ${name} ורציתי לשתף משהו קצר: עסק מטבחים שעבדתי איתו עבר מ־0 ל־25 אלף ₪ בסגירות כבר בחודש הראשון, מקמפיינים ממומנים.\nאשמח להראות לך בשיחה של 10 דקות איך זה יכול לעבוד גם אצלכם. מתי נוח לך?`;
 export const telUrl = (phone: string | null | undefined) => {
   const intl = intlPhone(phone);
   return intl ? `tel:+${intl}` : null;

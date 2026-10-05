@@ -39,7 +39,7 @@ type SeedBatch = {
   /** A check done for him: today's reminder to check is replaced by what was found. */
   reminderResults?: { date: string; textIncludes: string; text: string }[];
 };
-type SeedLead = { name: string; phone: string; business_type?: string; notes?: string };
+type SeedLead = { name: string; phone: string; business_type?: string; notes?: string; follow_up_date?: string };
 type SeedLeadNotes = SeedLead & { follow_up_date?: string; status?: LeadPatch["status"] };
 
 // The Hausmaster meeting plan (5.10), kept on their lead.
@@ -652,6 +652,59 @@ const SEEDS: SeedBatch[] = [
       },
     ],
   },
+  {
+    // Told in chat (5.10): a mobile podcast for professionals, as part of Noks; a pilot call list.
+    id: "2026-10-05-mobile-podcast",
+    ideas: [
+      {
+        title: "פודקאסט נייד לאנשי מקצוע (חלק מ־Noks)",
+        area: "business",
+        status: "exploring",
+        notes: [
+          "מגיעים לעסק (עו״ד, שמאים, רו״ח ועוד) עם אולפן נייד, מקליטים שיחה, והלקוח מקבל את ההיילייטים כתוכן אותנטי לרשתות. מוצר של Noks, לא עסק נפרד (שלא יפזר את המיקוד).",
+          "",
+          "━━ למה זה עובד ━━",
+          "• אמינות: מומחה שמסביר בשיחה פתוחה, לא פרסומת. • אפס כאב ראש ללקוח: אין תסריט, אני שואל והוא עונה. • הרחבה של יום הצילום לקהל חדש שמשלם טוב.",
+          "",
+          "━━ המוצר ━━",
+          "• פרק בודד: 45 דק׳ במשרד + הפרק המלא + 10–12 רילסים: 2,500–3,500 ₪.",
+          "• חבילה חודשית: 2 הקלטות + 20–24 רילסים + העלאה לרשתות: 4,500–6,000 ₪/חודש.",
+          "",
+          "━━ ציוד נייד (~5–8K ₪) ━━",
+          "2 מצלמות/טלפונים + זווית רחבה · 2 DJI Mic 2 · 2 תאורות קטנות · חיתוך ראשוני ב־AI (Opus Clip / CapCut) וגימור ידני.",
+          "",
+          "━━ מסר ━━",
+          "\"אני מגיע אליך למשרד עם אולפן נייד. שעה אחת, ויש לך תוכן לחודש.\"",
+          "",
+          "רשימת פיילוט (15 משרדים בנתניה) נוספה ללידים עם הודעת וואטסאפ מותאמת. הטלפונים מחיפוש ברשת: לוודא בשיחה.",
+        ].join("\n"),
+        steps: [
+          "להציע ללקוחות הקיימים כתוספת",
+          "פנייה ל־15 משרדי הפיילוט (לידים: ״פודקאסט״)",
+          "לסגור 3 פרקי פיילוט (חינם / הנחה גדולה) ולבנות דוגמאות",
+          "להשלים ציוד: 2 מיקרופונים אלחוטיים + 2 תאורות",
+          "להפוך את הפיילוטים להמלצות ולמחירון קבוע",
+        ],
+      },
+    ],
+    leads: [
+      { name: "עו״ד תמיר אלטיט", phone: "054-5577862", business_type: "עו״ד פלילי · נתניה (פודקאסט)", follow_up_date: "2026-10-07" },
+      { name: "עו״ד חיים אליה", phone: "052-4424221", business_type: "עו״ד תעבורה · נתניה (פודקאסט)", follow_up_date: "2026-10-07" },
+      { name: "עו״ד איתיאל היקרי", phone: "09-8871717", business_type: "עו״ד משפחה ומקרקעין · נתניה (פודקאסט)", notes: "קווי: להתקשר ולבקש את הנייד.", follow_up_date: "2026-10-07" },
+      { name: "עו״ד אילנית שבת (חלפון)", phone: "09-8335765", business_type: "עו״ד · נתניה (פודקאסט)", notes: "קווי: להתקשר ולבקש את הנייד.", follow_up_date: "2026-10-07" },
+      { name: "מוטי מינץ, שמאי מקרקעין", phone: "050-8868871", business_type: "שמאי מקרקעין · נתניה (פודקאסט)", follow_up_date: "2026-10-07" },
+      { name: "מנשה לייבוביץ, שמאות מקרקעין", phone: "052-4666464", business_type: "שמאי מקרקעין · נתניה (פודקאסט)", notes: "עמק חפר 40, נתניה.", follow_up_date: "2026-10-07" },
+      { name: "דורון לוי, שמאי מקרקעין", phone: "052-3872012", business_type: "שמאי מקרקעין · נתניה (פודקאסט)", notes: "הגליל 30, נתניה.", follow_up_date: "2026-10-07" },
+      { name: "דניאל ביטון, שמאי מקרקעין", phone: "054-2352911", business_type: "שמאי מקרקעין · נתניה (פודקאסט)", notes: "סוקולוב 45, נתניה.", follow_up_date: "2026-10-07" },
+      { name: "אייל נקב, שמאי מקרקעין", phone: "050-5755190", business_type: "שמאי מקרקעין · נתניה (פודקאסט)", notes: "הקליר 11, נתניה.", follow_up_date: "2026-10-07" },
+      { name: "דוד טיגרמן, שמאי מקרקעין", phone: "09-8625277", business_type: "שמאי מקרקעין · נתניה (פודקאסט)", notes: "גיבורי ישראל 13. קווי: לבקש נייד.", follow_up_date: "2026-10-07" },
+      { name: "רו״ח ענת דדוש", phone: "050-2858505", business_type: "רו״ח · נתניה (פודקאסט)", follow_up_date: "2026-10-07" },
+      { name: "רו״ח קובי פוגל", phone: "09-7725060", business_type: "רו״ח · נתניה (פודקאסט)", notes: "המלאכה 2, פולגת. קווי: לבקש נייד.", follow_up_date: "2026-10-07" },
+      { name: "רו״ח שחר בן עזרא", phone: "09-3813811", business_type: "רו״ח · נתניה (פודקאסט)", notes: "גיבורי ישראל 24. קווי: לבקש נייד.", follow_up_date: "2026-10-07" },
+      { name: "טל כרמלי ושות׳ רו״ח", phone: "09-8877313", business_type: "רו״ח · נתניה (פודקאסט)", notes: "הגביש 6. קווי: לבקש נייד.", follow_up_date: "2026-10-07" },
+      { name: "שמש ששון ושות׳ רו״ח", phone: "051-5555567", business_type: "רו״ח · נתניה (פודקאסט)", follow_up_date: "2026-10-07" },
+    ],
+  },
 ];
 
 async function addLeadNotes({ notes, follow_up_date, status, ...lead }: SeedLeadNotes, today: string) {
@@ -682,7 +735,7 @@ export async function applySeeds(store: LifeStore) {
     if (batch.leads?.length || batch.leadNotes?.length) {
       // The leads table comes with the site SQL; if it is not there yet, try again next time.
       try {
-        for (const lead of batch.leads ?? []) await getLeadsStore().add({ ...lead, follow_up_date: today, source: "outreach" });
+        for (const lead of batch.leads ?? []) await getLeadsStore().add({ ...lead, follow_up_date: lead.follow_up_date ?? today, source: "outreach" });
         for (const entry of batch.leadNotes ?? []) await addLeadNotes(entry, today);
       } catch (error) {
         console.error("[life/seeds] leads", error);

@@ -110,7 +110,7 @@ function LeadCard({ lead, today, onChange, onDeal, onError }: { lead: Lead; toda
   // Outreach: the first message comes ready, and only a mobile number gets the WhatsApp button
   // (an 072 directory number or a landline has no WhatsApp).
   const outreach = lead.source === "outreach";
-  const wa = outreach ? (isMobile(lead.phone) ? whatsappUrl(lead.phone, outreachMessage(lead.name ?? "העסק")) : null) : whatsappUrl(lead.phone);
+  const wa = outreach ? (isMobile(lead.phone) ? whatsappUrl(lead.phone, outreachMessage(lead.name ?? "העסק", lead.business_type)) : null) : whatsappUrl(lead.phone);
 
   const patch = async (body: Record<string, unknown>) => {
     setBusy(true);
